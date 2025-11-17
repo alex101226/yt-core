@@ -70,6 +70,7 @@ class AliyunClient:
         """
         request = ecs_models.DescribeVSwitchesRequest(region_id=region_id, vpc_id=vpc_id)
         response = self.client.describe_vswitches(request)
+        vswitch_list = getattr(response.body.vswitches, "vswitch", []) or []
         return [
             {
                 "vswitch_id": v.vswitch_id,
@@ -77,7 +78,7 @@ class AliyunClient:
                 "cidr_block": v.cidr_block,
                 "zone_id": v.zone_id,
             }
-            for v in response.body.vswitches.vswitch
+            for v in vswitch_list
         ]
 
     # --------------------------

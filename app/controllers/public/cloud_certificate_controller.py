@@ -13,7 +13,7 @@ def create_certificate(data: CloudCertificateCreate, service: CloudCertificateSe
     obj = service.create_certificate(**data.model_dump())
     return Response.success(obj)
 
-@router.get("/pageList", response_model=CloudCertificatePage)
+@router.get("/page_list", response_model=CloudCertificatePage)
 def list_certificates(page: int = Query(1, ge=1), page_size: int = Query(10, ge=1, le=100),
                       service: CloudCertificateService = Depends(get_cloud_certificate_service)):
     total, items = service.list_certificates(page, page_size)

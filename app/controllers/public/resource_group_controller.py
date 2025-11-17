@@ -37,7 +37,7 @@ def delete_group(
     return Response.success(message="删除成功")
 
 # 分页查询资源组
-@router.get("/pageList", response_model=ResourceGroupPage)
+@router.get("/page_list", response_model=ResourceGroupPage)
 def list_groups(
     page: int = Query(1, ge=1, description="页码（从1开始）"),
     page_size: int = Query(10, ge=1, le=100, description="每页条数"),

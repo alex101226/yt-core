@@ -47,7 +47,7 @@ def delete_provider(
 
 
 # 分页
-@router.get("/pageList", response_model=CloudProviderPage)
+@router.get("/page_list", response_model=CloudProviderPage)
 def list_providers(
     page: int = Query(1, ge=1),
     page_size: int = Query(10, ge=1, le=100),

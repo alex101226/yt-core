@@ -1,12 +1,20 @@
 # app/services/public/cloud_vpc_service.py
 from typing import List
 from sqlalchemy.orm import Session
+from nanoid import generate
 
-from app.schemas.cmp.vpc_schema import VpcOut
+from app.schemas.cmp.vpc_schema import VpcOut, VpcCreate
 from app.clients.cloud_client_factory import CloudClientFactory
 from app.repositories.public.cloud_provider_repo import CloudProviderRepository
 from app.repositories.cmp.vpc_repo import VpcRepository
 from app.core.logger import logger
+from app.common.status_code import ErrorCode
+from app.common.messages import Message
+
+
+def gen_vpc_id():
+    return generate(size=12)  # 12 位随机ID
+
 
 class VPCService:
     """
@@ -65,4 +73,29 @@ class VPCService:
     # 返回带分页的vpc
     def list_page(self, provider_code: str, region_id: str, page: int, page_size: int):
         return self.vpc_repo.list_page(provider_code, region_id, page, page_size)
+
+        # --------------------------------
+        # 创建单个 VPC
+        # --------------------------------
+
+    def create(self, data: VpcCreate) -> VpcOut:
+        # 生成随机 vpc_id
+        vpc_id = gen_vpc_id()
+        payload = data.model_dump()
+        payload.setdefault("vpc_id", vpc_id)
+
+        obj = self.vpc_repo.create(payload)
+        return VpcOut.model_validate(obj)
+
+    # 释放逻辑
+    def release(self, vpc_id: int) -> VpcOut:
+        vpc = self.vpc_repo.get(vpc_id)
+        if not vpc:
+            raise BusinessException(code=ErrorCode.DATA_NOT_FOUND, message=Message.DATA_NOT_FOUND)
+
+        if vpc.is_released:
+            raise BusinessException(code=ErrorCode.CLOUD_PROVIDER_NOT_FOUND, message= '该 VPC 已释放，无需重复释放')
+
+        vpc = self.vpc_repo.release(vpc)
+        return VpcOut.model_validate(vpc)
 

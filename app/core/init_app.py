@@ -14,7 +14,9 @@ cloud_zone_router,
 cloud_certificate_router,
 resource_group_router,
 resource_group_binding_router,
-vpc_router
+dict_router,
+vpc_router,
+subnet_router
 )
 
 
@@ -51,7 +53,9 @@ def create_app() -> FastAPI:
         cloud_certificate_router,
         resource_group_router,
         resource_group_binding_router,
-        vpc_router
+        dict_router,
+        vpc_router,
+        subnet_router
     ]
     for r in routers:
         app.include_router(r, prefix=settings.API_PREFIX)

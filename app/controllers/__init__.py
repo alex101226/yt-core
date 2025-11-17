@@ -8,4 +8,6 @@ from .public.cloud_certificate_controller import router as cloud_certificate_rou
 from .public.resource_group_controller import router as resource_group_router
 from .public.resource_group_binding_controller import router as resource_group_binding_router
 
+from.cmp.dict_controller import router as dict_router
 from .cmp.vpc_controller import router as vpc_router
+from .cmp.subnet_controller import router as subnet_router
