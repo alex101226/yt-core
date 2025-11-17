@@ -1,0 +1,7 @@
+/alembic/public/versions/
+/alembic/cmp/versions/
+/.venv
+
+logs/
+
+start.sh
