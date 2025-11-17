@@ -1,0 +1,18 @@
+sso迁移命令:
+alembic -c alembic/sso/alembic.ini revision --autogenerate -m "create 迁移文件名 table"
+alembic -c alembic/sso_auth/alembic.ini upgrade head
+
+
+public迁移命令:
+alembic -c alembic/public/alembic.ini revision --autogenerate -m "create 迁移文件名 table"
+alembic -c alembic/public/alembic.ini upgrade head
+
+算力系统迁移命令：
+alembic -c alembic/cmp/alembic.ini revision --autogenerate -m "create 表名呗 table"
+alembic -c alembic/cmp/alembic.ini upgrade head
+
+
+进入虚拟环境：source .venv/bin/activate
+
+获取api文档：curl http://127.0.0.1:8080/openapi.json -o openapi.json
+生成静态api文档：npx @redocly/cli build-docs openapi.json -o api.html
