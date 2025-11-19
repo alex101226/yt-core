@@ -28,6 +28,12 @@ class Vpc(CmpBase):
     # 网络类型
     network_type = Column(String(20), nullable=False, comment="网络类型，例如 VPC/CLASSIC")
 
+    sync_status = Column(
+        Integer,
+        default=0,
+        comment="同步状态：0未同步，1已同步，2待更新，3删除中"
+    )
+
     # 逻辑释放
     is_released = Column(Boolean, default=False, nullable=False, comment="是否已释放")
     released_at = Column(DateTime(timezone=True), nullable=True, comment="释放时间 (UTC)")

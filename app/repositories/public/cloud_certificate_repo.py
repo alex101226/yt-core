@@ -1,4 +1,4 @@
-from typing import Optional, Tuple, List
+from typing import Optional, Tuple, List, Any
 from sqlalchemy.orm import Session
 from app.models.public.cloud_certificate import CloudCertificate
 
@@ -19,7 +19,7 @@ class CloudCertificateRepository:
     def get_by_code(self, cloud_code: str) -> Optional[CloudCertificate]:
         return self.db.query(CloudCertificate).filter_by(cloud_code=cloud_code).first()
 
-    def list_page(self, page: int, page_size: int) -> Tuple[int, List[CloudCertificate]]:
+    def list_page(self, page: int, page_size: int) -> tuple[int, list[type[CloudCertificate]]]:
         q = self.db.query(CloudCertificate).order_by(CloudCertificate.id.desc())
         total = q.count()
         items = q.offset((page - 1) * page_size).limit(page_size).all()

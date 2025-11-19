@@ -1,7 +1,7 @@
 # app/services/public/cloud_vpc_service.py
 from typing import List
 from sqlalchemy.orm import Session
-from nanoid import generate
+# from nanoid import generate
 
 from app.schemas.cmp.vpc_schema import VpcOut, VpcCreate
 from app.clients.cloud_client_factory import CloudClientFactory
@@ -10,11 +10,6 @@ from app.repositories.cmp.vpc_repo import VpcRepository
 from app.core.logger import logger
 from app.common.status_code import ErrorCode
 from app.common.messages import Message
-
-
-def gen_vpc_id():
-    return generate(size=12)  # 12 位随机ID
-
 
 class VPCService:
     """
@@ -79,12 +74,7 @@ class VPCService:
         # --------------------------------
 
     def create(self, data: VpcCreate) -> VpcOut:
-        # 生成随机 vpc_id
-        vpc_id = gen_vpc_id()
-        payload = data.model_dump()
-        payload.setdefault("vpc_id", vpc_id)
-
-        obj = self.vpc_repo.create(payload)
+        obj = self.vpc_repo.create(data.model_dump())
         return VpcOut.model_validate(obj)
 
     # 释放逻辑
@@ -98,4 +88,3 @@ class VPCService:
 
         vpc = self.vpc_repo.release(vpc)
         return VpcOut.model_validate(vpc)
-

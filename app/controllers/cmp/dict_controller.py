@@ -1,6 +1,6 @@
 from typing import Optional, List
 
-from fastapi import APIRouter, Depends, Query, HTTPException
+from fastapi import APIRouter, Depends, Query
 
 from app.common.response import Response
 from app.schemas.cmp.dict_schema import DictItemCreate, DictItemUpdate, DictItemOut, DictItemListOut

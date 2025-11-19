@@ -1,5 +1,5 @@
 # app/clients/aliyun_client.py
-from typing import List
+from typing import List, Optional
 from alibabacloud_ecs20140526.client import Client as EcsClient
 from alibabacloud_ecs20140526 import models as ecs_models
 from app.common.credentials_manager import CredentialsManager
@@ -132,6 +132,63 @@ class AliyunClient:
                 {"code": "PayAsYouGo", "name": "按量付费"},
                 {"code": "PrePaid", "name": "包年包月"}
             ]
+
+
+# -----------------------------------------------------------
+    # 获取安全组列表（分页）
+    # -----------------------------------------------------------
+    def list_security_groups(self, region_id: Optional[str] = None, vpc_id: Optional[str] = None, page: int = 1, page_size: int = 50):
+        # ---- 正确：构建阿里云 Request 对象 ----
+        req = ecs_models.DescribeSecurityGroupsRequest(
+            region_id=region_id,
+            vpc_id=vpc_id,
+            page_number=page,
+            page_size=page_size,
+        )
+        # ---- 正确：不再传 dict ----
+        resp = self.client.describe_security_groups(req)
+
+        # ---- 阿里云返回是 TeaModel，应转成 dict ----
+        resp_dict = resp.to_map() if hasattr(resp, "to_map") else resp
+
+        items = []
+        total = 0
+
+        try:
+            # 适配阿里云 ECS 返回结构
+            gs = (
+                resp_dict.get("body", {})
+                .get("SecurityGroups", {})
+                .get("SecurityGroup", [])
+            )
+
+            total = (
+                resp_dict.get("body", {}).get("TotalCount", len(gs))
+            )
+
+            for g in gs:
+                items.append({
+                    "SecurityGroupId": g.get("SecurityGroupId"),
+                    "SecurityGroupName": g.get("SecurityGroupName"),
+                    "Description": g.get("Description"),
+                    "VpcId": g.get("VpcId"),
+                    "ResourceGroupId": g.get("ResourceGroupId"),
+                })
+
+        except Exception as e:
+            print("Parse SecurityGroup Error:", e)
+
+        return {"total": total, "items": items}
+
+    # -----------------------------------------------------------
+    # 获取安全组规则（入/出方向）
+    # -----------------------------------------------------------
+    def get_security_group_rules(self, security_group_id: str):
+        req = ecs_models.DescribeSecurityGroupAttributeRequest(
+            SecurityGroupId=security_group_id,
+            Direction="all"
+        )
+        return self.client.describe_security_group_attribute(req)
 
 
 class AliyunClientFactory:

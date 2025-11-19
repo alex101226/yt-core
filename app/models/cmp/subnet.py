@@ -18,7 +18,7 @@ class Subnet(CmpBase):
     description = Column(Text, nullable=True, comment="子网描述信息")
 
     # VPC、资源组、云厂商、云凭证
-    vpc_id = Column(String(50), nullable=False, comment="所属VPC ID")
+    vpc_id = Column(Integer(), nullable=False, comment="所属VPC ID")
     resource_group_id = Column(Integer, nullable=True, comment="资源组ID")
     cloud_provider_code = Column(String(30), nullable=False, comment="云厂商code")
     cloud_certificate_id = Column(Integer, nullable=False, comment="云凭证ID")
@@ -34,6 +34,11 @@ class Subnet(CmpBase):
     is_released = Column(Boolean, default=False, nullable=False, comment="是否已释放")
     released_at = Column(DateTime(timezone=True), nullable=True, comment="释放时间 (UTC)")
 
+    sync_status = Column(
+        Integer,
+        default=0,
+        comment="同步状态：0未同步，1已同步，2待更新，3删除中"
+    )
     created_at = Column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),

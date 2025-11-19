@@ -15,4 +15,4 @@ class CloudZoneBase(BaseModel):
 
 class CloudZoneOut(CloudZoneBase):
     class Config:
-        orm_mode = True
+        from_attributes = True

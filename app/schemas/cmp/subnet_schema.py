@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 class SubnetBase(BaseModel):
     subnet_name: str = Field(..., description="子网名称")
     description: Optional[str] = Field(None, description="子网描述信息")
-    vpc_id: str = Field(..., description="所属 VPC ID")
+    vpc_id: int = Field(..., description="所属 VPC ID")
     resource_group_id: Optional[int] = Field(None, description="资源组ID")
     cloud_provider_code: str = Field(..., description="云厂商 code")
     cloud_certificate_id: int = Field(..., description="云凭证ID")

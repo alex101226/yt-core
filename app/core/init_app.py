@@ -16,7 +16,9 @@ resource_group_router,
 resource_group_binding_router,
 dict_router,
 vpc_router,
-subnet_router
+subnet_router,
+security_group_router,
+security_group_rule_router
 )
 
 
@@ -55,7 +57,9 @@ def create_app() -> FastAPI:
         resource_group_binding_router,
         dict_router,
         vpc_router,
-        subnet_router
+        subnet_router,
+        security_group_router,
+        security_group_rule_router
     ]
     for r in routers:
         app.include_router(r, prefix=settings.API_PREFIX)

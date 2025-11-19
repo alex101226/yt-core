@@ -8,4 +8,5 @@ from .public.resource_group import ResourceGroup, ResourceGroupBinding
 from .cmp.dict_item import DictItem
 from .cmp.vpc import Vpc
 from .cmp.subnet import Subnet
-# from .dict import Dicts
+from .cmp.security_group import SecurityGroup
+from .cmp.security_group_rule import SecurityGroupRule
