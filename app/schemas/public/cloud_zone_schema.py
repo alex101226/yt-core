@@ -16,3 +16,11 @@ class CloudZoneBase(BaseModel):
 class CloudZoneOut(CloudZoneBase):
     class Config:
         from_attributes = True
+
+
+class CloudZoneList(BaseModel):
+    id: int
+    provider_code: str
+    region_id: str
+    zone_id: str
+    zone_name: str

@@ -2,6 +2,17 @@ from typing import List, Optional
 from datetime import datetime
 from pydantic import BaseModel, Field
 
+class SecurityGroup(BaseModel):
+    id: str
+    cloud_group_id: Optional[str]
+    security_name: str
+    description: Optional[str]
+    cloud_provider_code: str
+    cloud_certificate_id: int
+    region_id: str
+    vpc_id: int
+    resource_group_id: Optional[int]
+
 class SecurityGroupSearch(BaseModel):
     cloud_provider_code: Optional[str] = Field(None, description="云厂商 code")
     region_id: Optional[str] = Field(None, description="区域 ID")

@@ -15,7 +15,7 @@ def create_base():
 
 # === Engines & Sessions for each DB ===
 engines: Dict[str, any] = {
-    "sso_auth": create_db_engine(settings.DB_SSO_AUTH),
+    "sso": create_db_engine(settings.DB_SSO_AUTH),
     "public": create_db_engine(settings.DB_PUBLIC),
     "audit_center": create_db_engine(settings.DB_AUDIT_CENTER),
     "cmp": create_db_engine(settings.DB_CMP),

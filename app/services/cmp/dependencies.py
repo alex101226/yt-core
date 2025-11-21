@@ -41,7 +41,8 @@ def get_security_service(
 
 # 安全组规则配置
 def get_security_rule_service(
-   db: Session = Depends(get_cmp_db)
+   cmp_db: Session = Depends(get_cmp_db),
+   public_db: Session = Depends(get_public_db)
 ) -> SecurityGroupRuleService:
-    return SecurityGroupRuleService(db)
+    return SecurityGroupRuleService(cmp_db, public_db)
 

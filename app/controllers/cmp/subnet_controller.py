@@ -57,3 +57,14 @@ def page_subnets(
             page_size=page_size
         )
     )
+
+@router.get("/list", response_model=SubnetOut)
+def list_subnets(
+    cloud_provider_code: str,
+    region_id: str,
+    vpc_id: str,
+    service = Depends(get_subnet_service)
+):
+    result = service.sync_subnets(cloud_provider_code, region_id, vpc_id)
+    return Response.success(result)
+

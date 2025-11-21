@@ -5,14 +5,14 @@ from typing import Optional, List
 from sqlalchemy import and_
 from sqlalchemy.orm import Session
 from app.models.cmp.subnet import Subnet
-from app.schemas.cmp.subnet_schema import SubnetOut
+from app.schemas.cmp.subnet_schema import SubnetOut, SubnetBase
 
 
 class SubnetRepository:
     def __init__(self, db: Session):
         self.db = db
 
-    def bulk_upsert(self, provider_code: str, region_id: str, vpc_id: str, subnets: List[dict]):
+    def bulk_upsert(self, provider_code: str, region_id: str, vpc_id: str, subnets: List[SubnetBase]):
         """
         批量插入或更新子网
         :param provider_code: 云厂商
@@ -68,7 +68,7 @@ class SubnetRepository:
             .first()
         )
 
-    def list_by_vpc(self, vpc_id: str) -> List[SubnetOut]:
+    def list_by_subnet(self, vpc_id: str) -> List[SubnetOut]:
         return self.db.query(Subnet).filter(Subnet.vpc_id==vpc_id).order_by(Subnet.id.desc()).all()
 
     def release(self, obj: Subnet):

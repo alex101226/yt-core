@@ -2,6 +2,7 @@ from typing import List, Optional
 from sqlalchemy.orm import Session
 from nanoid import generate
 
+from app.models.public.cloud_certificate import CloudCertificate  # 示例模型
 from app.models.cmp.security_group import SecurityGroup
 from app.models.cmp.vpc import Vpc  # 假设你有 vpc 模型
 from datetime import datetime, timezone
@@ -115,8 +116,38 @@ class SecurityGroupRepository:
         self.db.commit()
         return sg
 
+    #   根据id获取数据
     def get_by_id(self, group_id: str) -> Optional[type[SecurityGroup]]:
         return self.db.query(SecurityGroup).filter(
             SecurityGroup.id == group_id,
         SecurityGroup.is_released==0
         ).first()
+
+    #   根据云厂商获取数据
+    # SecurityGroupRepository
+    def get_credential_by_sg(self, sg_id: str):
+        sg = self.db.query(SecurityGroup).filter(
+            SecurityGroup.id == sg_id,
+            SecurityGroup.is_released == 0
+        ).first()
+
+        if not sg:
+            return None
+
+        # 这里是 cloud_credential_id
+        cred_id = sg.cloud_credential_id
+        if not cred_id:
+            return None
+
+        return self.db.query(CloudCertificate).filter_by(id = cred_id).first()
+
+
+    #   返回安全组的列表数据
+    def get_by_security_group(self, provider_code: str, region_id: str, vpc_id: int) -> List[SecurityGroup]:
+        return self.db.query(SecurityGroup).filter(
+            SecurityGroup.is_released == 0,
+            SecurityGroup.cloud_provider_code == provider_code,
+            SecurityGroup.region_id == region_id,
+            SecurityGroup.vpc_id==vpc_id
+        ).all()
+

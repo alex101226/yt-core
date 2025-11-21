@@ -44,7 +44,7 @@ class CloudRegionRepository:
         self.db.commit()
 
     """获取指定云厂商的所有区域"""
-    def get_by_provider(self, provider_code: str) -> List[CloudRegion]:
+    def region_list(self, provider_code: str) -> List[CloudRegion]:
         return (
             self.db.query(CloudRegion)
             .filter(CloudRegion.provider_code == provider_code)   # type: ignore

@@ -4,6 +4,7 @@ class Message:
     # === 通用 ===
     SUCCESS = "操作成功"
     FAILED = "操作失败"
+    PARAMS_ERROR="参数校验失败"
 
     # === 用户相关 ===
     USER_NOT_FOUND = "用户不存在"

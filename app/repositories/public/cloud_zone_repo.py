@@ -10,12 +10,7 @@ class CloudZoneRepository:
     def __init__(self, db: Session):
         self.db = db
 
-    """
-    批量插入或更新可用区数据
-    :param provider_code: 云厂商编码
-    :param region_id: 所属区域
-    :param zones: [{'zone_id': 'cn-hangzhou-a', 'zone_name': '华东1可用区A'}, ...]
-    """
+    #   批量插入或更新可用区数据
     def bulk_upsert(self, provider_code: str, region_id: str, zones: List[dict]):
 
         now = datetime.now()
@@ -46,7 +41,7 @@ class CloudZoneRepository:
                 )
         self.db.commit()
 
-    """获取指定云厂商和区域的所有可用区"""
+    #   获取指定云厂商和区域的所有可用区
     def get_by_zones(self, provider_code: str, region_id: str) -> List[CloudZone]:
 
         return (

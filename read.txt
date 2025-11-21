@@ -1,6 +1,6 @@
 sso迁移命令:
 alembic -c alembic/sso/alembic.ini revision --autogenerate -m "create 迁移文件名 table"
-alembic -c alembic/sso_auth/alembic.ini upgrade head
+alembic -c alembic/sso/alembic.ini upgrade head
 
 
 public迁移命令:
@@ -16,3 +16,6 @@ alembic -c alembic/cmp/alembic.ini upgrade head
 
 获取api文档：curl http://127.0.0.1:8080/openapi.json -o openapi.json
 生成静态api文档：npx @redocly/cli build-docs openapi.json -o api.html
+
+更新requirements文件：pip freeze > requirements.txt
+使用requirements下载依赖(要先生成/更新requirements后): pip install -r requirements.txt

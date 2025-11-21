@@ -26,11 +26,8 @@ def list_security_groups(
         page=page,
         page_size=page_size
     )
-    items =  service.list(filters)
+    items =  service.list_page(filters)
     return Response.success(items)
-    # return service.list(filters)
-
-
 
 @router.post("/create", response_model=SecurityGroupOut)
 def create_security_group(
@@ -48,3 +45,16 @@ def release_security_group(
 ):
     result = service.release(groud_id)
     return Response.success(result)
+
+
+#   返回安全组列表
+@router.get("/list", response_model=SecurityGroupPage)
+def list_security_groups(
+    provider_code: str = Query('aliyun', description="云厂商 code"),
+    region_id: str = Query('cn-qingdao', description="区域 id"),
+    vpc_id: int = Query(None, description="vpc的id"),
+    service: SecurityGroupService = Depends(get_security_service),
+):
+
+    items =  service.list_security_groups(provider_code, region_id, vpc_id)
+    return Response.success(items)

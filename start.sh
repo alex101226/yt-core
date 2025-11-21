@@ -14,7 +14,7 @@ case "$1" in
   prod)
     export $(grep -v '^#' "$BASE_DIR/.env.production" | xargs)
     echo "✅ 生产环境启动中..."
-    uvicorn app.main:app --host 0.0.0.0 --port 8080
+    uvicorn main:app --host 0.0.0.0 --port 8080
     ;;
   migrate)
     echo "📦 执行数据库迁移..."

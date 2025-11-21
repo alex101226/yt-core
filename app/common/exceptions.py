@@ -1,5 +1,6 @@
 # app/common/exceptions.py
 from fastapi import Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from app.common.status_code import ErrorCode
 from app.common.messages import Message
@@ -38,6 +39,26 @@ async def global_exception_handler(request: Request, exc: Exception):
         content={
             "code": ErrorCode.SERVER_ERROR,
             "message": Message.SERVER_ERROR,
+            "data": None
+        }
+    )
+
+async def validation_exception_handler(request, exc: RequestValidationError):
+    # 格式化 Pydantic 错误
+    errors = exc.errors()
+    parsed_errors = []
+
+    for err in errors:
+        field = ".".join([str(x) for x in err.get("loc", [])])
+        msg = err.get("msg")
+        parsed_errors.append(f"{field}: {msg}")
+
+    return JSONResponse(
+        status_code=422,
+        content={
+            "code": ErrorCode.PARAMS_ERROR,
+            "message": Message.PARAMS_ERROR,
+            "errors": parsed_errors,
             "data": None
         }
     )

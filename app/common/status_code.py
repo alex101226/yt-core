@@ -4,6 +4,7 @@ class ErrorCode:
     # 通用
     SUCCESS = 20000
     FAILED = 40000
+    PARAMS_ERROR=40001
 
     # 用户相关
     USER_NOT_FOUND = 40401

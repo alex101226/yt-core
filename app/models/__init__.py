@@ -10,3 +10,9 @@ from .cmp.vpc import Vpc
 from .cmp.subnet import Subnet
 from .cmp.security_group import SecurityGroup
 from .cmp.security_group_rule import SecurityGroupRule
+
+
+from .sso.user import User
+from .sso.role import Role
+from .sso.user_role_association import user_role_association
+from .sso.session import UserSession

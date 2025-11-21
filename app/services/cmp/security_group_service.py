@@ -1,8 +1,8 @@
+from typing import List
 from sqlalchemy.orm import Session
-from app.schemas.cmp.security_group_schema import SecurityGroupSearch, SecurityGroupPage, SecurityGroupCreate
+from app.schemas.cmp.security_group_schema import SecurityGroupSearch, SecurityGroupPage, SecurityGroupCreate, SecurityGroup
 from app.repositories.public.cloud_provider_repo import CloudProviderRepository
 from app.repositories.cmp.security_group_repo import SecurityGroupRepository
-from app.clients.cloud_client_factory import CloudClientFactory
 from app.common.pagination import paginate_query
 from app.common.status_code import ErrorCode
 from app.common.messages import Message
@@ -12,8 +12,8 @@ class SecurityGroupService:
         self.db = cmp_db
         self.provider_repo = CloudProviderRepository(public_db)
         self.security_group_repo = SecurityGroupRepository(cmp_db)
-
-    def list(self, filters: SecurityGroupSearch) -> SecurityGroupPage:
+    #   分页
+    def list_page(self, filters: SecurityGroupSearch) -> SecurityGroupPage:
 
         q = self.security_group_repo.search(filters)
         total, items = paginate_query(q, filters.page, filters.page_size)
@@ -22,25 +22,23 @@ class SecurityGroupService:
             return SecurityGroupPage(total=total, page=filters.page, page_size=filters.page_size, items=items)
 
         if total == 0 and filters.cloud_provider_code and filters.region_id:
-            self.sync_security_groups(provider_code=filters.cloud_provider_code, region_id=filters.region_id)
+            self.security_groups(provider_code=filters.cloud_provider_code, region_id=filters.region_id)
             # 重新查询 DB
             q = self.security_group_repo.search(filters)
             total, items = paginate_query(q, filters.page, filters.page_size)
 
         return SecurityGroupPage(total=total, page=filters.page, page_size=filters.page_size, items=items)
 
-    def sync_security_groups(self, provider_code: str, region_id: str, page: int = 1, page_size: int = 50):
-        provider = self.provider_repo.get_by_code(provider_code)
-        if not provider:
-            raise BusinessException(...)
-
-        cloud_client = CloudClientFactory.create_client(
-            provider_code,
-            provider.access_key_id,
-            provider.access_key_secret,
-            provider.endpoint,
-        )
-
+    def security_groups(self, provider_code: str, region_id: str, page: int = 1, page_size: int = 50):
+        # provider = self.provider_repo.get_by_code(provider_code)
+        # if not provider:
+        #     raise BusinessException(...)
+        # cloud_client = CloudClientFactory.create_client(
+        #     provider_code,
+        #     provider.access_key_id,
+        #     provider.access_key_secret,
+        #     provider.endpoint,
+        # )
         current_page = page
 
         while True:
@@ -67,7 +65,6 @@ class SecurityGroupService:
             current_page += 1
 
         return True
-
 
     # ----------------------------
     # 创建安全组（本地 + 云端）
@@ -138,3 +135,7 @@ class SecurityGroupService:
         self.db.commit()
 
         return True
+
+
+    def list_security_groups(self, provider_code: str, region_id: str, vpc_id: int) -> List[SecurityGroup]:
+        return self.security_group_repo.get_by_security_group(provider_code, region_id, vpc_id)

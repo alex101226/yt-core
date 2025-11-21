@@ -5,9 +5,11 @@ from nanoid import generate
 
 from app.repositories.public.cloud_provider_repo import CloudProviderRepository
 from app.repositories.cmp.subnet_repo import SubnetRepository
-from app.schemas.cmp.subnet_schema import SubnetCreate, SubnetOut, SubnetPage
+from app.schemas.cmp.subnet_schema import SubnetCreate, SubnetOut, SubnetPage, SubnetBase
 from app.common.status_code import ErrorCode
 from app.common.messages import Message
+
+from app.services.public.cloud_service import CloudService
 
 class SubnetService:
     def __init__(self, cmp_db: Session, public_db: Session):
@@ -15,53 +17,28 @@ class SubnetService:
         self.subnet_repo = SubnetRepository(cmp_db)
         self.provider_repo = CloudProviderRepository(public_db)
 
-    def sync_subnets(self, provider_code: str, region_id: str, vpc_id: str) -> List[SubnetOut]:
-        existing_subnets = self.subnet_repo.list_by_vpc(vpc_id)
-        if existing_subnets:
-            logger.info(f"[{provider_code}][{region_id}] ip子网已存在数据库，无需同步")
-            return existing_subnets
-
+    def sync_subnets(self, provider_code: str, region_id: str, vpc_id: str) -> List[SubnetBase]:
         provider = self.provider_repo.get_by_code(provider_code)
         if not provider:
             raise BusinessException(
                 code=ErrorCode.DATA_NOT_FOUND,
                 message=Message.DATA_NOT_FOUND
             )
-
-        client = CloudClientFactory.create_client(
+        subnet_vpc = CloudService(
+            self.db,
+            provider_code,
             provider.access_key_id,
             provider.access_key_secret,
             provider.endpoint,
         )
-
-        # 3️⃣ 调用阿里云接口获取子网列表
-        if provider_code == "aliyun":
-            subnets = client.list_vswitches(region_id, vpc_id)
-            # 增加 cloud_certificate_id 字段
-            for s in subnets:
-                s["cloud_certificate_id"] = provider.id
-        else:
-            raise BusinessException(
-                code=ErrorCode.CLOUD_PROVIDER_NOT_FOUND,
-                message=Message.CLOUD_PROVIDER_NOT_FOUND
-            )
-
-        # 批量保存/更新到数据库
-        self.subnet_repo.bulk_upsert(provider_code, region_id, vpc_id, subnets)
-
-        db_subnets = self.subnet_repo.list_by_vpc(vpc_id)
-        logger.info(f"[{provider_code}][{region_id}][{vpc_id}] 同步 {len(db_subnets)} 个子网")
-        return db_subnets
+        subnets = subnet_vpc.list_vswitches(provider_code, region_id, vpc_id)
+        return subnets
 
 
     def create(self, data: SubnetCreate) -> SubnetOut:
         subnet_id = generate(size=12)  # 随机生成云子网ID
         obj = self.subnet_repo.create({**data.model_dump(), "subnet_id": subnet_id})
         return SubnetOut.model_validate(obj)
-
-    def list_by_vpc(self, vpc_id: str) -> List[SubnetOut]:
-        objs = self.subnet_repo.list_by_vpc(vpc_id)
-        return [SubnetOut.model_validate(o) for o in objs]
 
     def release(self, subnet_id: str, cloud_provider_code: str) -> SubnetOut:
         obj = self.subnet_repo.get(subnet_id, cloud_provider_code)

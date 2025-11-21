@@ -1,9 +1,15 @@
 # app/core/init_app.py
 from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
-from app.common.exceptions import BusinessException, business_exception_handler, global_exception_handler
+from app.common.exceptions import (
+BusinessException,
+business_exception_handler,
+global_exception_handler,
+validation_exception_handler
+)
 from app.core.config import settings
 from app.core.logger import logger
 
@@ -18,7 +24,9 @@ dict_router,
 vpc_router,
 subnet_router,
 security_group_router,
-security_group_rule_router
+security_group_rule_router,
+image_router,
+auth_router
 )
 
 
@@ -59,13 +67,16 @@ def create_app() -> FastAPI:
         vpc_router,
         subnet_router,
         security_group_router,
-        security_group_rule_router
+        security_group_rule_router,
+        image_router,
+        auth_router
     ]
     for r in routers:
         app.include_router(r, prefix=settings.API_PREFIX)
 
     # 注册全局异常处理
     app.add_exception_handler(BusinessException, business_exception_handler)
+    app.add_exception_handler(RequestValidationError, validation_exception_handler)  # ⭐ 必须加
     app.add_exception_handler(Exception, global_exception_handler)
 
     return app

@@ -24,3 +24,8 @@ class CredentialsManager:
     def build_aliyun_product_config(cred_client: CredentialClient, endpoint: str) -> open_api_models.Config:
         """构建阿里云产品配置对象"""
         return open_api_models.Config(credential=cred_client, endpoint=endpoint)
+
+    @staticmethod
+    def get_aliyun_credentials():
+        # 从你们数据库或配置读取 ak/sk
+        return ("LTAI5tHPqqYXb7GMUXCFZCS2", "b4bARGw719ETqsxJODySfskRWVzAEA")
