@@ -1,14 +1,19 @@
 # app/services/auth_service.py
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta, timezone
+from app.core.security import hash_password, verify_password, create_access_token, create_refresh_token, decode_token, REFRESH_EXPIRE_DAYS
+
+from app.models.sso.user import User
+from app.models.sso.session import UserSession
+
+from app.services.sso.session_service import SessionService
+
 from app.repositories.sso.user_repo import UserRepository
 from app.repositories.sso.session_repo import SessionRepository
-from app.core.security import hash_password, verify_password, create_access_token, create_refresh_token, decode_token, REFRESH_EXPIRE_DAYS
 from app.schemas.sso.auth_schema import LoginRequest, TokenResponse, UserRegister
+
 from app.common.status_code import ErrorCode
 from app.common.messages import Message
-from app.models.sso.user import User
-from app.services.sso.session_service import SessionService
 
 class AuthService:
     def __init__(self, db: Session):
@@ -18,11 +23,13 @@ class AuthService:
 
     def login(self, data: LoginRequest, ip: str = None, user_agent: str = None) -> TokenResponse:
         user = self.user_repo.get_by_username(data.username)
+
         if not user:
-            raise ValueError("用户不存在")
+            raise BusinessException(code=ErrorCode.USER_NOT_FOUND, message=Message.USER_NOT_FOUND)
 
         if not verify_password(data.password, user.hashed_password):
-            raise ValueError("密码错误")
+            raise BusinessException(code=ErrorCode.PASSWORD_INCORRECT, message=Message.PASSWORD_INCORRECT)
+
 
         # 单点登录：清除历史会话
         self.session_repo.clear_user_sessions(user.id)
@@ -32,8 +39,15 @@ class AuthService:
         refresh = create_refresh_token(subject)
 
         # 保存 refresh 到 DB（expires_at）
-        expires_at = datetime.utcnow() + timedelta(days=REFRESH_EXPIRE_DAYS)
-        self.session_repo.create(user.id, refresh, expires_at, ip=ip, user_agent=user_agent)
+        expires_at = datetime.now(timezone.utc) + timedelta(days=REFRESH_EXPIRE_DAYS)
+        session_model = UserSession(
+            user_id=user.id,
+            refresh_token=refresh,
+            expires_at=expires_at,
+            ip=ip,
+            user_agent=user_agent
+        )
+        self.session_repo.create(session_model)
 
         return TokenResponse(access_token=access, refresh_token=refresh, token_type="bearer")
 
@@ -41,27 +55,18 @@ class AuthService:
         # 找到 DB 中的会话
         session = self.session_repo.get_by_refresh_token(refresh_token)
         if not session:
-            raise ValueError("无效的 refresh token")
+            raise BusinessException(code=ErrorCode.LOGIN_FAILED, message=Message.PASSWORD_INCORRECT)
 
-        # 验证 refresh token 本身
-        try:
-            payload = decode_token(refresh_token)
-        except Exception as e:
-            # token 无效或过期
+            # 2. 检查 refresh_token 是否过期
+        if session.expires_at < datetime.utcnow():
             self.session_repo.delete(session.id)
-            raise ValueError("Refresh token 无效或已过期")
+            raise BusinessException(code=ErrorCode.LOGIN_FAILED, message="refresh token 已过期，请重新登录")
 
-        # 生成新对 token（这次保持单点：不用创建新会话，只刷新 DB 过期时间）
-        subject = {"user_id": payload.get("user_id"), "username": payload.get("username")}
+            # 3. 生成新的 access_token（refresh 不变）
+        subject = {"user_id": session.user_id}
         access = create_access_token(subject)
-        new_refresh = create_refresh_token(subject)
 
-        # 更新 DB：删除旧会话，创建新会话（确保单点）
-        self.session_repo.clear_user_sessions(session.user_id)
-        expires_at = datetime.utcnow() + timedelta(days=REFRESH_EXPIRE_DAYS)
-        self.session_repo.create(session.user_id, new_refresh, expires_at, ip=session.ip, user_agent=session.user_agent)
-
-        return TokenResponse(access_token=access, refresh_token=new_refresh, token_type="bearer")
+        return TokenResponse(access_token=access, refresh_token=refresh_token, token_type="bearer")
 
     def logout(self, user_id: int):
         # 注销直接删除会话（使 refresh 无效）

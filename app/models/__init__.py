@@ -10,6 +10,7 @@ from .cmp.vpc import Vpc
 from .cmp.subnet import Subnet
 from .cmp.security_group import SecurityGroup
 from .cmp.security_group_rule import SecurityGroupRule
+from .cmp.instance_type import InstanceType
 
 
 from .sso.user import User

@@ -1,7 +1,8 @@
 from typing import Optional
 
 from pydantic import EmailStr
-from sqlalchemy.orm import Session
+from sqlalchemy import or_, select
+from sqlalchemy.orm import Session, load_only
 from app.models.sso.user import User
 
 
@@ -11,21 +12,33 @@ class UserRepository:
         self.db = db
 
     #   根据username查找
-    def get_by_username(self, username: str) -> User:
-        return self.db.query(User).filter(User.username == username).first()
+    def get_by_username(self, username: str) -> Optional[User]:
+        return self.db.query(User).filter_by(username = username).first()
 
     #   根据id查找
-    def get_by_id(self, user_id: int) -> User:
-        return self.db.query(User).filter(User.id == user_id).first()
+    def get_by_id(self, user_id: int) -> Optional[User]:
+        stmt = (
+            select(User)
+            .options(
+                load_only(User.id, User.username, User.email, User.nickname, User.mobile)
+            )
+            .where(User.id == user_id)
+        )
+        return self.db.execute(stmt).scalar_one_or_none()
 
 
-    def get_by_email_or_mobile(self, email: EmailStr, mobile: str = None) -> Optional[type[User]]:
-        query = self.db.query(User)
+    def get_by_email_or_mobile(self, email: EmailStr, mobile: str = None) -> Optional[User]:
+        conditions = []
+
         if email:
-            query = query.filter(User.email == email)
+            conditions.append(User.email == email)
         if mobile:
-            query = query.filter(User.mobile == mobile)
-        return query.first()
+            conditions.append(User.mobile == mobile)
+
+        if not conditions:
+            return None  # 没有条件直接返回
+
+        return self.db.query(User).filter(or_(*conditions)).first()
 
     #   创建
     def create(self, user: User) -> User:

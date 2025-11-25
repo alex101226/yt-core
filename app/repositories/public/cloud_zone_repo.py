@@ -1,6 +1,6 @@
 # app/repositories/public/cloud_zone_repository.py
 from sqlalchemy.orm import Session
-from typing import List, Optional
+from typing import List
 from datetime import datetime
 from app.models.public.cloud_zone import CloudZone
 

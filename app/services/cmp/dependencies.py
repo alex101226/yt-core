@@ -9,6 +9,8 @@ from app.services.cmp.vpc_service import VPCService
 from app.services.cmp.subnet_service import SubnetService
 from app.services.cmp.security_group_service import SecurityGroupService
 from app.services.cmp.security_group_rule_service import SecurityGroupRuleService
+from app.services.cmp.image_service import ImageService
+from app.services.cmp.instance_type_service import InstanceTypeService
 
 #   字典
 def get_dict_service(
@@ -45,4 +47,17 @@ def get_security_rule_service(
    public_db: Session = Depends(get_public_db)
 ) -> SecurityGroupRuleService:
     return SecurityGroupRuleService(cmp_db, public_db)
+
+# 系统镜像
+def get_image_service(
+   public_db: Session = Depends(get_public_db)
+) -> ImageService:
+    return ImageService(public_db)
+
+# 实例规则及计费
+def get_instance_type_service(
+    cmp_db: Session = Depends(get_cmp_db),
+    public_db: Session = Depends(get_public_db)
+) -> InstanceTypeService:
+    return InstanceTypeService(cmp_db, public_db)
 

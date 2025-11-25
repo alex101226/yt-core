@@ -1,6 +1,7 @@
 # app/controllers/public/cloud_provider_controller.py
+from fastapi import APIRouter, Depends, Path, Query, Request
 
-from fastapi import APIRouter, Depends, Path, Query
+from app.core.dependencies import require_user
 
 from app.schemas.public.cloud_provider_schema import (
     CloudProviderCreate,
@@ -13,7 +14,8 @@ from app.services.public.cloud_provider_service import CloudProviderService
 from app.services.public.dependencies import get_cloud_provider_service
 from app.common.response import Response
 
-router = APIRouter(prefix="/cloud_providers", tags=["云厂商配置"])
+#   dependencies=[Depends(require_user)]。注入token
+router = APIRouter(prefix="/cloud_providers", tags=["云厂商配置"], dependencies=[Depends(require_user)])
 
 # 创建云厂商
 @router.post("/create", response_model=CloudProviderOut)

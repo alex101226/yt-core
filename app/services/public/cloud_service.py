@@ -1,17 +1,21 @@
 from sqlalchemy.orm import Session
 
-from typing import List
+from typing import List, Optional
 from app.clients.cloud_client_factory import CloudClientFactory
 from app.repositories.public.cloud_region_repo import CloudRegionRepository
 from app.repositories.public.cloud_zone_repo import CloudZoneRepository
 from app.repositories.public.cloud_provider_repo import  CloudProviderRepository
 from app.repositories.cmp.vpc_repo import VpcRepository
 from app.repositories.cmp.subnet_repo import SubnetRepository
+from app.repositories.cmp.instance_type_repo import InstanceTypeRepo
 
 from app.schemas.public.cloud_region_schema import CloudRegionBase
 from app.schemas.public.cloud_zone_schema import CloudZoneList
 from app.schemas.cmp.vpc_schema import VpcBase
 from app.schemas.cmp.subnet_schema import SubnetBase
+from app.schemas.cmp.instance_type_schema import InstanceTypeBase
+
+from app.core.logger import logger
 
 class CloudService:
     def __init__(self, db: Session, provider_code: str, access_key_id: str, access_key_secret: str, endpoint: str):
@@ -24,6 +28,7 @@ class CloudService:
         self.zone_repo = CloudZoneRepository(db)
         self.vpc_repo = VpcRepository(db)
         self.subnet_repo = SubnetRepository(db)
+        self.instance_type_repo = InstanceTypeRepo(db)
 
     def list_regions(self) -> List[CloudRegionBase]:
         db_regions = self.region_repo.region_list(self.provider_code)
@@ -95,3 +100,24 @@ class CloudService:
         subnets = self.client.list_vswitches(region_id, vpc_id)
         self.subnet_repo.bulk_upsert(provider_code, region_id, vpc_id, subnets)
         return subnets
+
+    def list_images(self, region_id: str) -> List[dict]:
+        images = self.client.list_images(region_id)
+        return images
+
+    def list_instance_types(self, provider_code: str):
+        db_instance_type = self.instance_type_repo.get_by_instance_type(provider_code)
+        if db_instance_type:
+            return [
+                InstanceTypeBase.model_validate(i, from_attributes=True) for i in db_instance_type
+            ]
+
+        instance_types = self.client.list_instance_types(provider_code)
+        self.instance_type_repo.bulk_upsert(provider_code, instance_types)
+        return instance_types
+
+    def list_available_type(self, region_id: str, zone_id: str, include_soldout: bool = False) -> List[dict]:
+        return self.client.list_available_instance_types(region_id, zone_id, include_soldout)
+
+    def list_pricing(self, region_id, instance_type, charge_type=Optional[str], period: Optional[int] = None) -> List[dict]:
+        return self.client.list_pricing_options(region_id, instance_type, charge_type, period)

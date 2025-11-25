@@ -1,10 +1,142 @@
 # app/clients/aliyun_client.py
-from typing import List, Optional
+from typing import List, Optional, Any
+import re
+
 from alibabacloud_ecs20140526.client import Client as EcsClient
 from alibabacloud_ecs20140526 import models as ecs_models
 from app.common.credentials_manager import CredentialsManager
 from app.clients.base import BaseCloudClient
 
+from app.core.logger import logger
+
+SYSTEM_DISK_TYPES = [
+    "cloud_auto",
+    "cloud_essd",
+    "cloud_efficiency",
+    "cloud_ssd",
+    "cloud_essd_entry",
+    "cloud",
+    "ephemeral_ssd",
+]
+
+def _get_attr_any(obj: Any, *names: str):
+    """
+    尝试按多个候选属性名获取属性值（兼容多种命名风格）。
+    支持：
+      - 直接属性名（obj.foo）
+      - 大驼峰/小驼峰/下划线（InstanceTypeId / instanceTypeId / instance_type_id）
+      - dict 访问（obj.get(key)）
+    返回第一个存在且不为 None 的值，否则返回 None。
+    """
+    if obj is None:
+        return None
+
+    # 如果对象是 dict-like
+    if isinstance(obj, dict):
+        for n in names:
+            if n in obj and obj[n] is not None:
+                return obj[n]
+
+    # 普通对象，尝试属性访问
+    for n in names:
+        if hasattr(obj, n):
+            val = getattr(obj, n)
+            if val is not None:
+                return val
+
+    # 补尝试常见变形： CamelCase, lowerCamel, snake_case
+    def variants(base: str):
+        # base may be e.g. instance_type_id or InstanceTypeId
+        yield base
+        # snake -> CamelCase
+        s = base
+        if "_" in s:
+            parts = s.split("_")
+            yield "".join(p.capitalize() for p in parts)         # InstanceTypeId
+            yield parts[0] + "".join(p.capitalize() for p in parts[1:])  # instanceTypeId
+        else:
+            # Camel -> snake
+            # convert CamelCase to snake_case
+            snake = re.sub('([A-Z]+)', r'_\1', s).lower().lstrip("_")
+            if snake != s:
+                yield snake
+                yield snake.capitalize()
+                yield snake.split("_")[0] + "".join(p.capitalize() for p in snake.split("_")[1:])
+
+    for base in names:
+        for v in variants(base):
+            if hasattr(obj, v):
+                val = getattr(obj, v)
+                if val is not None:
+                    return val
+            if isinstance(obj, dict) and v in obj and obj[v] is not None:
+                return obj[v]
+
+    return None
+
+
+def _extract_items_from_response(response) -> List[Any]:
+    """
+    兼容各种可能的返回路径，返回实例规格对象列表（原始 SDK 对象或 dict）。
+    常见路径：
+      - response.body.instance_types.instance_type
+      - response.instance_types.instance_type
+      - response.instance_types
+      - response.get('InstanceTypes')
+    """
+    # 1) 尝试常见 SDK 属性链
+    try:
+        # 有些 SDK 把 body 放在 response.body
+        body = getattr(response, "body", response)
+        # 常见嵌套： instance_types.instance_type
+        itypes = None
+        if hasattr(body, "instance_types"):
+            itypes_container = getattr(body, "instance_types")
+            # container 里可能有 instance_type 属性（list）
+            if hasattr(itypes_container, "instance_type"):
+                itypes = getattr(itypes_container, "instance_type")
+            else:
+                # 可能就是列表或 dict
+                itypes = itypes_container
+        # 有些 SDK 直接把 InstanceTypes 放为 dict/list
+        if itypes is None:
+            # try dictionary style
+            if isinstance(body, dict):
+                itypes = body.get("InstanceTypes") or body.get("instance_types")
+            else:
+                # fallback: try top-level instance_types
+                itypes = getattr(body, "InstanceTypes", None) or getattr(body, "instance_types", None)
+
+        # normalize: if itypes is a single object, wrap into list
+        if itypes is None:
+            return []
+        if not isinstance(itypes, list):
+            # sometimes it's an object with attribute instance_type
+            if hasattr(itypes, "instance_type"):
+                maybe = getattr(itypes, "instance_type")
+                return maybe if isinstance(maybe, list) else [maybe]
+            return [itypes]
+
+        return itypes
+
+    except Exception:
+        # 最后兜底：把 response 转 dict（若 SDK 提供）或打印
+        try:
+            # 如果 SDK 对象有 to_map / to_dict 方法
+            if hasattr(response, "to_map"):
+                m = response.to_map()
+                # 尝试常见 key
+                if "InstanceTypes" in m:
+                    it = m["InstanceTypes"]
+                    if isinstance(it, dict) and "InstanceType" in it:
+                        return it["InstanceType"]
+                    return it
+            if hasattr(response, "to_dict"):
+                m = response.to_dict()
+                return m.get("InstanceTypes") or m.get("instance_types") or []
+        except Exception:
+            pass
+    return []
 
 class AliyunClient(BaseCloudClient):
     """阿里云 ECS 客户端封装"""
@@ -158,11 +290,8 @@ class AliyunClient(BaseCloudClient):
     # ECS 镜像
     # --------------------------
     def list_images(self, region_id: Optional[str] = None) -> List[dict]:
-
-        request = ecs_models.DescribeImagesRequest(region_id=region_id)
-
+        request = ecs_models.DescribeImagesRequest(region_id=region_id, image_owner_alias="system")
         response = self.client.describe_images(request)
-
         images = response.body.images.image or []
         return [
             {
@@ -173,40 +302,239 @@ class AliyunClient(BaseCloudClient):
         ]
 
     # --------------------------
-    # 实例规格（实例类型）
+    # 实例规格（实例类型）     region_id: str, min_cpu: int = 1, min_memory: int = 1, architecture: str = "x86_64", bare_metal: bool = False
     # --------------------------
-    def list_instance_types(self, region_id: str) -> List[dict]:
-        """
-        获取指定 Region 的实例规格列表
-        :param region_id: 云区域 ID
-        :return: 实例规格列表，每个字典包含 instance_type, cpu, memory
-        """
-        request = ecs_models.DescribeInstanceTypesRequest(region_id=region_id)
+    def list_instance_types(self, provider_code: str, region_id: Optional[str] = None, min_cpu: int = 1, min_memory: int = 1, architecture: str = "x86_64", bare_metal: bool = False) -> List[dict]:
+        # -------------------------------
+        # 1. 调用 DescribeInstanceTypes 获取全量规格详情
+        # -------------------------------
+        request = ecs_models.DescribeInstanceTypesRequest()
         response = self.client.describe_instance_types(request)
-        return [
-            {
-                "instance_type": t.instance_type,
-                "cpu": t.cpu,
-                "memory": t.memory,
-            }
-            for t in response.body.instance_types.instance_type
-        ]
+
+        items = response.body.instance_types.instance_type  # list
+
+        # 如果 items 为空，打印调试信息（可删除）
+        if not items:
+            # 帮助定位 SDK 返回结构
+            try:
+                print("DEBUG: response attrs:", dir(response)[:200])
+                if hasattr(response, "body"):
+                    print("DEBUG: body attrs:", dir(response.body)[:200])
+                    if hasattr(response.body, "instance_types"):
+                        print("DEBUG: instance_types attrs:", dir(response.body.instance_types)[:200])
+                # 如果有 to_map/to_dict，打印 keys
+                if hasattr(response, "to_map"):
+                    print("DEBUG: response.to_map() keys:", list(response.to_map().keys()))
+                if hasattr(response, "to_dict"):
+                    print("DEBUG: response.to_dict() keys:", list(response.to_dict().keys()))
+            except Exception as e:
+                print("DEBUG: failed to inspect response:", e)
+
+            return []
+
+        results: List[dict] = []
+        for it in items:
+            # 下面用 _get_attr_any 去兼容不同命名方式
+            it_id = _get_attr_any(it, "InstanceTypeId", "instance_type_id", "instanceTypeId")
+            instance_family = _get_attr_any(it, "InstanceTypeFamily", "instance_family", "instanceFamily")
+            # 代次尝试从 instance_family 提取，例如 ecs.g7 -> g7
+            generation = None
+            if instance_family:
+                try:
+                    # instance_family 可能是 'ecs.g7' 或 'g7'
+                    if "." in instance_family:
+                        generation = instance_family.split(".")[-1]
+                    else:
+                        generation = instance_family
+                except Exception:
+                    generation = None
+
+            cpu = _get_attr_any(it, "CpuCoreCount", "cpu_core_count", "cpuCount", "vcpu")
+            mem = _get_attr_any(it, "MemorySize", "memory_size", "memory")
+            arch = _get_attr_any(it, "CpuArchitecture", "cpu_architecture", "architecture")
+
+            gpu_amount = _get_attr_any(it, "GPUAmount", "gpu_amount", "gpuAmount")
+            gpu_spec = _get_attr_any(it, "GPUSpec", "gpu_spec", "gpuSpec")
+            gpu_mem = _get_attr_any(it, "GPUMemory", "gpu_memory", "gpuMemory")
+
+            local_amount = _get_attr_any(it, "LocalStorageAmount", "local_storage_amount")
+            local_capacity = _get_attr_any(it, "LocalStorageCapacity", "local_storage_capacity")
+
+            network_perf = _get_attr_any(it, "NetworkInfo", "NetworkPerformance", "network_performance",
+                                         "networkPerformance")
+            # 如果 network_perf 是复杂对象，需要序列化成字符串
+            if network_perf and not isinstance(network_perf, (str, int, float)):
+                try:
+                    # 如果它是 SDK 对象，尝试 to_map / to_dict
+                    if hasattr(network_perf, "to_map"):
+                        network_perf = str(network_perf.to_map())
+                    elif hasattr(network_perf, "to_dict"):
+                        network_perf = str(network_perf.to_dict())
+                    else:
+                        network_perf = str(network_perf)
+                except Exception:
+                    network_perf = str(network_perf)
+
+            # 过滤条件：最低 cpu / memory / architecture / bare_metal（示例）
+            try:
+                if cpu is None:
+                    cpu_val = 0
+                else:
+                    cpu_val = int(cpu)
+            except Exception:
+                cpu_val = 0
+
+            try:
+                mem_val = float(mem) if mem is not None else 0.0
+            except Exception:
+                mem_val = 0.0
+
+            if cpu_val < min_cpu:
+                continue
+            if mem_val < min_memory:
+                continue
+            # architecture 简单匹配（x86_64 -> x86）
+            if architecture and arch:
+                if architecture.lower().startswith("x86") and not str(arch).lower().startswith("x86"):
+                    continue
+                if architecture.lower().startswith("arm") and not str(arch).lower().startswith("arm"):
+                    continue
+            # bare_metal 判断：根据 instance_family 或 generation 中是否包含 'ebm' / 'bare' 等关键字
+            if bare_metal:
+                fam = (instance_family or "").lower()
+                gen = (generation or "").lower()
+                if ("ebm" not in fam) and ("bare" not in fam) and ("ebm" not in gen) and ("bare" not in gen):
+                    continue
+
+            results.append({
+                "instance_type_id": it_id,
+                "instance_family": instance_family,
+                "generation": generation,
+                "cpu_core_count": cpu_val,
+                "memory_size": mem_val,
+                "architecture": arch,
+                "gpu_amount": int(gpu_amount) if gpu_amount is not None else 0,
+                "gpu_spec": gpu_spec,
+                "gpu_memory": float(gpu_mem) if gpu_mem is not None else None,
+                "local_storage_amount": int(local_amount) if local_amount is not None else None,
+                "local_storage_capacity": int(local_capacity) if local_capacity is not None else None,
+                "network_performance": network_perf,
+                "is_io_optimized": True,
+                "price": None,
+                "cloud_provider_code": provider_code
+            })
+
+        return results
 
     # --------------------------
-    # 计费方式
+    # 可用区     region_id: str, min_cpu: int = 1, min_memory: int = 1, architecture: str = "x86_64", bare_metal: bool = False
     # --------------------------
-    def list_pricing_options(self) -> List[dict]:
-            """
-            获取 ECS 可选计费方式
-            注意：阿里云 ECS 计费方式通常固定为按量付费或包年包月，可根据需求在前端做映射
-            :return: 计费方式列表，每个字典包含 code, name
-            """
-            # 这里我们返回静态列表，前端可选择
-            return [
-                {"code": "PayAsYouGo", "name": "按量付费"},
-                {"code": "PrePaid", "name": "包年包月"}
-            ]
+    def list_available_instance_types(
+            self,
+            region_id: str = None,
+            zone_id: str = None,
+            include_soldout: bool = False):
+        request = ecs_models.DescribeAvailableResourceRequest(
+            region_id=region_id,
+            zone_id=zone_id,
+            destination_resource="InstanceType"
+            # IoOptimized=None, # 可选
+        )
+        available_types = []
 
+        response = self.client.describe_available_resource(request)
+        body = response.body
+
+        if body:
+            available_zones = body.available_zones.available_zone
+
+            # 遍历可用区列表
+            if not isinstance(available_zones, list):
+                available_zones = [available_zones]
+
+            for az in available_zones:
+                az_id = az.zone_id
+                resources = az.available_resources.available_resource
+                if not isinstance(resources, list):
+                    resources = [resources]
+
+                for resource in resources:
+                    if resource.type != "InstanceType":
+                        continue
+
+                    supported_resources = resource.supported_resources.supported_resource
+                    if not isinstance(supported_resources, list):
+                        supported_resources = [supported_resources]
+
+                    for inst in supported_resources:
+                        if inst.status == "SoldOut":
+                            continue
+                        # 只要有库存或 include_soldout 为 True
+                        if not include_soldout and inst.status_category != "WithStock":
+                            continue
+                        available_types.append({
+                            "instance_type_id": inst.value,
+                            "status": inst.status,
+                            "status_category": inst.status_category,
+                            "zone_id": az_id,
+                            "max_available": getattr(inst, "max", None),
+                            "unit": getattr(inst, "unit", None),
+                            # "system_disk_category": system_disk_category
+                        })
+
+        return available_types
+
+    # --------------------------
+    # 获取 ECS 可选计费方式
+    # --------------------------
+    def list_pricing_options(
+        self,
+        region_id: str,
+        instance_type: str,
+        charge_type: str = "PostPaid",
+        period: int = 1,
+    ):
+        for disk_type in SYSTEM_DISK_TYPES:
+            req = ecs_models.DescribePriceRequest(
+                region_id=region_id,
+                instance_type=instance_type,
+                # resource_type="instance"
+            )
+
+            if charge_type == "PostPaid":  # 按量
+                req.price_unit = "Hour"
+            elif charge_type == "PrePaid":  # 包年包月
+                req.price_unit = "Month"
+                req.period = period
+                req.period_unit = "Month"
+            elif charge_type == "Spot":  # 抢占式
+                req.price_unit = "Hour"
+                req.spot_strategy = "SpotAsPriceGo"
+            req.system_disk_category = disk_type
+            try:
+                resp = self.client.describe_price(req)
+                # logger.info(f'看下这个 {resp}')
+
+                detail_infos = resp.body.price_info.price.detail_infos.detail_info
+                # logger.info(f'再次看价格！！！！11 {resp.body.price_info.price.trade_price}')
+
+                # logger.info(f'查看价格 {detail_infos}')
+                # 只取实例 + 系统盘价格
+                prices = {item.resource: item.trade_price for item in detail_infos}
+                normalized = {k.lower(): v for k, v in prices.items()}
+                return normalized
+            except Exception as ex:
+                # 如果是 invalid category → 换下一个
+                msg = str(ex)
+                if "InvalidSystemDiskCategory.ValueNotSupported" in msg:
+                    continue
+                # 如果是其他错误，就直接抛出
+                raise ex
+             # 所有类型都失败
+        return {
+            "instancetype": 0,
+            "systemdisk": 0
+        }
 
 class AliyunClientFactory:
     """阿里云客户端工厂"""

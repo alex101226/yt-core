@@ -14,6 +14,8 @@ from app.core.config import settings
 from app.core.logger import logger
 
 from app.controllers import (
+auth_router,
+user_router,
 cloud_provider_router,
 cloud_region_router,
 cloud_zone_router,
@@ -26,9 +28,8 @@ subnet_router,
 security_group_router,
 security_group_rule_router,
 image_router,
-auth_router
+instance_type_router
 )
-
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -57,6 +58,8 @@ def create_app() -> FastAPI:
 
     # include routers
     routers = [
+        auth_router,
+        user_router,
         cloud_provider_router,
         cloud_region_router,
         cloud_zone_router,
@@ -69,7 +72,7 @@ def create_app() -> FastAPI:
         security_group_router,
         security_group_rule_router,
         image_router,
-        auth_router
+        instance_type_router
     ]
     for r in routers:
         app.include_router(r, prefix=settings.API_PREFIX)

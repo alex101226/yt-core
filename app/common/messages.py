@@ -11,6 +11,10 @@ class Message:
     USER_ALREADY_EXISTS = "用户已存在"
     LOGIN_FAILED = "登录失败，用户名或密码错误"
     PERMISSION_DENIED = "权限不足"
+    PASSWORD_INCORRECT = "密码不正确"
+    INVALID_TOKEN = "Token 无效或已过期"
+    INVALID_TOKEN_TYPE = "必须使用 access token"
+    UNAUTHORIZED = "未认证或未提供凭证"
 
     # === 云厂商相关 ===
     CLOUD_PROVIDER_EXISTS = "云厂商编码已存在"
