@@ -16,7 +16,7 @@ class BusinessException(Exception):
     def to_response(self):
         """返回标准响应"""
         return JSONResponse(
-            status_code=400,
+            # status_code=400,
             content={
                 "code": self.code,
                 "message": self.message,
@@ -29,7 +29,6 @@ async def business_exception_handler(request: Request, exc: BusinessException):
     """全局捕获业务异常"""
     logger.warning(f"BusinessException: {exc.code} - {exc.message}")
     return exc.to_response()
-
 
 async def global_exception_handler(request: Request, exc: Exception):
     """兜底捕获所有未处理异常"""

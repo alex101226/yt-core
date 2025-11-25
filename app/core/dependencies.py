@@ -7,6 +7,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from app.common.exceptions import BusinessException
 from app.common.messages import Message
 from app.common.status_code import ErrorCode
+from app.core.logger import logger
 from app.core.security import decode_token
 
 bearer_scheme = HTTPBearer(auto_error=False)
