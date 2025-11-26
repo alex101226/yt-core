@@ -17,6 +17,7 @@ from .cmp.security_group_controller import router as security_group_router
 from .cmp.security_group_rule_controller import router as security_group_rule_router
 from .cmp.image_controller import router as image_router
 from .cmp.instance_type_controller import router as instance_type_router
+from .cmp.disk_type_controller import router as disk_type_router
 
 # sso
 from .sso.auth_controller import router as auth_router

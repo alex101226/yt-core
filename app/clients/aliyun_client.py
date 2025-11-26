@@ -289,8 +289,18 @@ class AliyunClient(BaseCloudClient):
     # --------------------------
     # ECS 镜像
     # --------------------------
-    def list_images(self, region_id: Optional[str] = None) -> List[dict]:
-        request = ecs_models.DescribeImagesRequest(region_id=region_id, image_owner_alias="system")
+    def list_images(self,
+        region_id: Optional[str] = None,
+        instance_type_id: str = None,
+        architecture: str = None,
+        ) -> List[dict]:
+        request = ecs_models.DescribeImagesRequest(
+            region_id=region_id,
+            instance_type=instance_type_id,
+            architecture=architecture,
+            image_owner_alias="system",
+            status="Available"
+        )
         response = self.client.describe_images(request)
         images = response.body.images.image or []
         return [
@@ -300,6 +310,48 @@ class AliyunClient(BaseCloudClient):
             }
             for i in images
         ]
+
+    from typing import List, Optional
+
+    # --------------------------
+    # 系统盘种类
+    # --------------------------
+    def list_system_disk_categories(
+            self,
+            region_id: Optional[str] = None,
+            zone_id: str = None,
+            instance_type_id: Optional[str] = None,
+            instance_charge_type: Optional[str] = None,
+    ) -> List[str]:
+        """
+        查询某个规格可用的系统盘种类
+        """
+        # ECS 提供的接口是 DescribeAvailableResource 或者 DescribeDiskCategoriesRequest
+        request = ecs_models.DescribeAvailableResourceRequest(
+            region_id=region_id,
+            zone_id=zone_id,
+            instance_type=instance_type_id,
+            instance_charge_type=instance_charge_type,
+            destination_resource="SystemDisk",
+        )
+
+        response = self.client.describe_available_resource(request)
+
+        # 提取可用区数据
+        available_zones = getattr(response.body.available_zones, "available_zone", []) or []
+
+        # 由于我们只指定了 zone_id，一般只有一个元素
+        if not available_zones:
+            return []
+
+        supported_resources = (
+            available_zones[0]
+            .available_resources.available_resource[0]
+            .supported_resources.supported_resource
+        )
+
+        # 返回磁盘种类列表（Value 字段）
+        return [res.value for res in supported_resources if res.status == "Available"]
 
     # --------------------------
     # 实例规格（实例类型）     region_id: str, min_cpu: int = 1, min_memory: int = 1, architecture: str = "x86_64", bare_metal: bool = False
@@ -348,20 +400,19 @@ class AliyunClient(BaseCloudClient):
                         generation = instance_family
                 except Exception:
                     generation = None
-
+            # logger.info(f'看下这个都有哪些字段 {it}')
             cpu = _get_attr_any(it, "CpuCoreCount", "cpu_core_count", "cpuCount", "vcpu")
-            mem = _get_attr_any(it, "MemorySize", "memory_size", "memory")
+            mem = _get_attr_any(it, "MemorySize", "memory_size", "memorySize")
             arch = _get_attr_any(it, "CpuArchitecture", "cpu_architecture", "architecture")
 
             gpu_amount = _get_attr_any(it, "GPUAmount", "gpu_amount", "gpuAmount")
             gpu_spec = _get_attr_any(it, "GPUSpec", "gpu_spec", "gpuSpec")
-            gpu_mem = _get_attr_any(it, "GPUMemory", "gpu_memory", "gpuMemory")
+            gpu_mem = _get_attr_any(it, "GPUMemorySize", "gpu_memory_size", "gpuMemorySize")
 
-            local_amount = _get_attr_any(it, "LocalStorageAmount", "local_storage_amount")
-            local_capacity = _get_attr_any(it, "LocalStorageCapacity", "local_storage_capacity")
+            local_amount = _get_attr_any(it, "LocalStorageAmount", "local_storage_amount", 'localStorageAmount')
+            local_capacity = _get_attr_any(it, "LocalStorageCapacity", "local_storage_capacity", 'localStorageCapacity')
 
-            network_perf = _get_attr_any(it, "NetworkInfo", "NetworkPerformance", "network_performance",
-                                         "networkPerformance")
+            network_perf = _get_attr_any(it, "NetworkInfo", "NetworkPerformance", "network_performance", "networkPerformance")
             # 如果 network_perf 是复杂对象，需要序列化成字符串
             if network_perf and not isinstance(network_perf, (str, int, float)):
                 try:
@@ -376,42 +427,42 @@ class AliyunClient(BaseCloudClient):
                     network_perf = str(network_perf)
 
             # 过滤条件：最低 cpu / memory / architecture / bare_metal（示例）
-            try:
-                if cpu is None:
-                    cpu_val = 0
-                else:
-                    cpu_val = int(cpu)
-            except Exception:
-                cpu_val = 0
-
-            try:
-                mem_val = float(mem) if mem is not None else 0.0
-            except Exception:
-                mem_val = 0.0
-
-            if cpu_val < min_cpu:
-                continue
-            if mem_val < min_memory:
-                continue
-            # architecture 简单匹配（x86_64 -> x86）
-            if architecture and arch:
-                if architecture.lower().startswith("x86") and not str(arch).lower().startswith("x86"):
-                    continue
-                if architecture.lower().startswith("arm") and not str(arch).lower().startswith("arm"):
-                    continue
-            # bare_metal 判断：根据 instance_family 或 generation 中是否包含 'ebm' / 'bare' 等关键字
-            if bare_metal:
-                fam = (instance_family or "").lower()
-                gen = (generation or "").lower()
-                if ("ebm" not in fam) and ("bare" not in fam) and ("ebm" not in gen) and ("bare" not in gen):
-                    continue
+            # try:
+            #     if cpu is None:
+            #         cpu_val = 0
+            #     else:
+            #         cpu_val = int(cpu)
+            # except Exception:
+            #     cpu_val = 0
+            #
+            # try:
+            #     mem_val = float(mem) if mem is not None else 0.0
+            # except Exception:
+            #     mem_val = 0.0
+            #
+            # if cpu_val < min_cpu:
+            #     continue
+            # if mem_val < min_memory:
+            #     continue
+            # # architecture 简单匹配（x86_64 -> x86）
+            # if architecture and arch:
+            #     if architecture.lower().startswith("x86") and not str(arch).lower().startswith("x86"):
+            #         continue
+            #     if architecture.lower().startswith("arm") and not str(arch).lower().startswith("arm"):
+            #         continue
+            # # bare_metal 判断：根据 instance_family 或 generation 中是否包含 'ebm' / 'bare' 等关键字
+            # if bare_metal:
+            #     fam = (instance_family or "").lower()
+            #     gen = (generation or "").lower()
+            #     if ("ebm" not in fam) and ("bare" not in fam) and ("ebm" not in gen) and ("bare" not in gen):
+            #         continue
 
             results.append({
                 "instance_type_id": it_id,
                 "instance_family": instance_family,
                 "generation": generation,
-                "cpu_core_count": cpu_val,
-                "memory_size": mem_val,
+                "cpu_core_count": cpu,
+                "memory_size": mem,
                 "architecture": arch,
                 "gpu_amount": int(gpu_amount) if gpu_amount is not None else 0,
                 "gpu_spec": gpu_spec,
@@ -427,26 +478,33 @@ class AliyunClient(BaseCloudClient):
         return results
 
     # --------------------------
-    # 可用区     region_id: str, min_cpu: int = 1, min_memory: int = 1, architecture: str = "x86_64", bare_metal: bool = False
+    # ecs 可用资源查询
+    #   计费方式 instance_charge_type: PostPaid, PrePaid
+    #   区域，可用区 ID region_id, zone_id
+    #   系统盘类型 system_disk_category: cloud(普通云盘),cloud_efficiency(高效云盘),cloud_ssd(SSD云盘),ephemeral_ssd(本地SSD盘),cloud_essd(ESSD云盘),cloud_auto(ESSDAutoPL云盘),cloud_essd_entry(ESSDEntry云盘)
+    #   资源类型 resource_type
     # --------------------------
     def list_available_instance_types(
             self,
             region_id: str = None,
             zone_id: str = None,
-            include_soldout: bool = False):
+            instance_charge_type: str = None,
+            system_disk_category: str = None,
+            ):
         request = ecs_models.DescribeAvailableResourceRequest(
             region_id=region_id,
             zone_id=zone_id,
-            destination_resource="InstanceType"
-            # IoOptimized=None, # 可选
+            destination_resource="InstanceType",
+            resource_type="instance",
+            instance_charge_type=instance_charge_type or "PrePaid",
+            system_disk_category=system_disk_category or "cloud_essd",
         )
         available_types = []
 
         response = self.client.describe_available_resource(request)
         body = response.body
-
         if body:
-            available_zones = body.available_zones.available_zone
+            available_zones = body.available_zones.available_zone or []
 
             # 遍历可用区列表
             if not isinstance(available_zones, list):
@@ -454,32 +512,25 @@ class AliyunClient(BaseCloudClient):
 
             for az in available_zones:
                 az_id = az.zone_id
-                resources = az.available_resources.available_resource
+                resources = az.available_resources.available_resource or []
                 if not isinstance(resources, list):
                     resources = [resources]
 
                 for resource in resources:
-                    if resource.type != "InstanceType":
-                        continue
-
-                    supported_resources = resource.supported_resources.supported_resource
+                    supported_resources = resource.supported_resources.supported_resource or []
                     if not isinstance(supported_resources, list):
                         supported_resources = [supported_resources]
 
                     for inst in supported_resources:
-                        if inst.status == "SoldOut":
-                            continue
-                        # 只要有库存或 include_soldout 为 True
-                        if not include_soldout and inst.status_category != "WithStock":
-                            continue
+                        # 是否售罄 (Sold out), 库存充足(WithStock”), 库存不算充足(ClosedWithStock),当前售罄，但“将来会补货”(WithoutStock),售罄且不会补货 / 资源彻底不可用(ClosedWithoutStock)
+
                         available_types.append({
                             "instance_type_id": inst.value,
                             "status": inst.status,
                             "status_category": inst.status_category,
                             "zone_id": az_id,
-                            "max_available": getattr(inst, "max", None),
-                            "unit": getattr(inst, "unit", None),
-                            # "system_disk_category": system_disk_category
+                            # "max_available": getattr(inst, "max", None),
+                            # "unit": getattr(inst, "unit", None),
                         })
 
         return available_types
@@ -491,50 +542,39 @@ class AliyunClient(BaseCloudClient):
         self,
         region_id: str,
         instance_type: str,
-        charge_type: str = "PostPaid",
+        instance_charge_type: str = None,
+        system_disk_category: str = None,
         period: int = 1,
     ):
-        for disk_type in SYSTEM_DISK_TYPES:
-            req = ecs_models.DescribePriceRequest(
-                region_id=region_id,
-                instance_type=instance_type,
-                # resource_type="instance"
-            )
+        req = ecs_models.DescribePriceRequest(
+            region_id=region_id,
+            instance_type=instance_type,
+            # system_disk_category=system_disk_category or "cloud_essd",
+        )
 
-            if charge_type == "PostPaid":  # 按量
-                req.price_unit = "Hour"
-            elif charge_type == "PrePaid":  # 包年包月
-                req.price_unit = "Month"
-                req.period = period
-                req.period_unit = "Month"
-            elif charge_type == "Spot":  # 抢占式
-                req.price_unit = "Hour"
-                req.spot_strategy = "SpotAsPriceGo"
-            req.system_disk_category = disk_type
-            try:
-                resp = self.client.describe_price(req)
-                # logger.info(f'看下这个 {resp}')
+        if instance_charge_type == "PostPaid":  # 按量
+            req.price_unit = "Hour"
+        elif instance_charge_type == "PrePaid":  # 包年包月
+            req.price_unit = "Month"
+            req.period = period
+            req.period_unit = "Month"
+        elif instance_charge_type == "Spot":  # 抢占式
+            req.price_unit = "Hour"
+            req.spot_strategy = "SpotAsPriceGo"
 
-                detail_infos = resp.body.price_info.price.detail_infos.detail_info
-                # logger.info(f'再次看价格！！！！11 {resp.body.price_info.price.trade_price}')
+        req.system_disk = ecs_models.DescribePriceRequestSystemDisk(
+            category=system_disk_category
+        )
 
-                # logger.info(f'查看价格 {detail_infos}')
-                # 只取实例 + 系统盘价格
-                prices = {item.resource: item.trade_price for item in detail_infos}
-                normalized = {k.lower(): v for k, v in prices.items()}
-                return normalized
-            except Exception as ex:
-                # 如果是 invalid category → 换下一个
-                msg = str(ex)
-                if "InvalidSystemDiskCategory.ValueNotSupported" in msg:
-                    continue
-                # 如果是其他错误，就直接抛出
-                raise ex
-             # 所有类型都失败
-        return {
-            "instancetype": 0,
-            "systemdisk": 0
-        }
+        resp = self.client.describe_price(req)
+
+        detail_infos = resp.body.price_info.price.detail_infos.detail_info
+
+        # 只取实例 + 系统盘价格
+        prices = {item.resource: item.trade_price for item in detail_infos}
+        normalized = {k.lower(): v for k, v in prices.items()}
+        return normalized
+
 
 class AliyunClientFactory:
     """阿里云客户端工厂"""

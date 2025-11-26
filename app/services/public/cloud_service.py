@@ -101,9 +101,17 @@ class CloudService:
         self.subnet_repo.bulk_upsert(provider_code, region_id, vpc_id, subnets)
         return subnets
 
-    def list_images(self, region_id: str) -> List[dict]:
-        images = self.client.list_images(region_id)
+    def list_images(self, region_id: str, instance_type_id: str, architecture: str) -> List[dict]:
+        images = self.client.list_images(region_id, instance_type_id, architecture)
         return images
+
+    def list_disk_types(
+        self,
+        region_id: Optional[str] = None,
+        zone_id: Optional[str] = None,
+        instance_type_id: Optional[str] = None,
+        instance_charge_type: Optional[str] = None,):
+        return self.client.list_system_disk_categories(region_id, zone_id, instance_type_id, instance_charge_type)
 
     def list_instance_types(self, provider_code: str):
         db_instance_type = self.instance_type_repo.get_by_instance_type(provider_code)
@@ -116,8 +124,20 @@ class CloudService:
         self.instance_type_repo.bulk_upsert(provider_code, instance_types)
         return instance_types
 
-    def list_available_type(self, region_id: str, zone_id: str, include_soldout: bool = False) -> List[dict]:
-        return self.client.list_available_instance_types(region_id, zone_id, include_soldout)
 
-    def list_pricing(self, region_id, instance_type, charge_type=Optional[str], period: Optional[int] = None) -> List[dict]:
-        return self.client.list_pricing_options(region_id, instance_type, charge_type, period)
+    def list_available_type(
+        self,
+        region_id: str = None,
+        zone_id: str = None,
+        instance_charge_type: str = None,
+        system_disk_category: str = None) -> List[dict]:
+        return self.client.list_available_instance_types(region_id, zone_id, instance_charge_type, system_disk_category)
+
+    def list_pricing(
+        self,
+        region_id: str,
+        instance_type: str,
+        instance_charge_type: str = None,
+        system_disk_category: str = None,
+        period: int = 1,) -> List[dict]:
+        return self.client.list_pricing_options(region_id, instance_type, instance_charge_type, system_disk_category, period)

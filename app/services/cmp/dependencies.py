@@ -11,6 +11,7 @@ from app.services.cmp.security_group_service import SecurityGroupService
 from app.services.cmp.security_group_rule_service import SecurityGroupRuleService
 from app.services.cmp.image_service import ImageService
 from app.services.cmp.instance_type_service import InstanceTypeService
+from app.services.cmp.disk_type_service import DiskTypeService
 
 #   字典
 def get_dict_service(
@@ -53,6 +54,13 @@ def get_image_service(
    public_db: Session = Depends(get_public_db)
 ) -> ImageService:
     return ImageService(public_db)
+
+# 系统盘种类
+def get_disk_type_service(
+   public_db: Session = Depends(get_public_db)
+) -> DiskTypeService:
+    return DiskTypeService(public_db)
+
 
 # 实例规则及计费
 def get_instance_type_service(

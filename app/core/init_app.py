@@ -28,7 +28,8 @@ subnet_router,
 security_group_router,
 security_group_rule_router,
 image_router,
-instance_type_router
+instance_type_router,
+disk_type_router
 )
 
 @asynccontextmanager
@@ -72,7 +73,8 @@ def create_app() -> FastAPI:
         security_group_router,
         security_group_rule_router,
         image_router,
-        instance_type_router
+        instance_type_router,
+        disk_type_router
     ]
     for r in routers:
         app.include_router(r, prefix=settings.API_PREFIX)

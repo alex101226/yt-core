@@ -27,7 +27,21 @@ class BaseCloudClient:
         raise NotImplementedError
 
     # 获取系统镜像
-    def list_images(self, region_id: Optional[str] = None) -> List[dict]:
+    def list_images(
+        self,
+        region_id: Optional[str] = None,
+        instance_type_id: str = None,
+        architecture: str = None) -> List[dict]:
+        raise NotImplementedError
+
+    # 获取磁盘种类
+    def list_system_disk_categories(
+            self,
+            region_id: Optional[str] = None,
+            zone_id: Optional[str] = None,
+            instance_type_id: Optional[str] = None,
+            instance_charge_type: Optional[str] = None,
+    ) -> List[str]:
         raise NotImplementedError
 
     # 获取全量规格
@@ -37,17 +51,20 @@ class BaseCloudClient:
     # 获取可用区规格
     def list_available_instance_types(
         self,
-        region_id: str = None,
-        zone_id: str = None,
-        include_soldout: bool = False) -> List[dict]:
+        region_id: Optional[str] ,
+        zone_id: Optional[str],
+        instance_charge_type: Optional[str],
+        system_disk_category: Optional[str],
+        ) -> List[dict]:
         raise NotImplementedError
 
     # 获取价格
     def list_pricing_options(
         self,
-        region_id: str,
-        instance_type: str,
-        charge_type: str = "PostPaid",
-        period: int = 1,
+        region_id: Optional[str],
+        instance_type: Optional[str],
+        instance_charge_type: Optional[str],
+        system_disk_category: Optional[str],
+        period: Optional[int],
     ) -> List[dict]:
         raise NotImplementedError
