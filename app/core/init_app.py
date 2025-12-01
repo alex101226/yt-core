@@ -33,10 +33,14 @@ server_instance_router,
 async def lifespan(app: FastAPI):
     # 启动前逻辑
     logger.info("🚀 Application starting up...")
-    # get_redis()
-    yield
-    # 关闭时逻辑
-    logger.info("🛑 Application shutting down...")
+    from app.tasks.server_instance_status_checker import start_scheduler, stop_scheduler
+
+    start_scheduler()
+    try:
+        yield
+    finally:
+        stop_scheduler()
+        logger.info("🛑 Application shutting down...")
 
 def create_app() -> FastAPI:
     app = FastAPI(

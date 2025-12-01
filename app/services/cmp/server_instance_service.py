@@ -4,6 +4,7 @@ from app.repositories.cmp.server_instance_repo import ServerInstanceRepo
 from app.schemas.cmp.server_instance_schema import InstancePage, InstanceBaseOut
 from app.core.security import hash_password
 
+from app.common.ipaddress import allocate_private_ip
 from app.core.logger import logger
 
 class InstanceService:
@@ -15,16 +16,37 @@ class InstanceService:
         # 1️⃣ 构造主表数据
         hashed_password = hash_password(schema['password'])
         schema['password'] = hashed_password
-        instance = self.repo.create_instance_task(schema)
+
+        # ⭐ 2) 处理私网 IP（如果没有传 private_ip）
+        if not schema.get("private_ip"):
+            cidr = schema.get("cidr_block")
+            if cidr:
+                # 获取子网已占用的 IP（TODO: 你后面可以接阿里云 API）
+                used_ips = []
+                private_ip = allocate_private_ip(cidr, used_ips)
+                schema["private_ip"] = private_ip
+
+        # ⭐ 3) schema 中删除 cidr_block，避免无效字段传入 SQLAlchemy
+        schema.pop("cidr_block", None)
+        instance_task = self.repo.create_instance_task(schema)
 
         # 2️⃣ 创建数据盘任务
         if schema['data_disks']:
-            self.repo.create_disk_tasks(instance.id, schema['data_disks'])
+            self.repo.create_disk_tasks(instance_task.id, schema['data_disks'])
+
+        # 6️⃣ 创建状态检查任务（初始 pending）
+        self.repo.create_status_check_task(
+            main_task_id=instance_task.id,
+            instance_id=instance_task.instance_id or "",  # 还没生成云端实例，可以先空
+            check_count=0,
+            max_check=30,
+            status=1  # PENDING
+        )
 
         # 3️⃣ 提交事务
-        self.db.commit()
-        self.db.refresh(instance)
-        return instance
+        self.repo.commit()
+        self.repo.refresh(instance_task)
+        return instance_task
 
 
     # 返回服务器列表

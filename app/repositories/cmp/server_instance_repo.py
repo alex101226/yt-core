@@ -4,12 +4,19 @@ from sqlalchemy import and_
 from sqlalchemy.orm import Session
 
 from app.core.logger import logger
+from app.models.cmp import InstanceStatusCheckTask
 from app.models.cmp.instance_create_task import InstanceCreateTask
 from app.models.cmp.volume_create_task import VolumeCreateTask
 
 class ServerInstanceRepo:
     def __init__(self, db: Session):
         self.db = db
+
+    def commit(self):
+        self.db.commit()
+
+    def refresh(self, obj):
+        self.db.refresh(obj)
 
     # 创建服务器
     def create_instance_task(self, instance_data: dict) -> InstanceCreateTask:
@@ -26,7 +33,8 @@ class ServerInstanceRepo:
                 main_task_id=instance_id,
                 disk_category=d["disk_category"],
                 disk_size=d["disk_size"],
-                encrypted=d.get("encrypted", False)
+                encrypted=d.get("encrypted", False),
+                status=3
             )
             self.db.add(disk_task)
             disk_objs.append(disk_task)
@@ -112,3 +120,22 @@ class ServerInstanceRepo:
         items = query.offset((page - 1) * page_size).limit(page_size).all()
         logger.info(f'这里是什么呢？ {items}')
         return items, total
+
+    # 创建状态检查任务
+    def create_status_check_task(
+            self,
+            main_task_id: int,
+            instance_id: str,
+            check_count: int = 0,
+            max_check: int = 30,
+            status: int = 1
+    ) -> InstanceStatusCheckTask:
+        task = InstanceStatusCheckTask(
+            main_task_id=main_task_id,
+            instance_id=instance_id,
+            check_count=check_count,
+            max_check=max_check,
+            status=status
+        )
+        self.db.add(task)
+        return task

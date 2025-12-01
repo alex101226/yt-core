@@ -10,40 +10,39 @@ class DiskItem(BaseModel):
 class InstanceBase(BaseModel):
     cloud_provider_code: str
     region_id: str
-    zone_id: Optional[str]
+    zone_id: str
+    resource_group_id: Optional[int]  # 资源组
+    instance_id: Optional[int]
     instance_name: str
     instance_type: str
     image_id: str
     system_disk_category: str
     system_disk_size: int
-
     instance_charge_type: str  # PrePaid / PostPaid
     period: Optional[int]
     spot_strategy: Optional[str]
-
     internet_charge_type: Optional[str]
     internet_max_bandwidth_out: Optional[int]
-
-    vpc_id: Optional[str]
-    vswitch_id: Optional[str]
-    # cidr_block: Optional[str]  # 子网的网段，要计算private_ip的ip
+    vpc_id: str
+    vswitch_id: str
     security_group_id: Optional[str]
-
     hostname: Optional[str]
     description: Optional[str]
+    data_disks: Optional[List[DiskItem]] = []
+
+class InstanceCreateSchema(InstanceBase):
+    cidr_block: Optional[str]  # 子网的网段，要计算private_ip的ip
     password: Optional[str]
     key_pair_name: Optional[str]
     enable_ssh_agent: Optional[bool] = False
     enable_protection: Optional[bool] = False
-    resource_group_id: Optional[int]  # 资源组
-    data_disks: Optional[List[DiskItem]] = []
-
-class InstanceCreateSchema(InstanceBase):
     pass
 
 
 class InstanceBaseOut(InstanceBase):
     id: int
+    public_ip: Optional[str]
+    private_ip: Optional[str]
     pass
 
     class Config:

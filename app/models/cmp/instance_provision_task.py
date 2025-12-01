@@ -5,12 +5,11 @@ from datetime import datetime, timezone
 from app.core.database import CmpBase
 from app.core.config import settings
 
-
+"""
+ECS 创建子任务
+记录阿里云 ECS 创建实例的异步任务过程
+"""
 class InstanceProvisionTask(CmpBase):
-    """
-    ECS 创建子任务
-    记录阿里云 ECS 创建实例的异步任务过程
-    """
     __tablename__ = f"{settings.CMP_TABLE_PREFIX}instance_provision_task"
     __table_args__ = {"comment": "云服务器创建流程的子任务记录（虚拟机）"}
 
