@@ -1,4 +1,5 @@
 # app/models/sso/session.py
+from datetime import datetime, timezone
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, func
 from app.core.database import SsoBase
 from app.core.config import settings
@@ -13,4 +14,8 @@ class UserSession(SsoBase):
     expires_at = Column(DateTime, nullable=False, comment="刷新 token 到期时间")
     ip = Column(String(64), nullable=True, comment="登录IP")
     user_agent = Column(String(512), nullable=True, comment="客户端 UA")
-    created_at = Column(DateTime, server_default=func.now(), comment="创建时间")
+    created_at = Column(
+        DateTime,
+        default=lambda: datetime.now(timezone.utc),
+        comment="创建时间"
+    )

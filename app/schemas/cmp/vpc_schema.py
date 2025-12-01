@@ -8,13 +8,14 @@ from pydantic import BaseModel, Field
 # 1️⃣ 基础字段模型
 # -------------------------
 class VpcBase(BaseModel):
-    vpc_name: str = Field(..., description="VPC 名称")
-    description: Optional[str] = Field(None, description="VPC 描述信息")
-    resource_group_id: Optional[int] = Field(None, description="资源组ID")
-    cloud_provider_code: str = Field(..., description="云厂商code")
-    cloud_certificate_id: int = Field(..., description="云凭证ID")
-    region_id: str = Field(..., description="区域ID")
-    network_type: str = Field(..., description="网络类型，例如 VPC/CLASSIC")
+    vpc_id: str
+    # resource_group_id: int
+    description: Optional[str] = None
+    resource_group_id: Optional[int] = None
+    cloud_provider_code: str
+    # cloud_certificate_id: int
+    region_id: str
+    network_type: str
 
 
 # -------------------------
@@ -28,11 +29,12 @@ class VpcCreate(VpcBase):
 # 3️⃣ 更新用模型
 # -------------------------
 class VpcUpdate(BaseModel):
-    vpc_name: Optional[str] = Field(None, description="VPC 名称")
-    description: Optional[str] = Field(None, description="VPC 描述信息")
-    resource_group_id: Optional[int] = Field(None, description="资源组ID")
-    region_id: Optional[str] = Field(None, description="区域ID")
-    network_type: Optional[str] = Field(None, description="网络类型")
+    vpc_id: Optional[str]
+    description: Optional[str]
+    resource_group_id: Optional[int]
+    region_id: Optional[str]
+    network_type: Optional[str]
+    cloud_provider_code: Optional[str]
 
 
 # -------------------------

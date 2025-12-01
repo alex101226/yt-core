@@ -3,14 +3,14 @@ from typing import List
 from sqlalchemy.orm import Session
 
 from app.schemas.cmp.vpc_schema import VpcOut, VpcCreate, VpcBase
-from app.clients.cloud_client_factory import CloudClientFactory
-from app.repositories.public.cloud_provider_repo import CloudProviderRepository
+# from app.clients.cloud_client_factory import CloudClientFactory
+# from app.repositories.public.cloud_provider_repo import CloudProviderRepository
 from app.repositories.cmp.vpc_repo import VpcRepository
 from app.core.logger import logger
 from app.common.status_code import ErrorCode
 from app.common.messages import Message
 
-from app.services.public.cloud_service import CloudService
+# from app.services.public.cloud_service import CloudService
 
 
 class VPCService:
@@ -18,29 +18,16 @@ class VPCService:
     VPC 服务层：提供业务逻辑处理
     """
 
-    def __init__(self, cmp_db: Session, public_db: Session):
+    def __init__(self, cmp_db: Session):
         self.db = cmp_db
-        self.provider_repo = CloudProviderRepository(public_db)
+        # self.provider_repo = CloudProviderRepository(public_db)
         self.vpc_repo = VpcRepository(cmp_db)
 
     """
     获取指定 Region 的 VPC 列表
     """
     def sync_vpcs(self, provider_code: str, region_id: str) -> List[VpcBase]:
-        provider = self.provider_repo.get_by_code(provider_code)
-        if not provider:
-            raise BusinessException(
-                code=ErrorCode.DATA_NOT_FOUND,
-                message=Message.DATA_NOT_FOUND
-            )
-        client_vpc = CloudService(
-            self.db,
-            provider_code,
-            provider.access_key_id,
-            provider.access_key_secret,
-            provider.endpoint,
-        )
-        vpcs = client_vpc.list_vpcs(provider_code, region_id)
+        vpcs = self.vpc_repo.get_by_vpcs(provider_code, region_id)
         return vpcs
 
     # 返回带分页的vpc
@@ -50,8 +37,8 @@ class VPCService:
     # --------------------------------
     # 创建单个 VPC
     # --------------------------------
-    def create(self, data: VpcCreate) -> VpcOut:
-        obj = self.vpc_repo.create(data.model_dump())
+    def create(self, data: dict) -> VpcOut:
+        obj = self.vpc_repo.create(data)
         return VpcOut.model_validate(obj)
 
     # 释放逻辑

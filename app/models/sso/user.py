@@ -4,7 +4,8 @@ from sqlalchemy import Column, Integer, String, DateTime
 from sqlalchemy.orm import relationship
 from app.core.database import SsoBase
 from app.core.config import settings
-from app.models.sso.user_role_association import user_role_association
+from .user_role_association import user_role_association
+from .role import Role
 
 class User(SsoBase):
     __tablename__ = f"{settings.SSO_TABLE_PREFIX}users"
@@ -32,7 +33,7 @@ class User(SsoBase):
     )
 
     roles = relationship(
-        "Role",
+        Role,
         secondary=user_role_association,  # 中间表
         back_populates="users"
     )

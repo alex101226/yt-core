@@ -1,6 +1,5 @@
 from typing import List, Dict, Optional
 
-
 class BaseCloudClient:
     """统一云客户端接口"""
     # 获取区域
@@ -45,7 +44,7 @@ class BaseCloudClient:
         raise NotImplementedError
 
     # 获取全量规格
-    def list_instance_types(self, provider_code: str, region_id: str, min_cpu: int = 1, min_memory: int = 1, architecture: str = "x86_64", bare_metal: bool = False) -> List[dict]:
+    def list_instance_types(self) -> List[dict]:
         raise NotImplementedError
 
     # 获取可用区规格
@@ -58,8 +57,8 @@ class BaseCloudClient:
         ) -> List[dict]:
         raise NotImplementedError
 
-    # 获取价格
-    def list_pricing_options(
+    # 获取ecs实例价格
+    def instance_price(
         self,
         region_id: Optional[str],
         instance_type: Optional[str],
@@ -67,4 +66,14 @@ class BaseCloudClient:
         system_disk_category: Optional[str],
         period: Optional[int],
     ) -> List[dict]:
+        raise NotImplementedError
+
+    #   获取系统盘价格
+    def disk_category_price(
+        self,
+        region_id: Optional[str],
+        instance_type: Optional[str],
+        instance_charge_type: Optional[str],
+        system_disk_category: Optional[str],
+        system_disk_size: Optional[int]):
         raise NotImplementedError

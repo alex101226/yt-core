@@ -3,14 +3,16 @@
 from datetime import datetime, timezone
 from sqlalchemy import (
     Column, String, Integer, DateTime,
-    ForeignKey, Boolean
+    ForeignKey
 )
 from sqlalchemy.orm import relationship
 from app.core.database import CmpBase
 from app.core.config import settings
 
+from .is_released_mixin import IsReleasedMixin
+
 #   安全组规则表（入方向 / 出方向规则）
-class SecurityGroupRule(CmpBase):
+class SecurityGroupRule(CmpBase, IsReleasedMixin):
     __tablename__ = f"{settings.CMP_TABLE_PREFIX}security_group_rule"
     __table_args__ = {"comment": "安全组规则表"}
 
@@ -69,11 +71,11 @@ class SecurityGroupRule(CmpBase):
     )
 
     # 云端规则 ID（不同云是否支持不一致，可为空）
-    cloud_rule_id = Column(
-        String(100),
-        nullable=True,
-        comment="云端规则ID（如果云厂商支持）"
-    )
+    # sgl_id = Column(
+    #     String(100),
+    #     nullable=True,
+    #     comment="云端规则ID（如果云厂商支持）"
+    # )
 
     # 同步状态：0未同步，1已同步，2待更新，3删除中
     sync_status = Column(
@@ -81,10 +83,6 @@ class SecurityGroupRule(CmpBase):
         default=0,
         comment="同步状态：0未同步，1已同步，2待更新，3删除中"
     )
-
-    # 释放字段
-    is_released = Column(Boolean, default=False, nullable=False, comment="是否已释放")
-    released_at = Column(DateTime(timezone=True), nullable=True, comment="释放时间 (UTC)")
 
     created_at = Column(
         DateTime(timezone=True),

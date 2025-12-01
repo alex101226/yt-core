@@ -1,6 +1,5 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import select, func
-from typing import List, Optional, Any
+from typing import Optional
 
 from app.models.cmp.dict_item import DictItem
 from app.schemas.cmp.dict_schema import DictItemCreate, DictItemUpdate, DictItemListOut, DictItemOut

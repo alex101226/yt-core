@@ -1,7 +1,8 @@
 # app/services/auth_service.py
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta, timezone
-from app.core.security import hash_password, verify_password, create_access_token, create_refresh_token, decode_token, REFRESH_EXPIRE_DAYS
+from app.core.security import hash_password, verify_password, create_access_token, create_refresh_token, \
+    REFRESH_EXPIRE_DAYS
 
 from app.models.sso.user import User
 from app.models.sso.session import UserSession

@@ -1,6 +1,6 @@
 # app/repositories/cmp/subnet_repo.py
 from datetime import datetime, timezone
-from typing import Optional, List
+from typing import Optional, List, Any
 
 from sqlalchemy import and_
 from sqlalchemy.orm import Session
@@ -68,26 +68,37 @@ class SubnetRepository:
             .first()
         )
 
-    def list_by_subnet(self, vpc_id: str) -> List[SubnetOut]:
-        return self.db.query(Subnet).filter(Subnet.vpc_id==vpc_id).order_by(Subnet.id.desc()).all()
+    #   返回list
+    def list_by_subnet(self, vpc_id: int) -> list[type[Subnet]]:
+        items = self.db.query(Subnet).filter_by(vpc_id=vpc_id).order_by(Subnet.created_at).all()
+        return items
 
+
+    #   返回list
+    def vpc_by_subnet_page_list(self, vpc_id: int, page: int, page_size: int) -> tuple[int, list[type[Subnet]]]:
+        query = self.db.query(Subnet)
+        total = query.count()
+        items = query.filter_by(vpc_id=vpc_id).offset((page - 1) * page_size).limit(page_size).all()
+
+        return total, items
+
+    # 释放
     def release(self, obj: Subnet):
-        obj.is_released = True
-        obj.released_at = datetime.now(timezone.utc)
+        obj.is_released = 1
+        # obj.released_at = datetime.now(timezone.utc)
         self.db.commit()
         self.db.refresh(obj)
         return obj
 
     # 分页查询
     def list_page(
-            self,
-            cloud_provider_code: str = None,
-            region_id: str = None,
-            zone_id: str = None,
-            vpc_id: str = None,
-            resource_group_id: int = None,
-            page: int = 1,
-            page_size: int = 20
+        self,
+        cloud_provider_code: str = None,
+        region_id: str = None,
+        subnet_id: str = None,
+        resource_group_id: int = None,
+        page: int = 1,
+        page_size: int = 20
     ) -> tuple[list[type[Subnet]], int]:
         """
         分页查询子网
@@ -100,10 +111,8 @@ class SubnetRepository:
             filters.append(Subnet.cloud_provider_code == cloud_provider_code)
         if region_id:
             filters.append(Subnet.region_id == region_id)
-        if zone_id:
-            filters.append(Subnet.zone_id == zone_id)
-        if vpc_id:
-            filters.append(Subnet.vpc_id == vpc_id)
+        if subnet_id:
+            filters.append(Subnet.subnet_id == subnet_id)
         if resource_group_id:
             filters.append(Subnet.resource_group_id == resource_group_id)
 

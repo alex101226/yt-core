@@ -13,25 +13,28 @@ REFRESH_EXPIRE_DAYS=settings.REFRESH_TOKEN_EXPIRE_DAYS
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
+# 加密密码
 def hash_password(password: str) -> str:
     return pwd_context.hash(password)
 
-
+# 验证密码
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password, hashed_password)
 
-
+# 创建 access token
 def create_access_token(subject: Dict, expires_minutes: int = ACCESS_TOKEN_EXPIRE_MINUTES) -> str:
     to_encode = subject.copy()
     expire = datetime.now(timezone.utc) + timedelta(minutes=expires_minutes)
     to_encode.update({"exp": expire, "type": "access"})
     return jwt.encode(to_encode, JWT_SECRET, algorithm=JWT_ALGORITHM)
 
+# 创建 refresh token
 def create_refresh_token(subject: Dict, expires_days: int = REFRESH_EXPIRE_DAYS) -> str:
     to_encode = subject.copy()
     expire = datetime.now(timezone.utc) + timedelta(days=expires_days)
     to_encode.update({"exp": expire, "type": "refresh"})
     return jwt.encode(to_encode, JWT_SECRET, algorithm=JWT_ALGORITHM)
 
+# token解码
 def decode_token(token: str) -> Dict:
     return jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])

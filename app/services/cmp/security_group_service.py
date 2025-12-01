@@ -1,33 +1,39 @@
 from typing import List
 from sqlalchemy.orm import Session
-from app.schemas.cmp.security_group_schema import SecurityGroupSearch, SecurityGroupPage, SecurityGroupCreate, SecurityGroup
-from app.repositories.public.cloud_provider_repo import CloudProviderRepository
+from app.schemas.cmp.security_group_schema import SecurityGroupPage, SecurityGroup, SecurityGroupOut
+from app.schemas.cmp.security_group_rule_schema import SecurityGroupRuleOut, SecurityGroupRuleUpdate
+
 from app.repositories.cmp.security_group_repo import SecurityGroupRepository
-from app.common.pagination import paginate_query
 from app.common.status_code import ErrorCode
 from app.common.messages import Message
+from app.common.exceptions import BusinessException
 
 class SecurityGroupService:
-    def __init__(self, cmp_db: Session, public_db: Session):
+    def __init__(self, cmp_db: Session):
         self.db = cmp_db
-        self.provider_repo = CloudProviderRepository(public_db)
         self.security_group_repo = SecurityGroupRepository(cmp_db)
+
     #   分页
-    def list_page(self, filters: SecurityGroupSearch) -> SecurityGroupPage:
+    def list_page(
+        self,
+        provider_code: str,
+        region_id: str,
+        resource_group_id: int,
+        security_name: str,
+        page: int,
+        page_size: int
+    ) -> SecurityGroupPage:
 
-        q = self.security_group_repo.search(filters)
-        total, items = paginate_query(q, filters.page, filters.page_size)
+        items, total = self.security_group_repo.list_page(
+            provider_code, region_id, resource_group_id, security_name, page, page_size
+        )
 
-        if total > 0:
-            return SecurityGroupPage(total=total, page=filters.page, page_size=filters.page_size, items=items)
-
-        if total == 0 and filters.cloud_provider_code and filters.region_id:
-            self.security_groups(provider_code=filters.cloud_provider_code, region_id=filters.region_id)
-            # 重新查询 DB
-            q = self.security_group_repo.search(filters)
-            total, items = paginate_query(q, filters.page, filters.page_size)
-
-        return SecurityGroupPage(total=total, page=filters.page, page_size=filters.page_size, items=items)
+        return SecurityGroupPage(
+            total=total,
+            page=page,
+            page_size=page_size,
+            items=[SecurityGroupOut.model_validate(s) for s in items]
+        )
 
     def security_groups(self, provider_code: str, region_id: str, page: int = 1, page_size: int = 50):
         # provider = self.provider_repo.get_by_code(provider_code)
@@ -69,73 +75,68 @@ class SecurityGroupService:
     # ----------------------------
     # 创建安全组（本地 + 云端）
     # ----------------------------
-    def create(self, data: SecurityGroupCreate):
-        # provider = self.provider_repo.get_by_code(data.cloud_provider_code)
-        # if not provider:
-        #     raise BusinessException(
-        #         code=ErrorCode.DATA_NOT_FOUND,
-        #         message="云厂商未配置"
-        #     )
-
-        # 本地先落库
-        sg = self.security_group_repo.create_group(data)
-
-        # ----- 云端创建安全组 -----
-        # cloud_client = CloudClientFactory.create_client(
-        #     data.cloud_provider_code,
-        #     provider.access_key_id,
-        #     provider.access_key_secret,
-        #     provider.endpoint,
-        # )
-
-        # cloud_resp = cloud_client.create_security_group(
-        #     security_name=data.security_name,
-        #     description=data.description,
-        #     region_id=data.region_id,
-        #     vpc_id=sg.vpc.cloud_vpc_id,  # 本地 VPC 映射云端 VPC
-        # )
-
-        # cloud_group_id = cloud_resp.get("SecurityGroupId")
-        # if not cloud_group_id:
-        #     raise BusinessException(
-        #         code=ErrorCode.CLOUD_API_ERROR,
-        #         message="云端创建安全组失败"
-        #     )
-
-        # 回写云端 ID
-        # sg.cloud_group_id = cloud_group_id
-        sg.sync_status = 1
-        self.db.commit()
-
-        return sg
+    def create(self, data: dict):
+        return self.security_group_repo.create_group(data)
 
     # ----------------------------
     # 释放安全组
     # ----------------------------
     def release(self, group_id: str):
-        sg = self.security_group_repo.mark_released(group_id)
+        sg = self.security_group_repo.group_mark_released(group_id)
         if not sg:
             raise BusinessException(
                 code=ErrorCode.DATA_NOT_FOUND,
                 message=Message.DATA_NOT_FOUND
             )
-
-        # provider = self.provider_repo.get_by_code(sg.cloud_provider_code)
-        # cloud_client = CloudClientFactory.create_client(
-        #     sg.cloud_provider_code,
-        #     provider.access_key_id,
-        #     provider.access_key_secret,
-        #     provider.endpoint,
-        # )
-
-        # if sg.cloud_group_id:
-        #     cloud_client.delete_security_group(security_group_id=sg.cloud_group_id)
-
-        sg.sync_status = 3
-        self.db.commit()
-
         return True
 
-
+    #   返回安全组的列表数据
     def list_security_groups(self, provider_code: str, region_id: str, vpc_id: int) -> List[SecurityGroup]:
         return self.security_group_repo.get_by_security_group(provider_code, region_id, vpc_id)
+
+    # 更新规则（入 + 出）
+    def update_rules(self, data: SecurityGroupRuleUpdate):
+        sg = self.security_group_repo.get_by_id(data.security_group_id)
+        if not sg:
+            raise BusinessException(
+                code=ErrorCode.DATA_NOT_FOUND,
+                message=Message.DATA_NOT_FOUND,
+            )
+
+        # 1. 清空原规则
+        self.security_group_repo.delete_by_group(data.security_group_id)
+
+        # 2. 设置 direction 字段
+        for item in data.ingress_rules:
+            item.direction = "inbound"
+
+        for item in data.egress_rules:
+            item.direction = "outbound"
+
+        # 3. 入方向写入
+        self.security_group_repo.bulk_create(data.security_group_id, data.ingress_rules)
+
+        # 4. 出方向写入
+        self.security_group_repo.bulk_create(data.security_group_id, data.egress_rules)
+
+        self.db.commit()
+        return True
+
+        #   删除规则
+
+    # 删除某个规则
+    def delete_rules(self, rule_id: str):
+        # 验证安全组存在
+        rule = self.security_group_repo.get_by_rule_id(rule_id)
+        if not rule:
+            raise BusinessException(code=ErrorCode.DATA_NOT_FOUND, message=Message.DATA_NOT_FOUND)
+
+        deleted = self.security_group_repo.rule_mark_delete(rule_id)
+        self.db.commit()
+        return deleted
+
+        #   返回列表
+
+    # 配置规则列表
+    def list_rules(self, security_group_id: str):
+        return self.security_group_repo.list_by_rule(security_group_id)

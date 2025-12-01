@@ -1,24 +1,36 @@
+from enum import Enum
 from typing import Optional, List
 
 from fastapi import APIRouter, Depends, Query
+from sqlalchemy.orm import Session
 
 from app.common.response import Response
 from app.schemas.cmp.dict_schema import DictItemCreate, DictItemUpdate, DictItemOut, DictItemListOut
-from app.services.cmp.dependencies import get_dict_service
 from app.services.cmp.dict_service import DictService
+from app.common.dependencies import get_cmp_db
+
+
+def get_dict_service(
+   db: Session = Depends(get_cmp_db),
+):
+    return DictService(db)
+
+class DictType(str, Enum):
+    SERVER_STATUS = "SERVER_STATUS"
+    NETWORK_TYPE = "NETWORK_TYPE"
+    TASK_STATUS="TASK_STATUS"
 
 router = APIRouter(prefix="/dict", tags=["字典"])
-
 
 # -------------------------
 # 查询某个 type_code 下的字典列表
 # -------------------------
 @router.get("/list", response_model=List[DictItemOut])
 def get_dict_by_type(
-        type_code: str = Query('NETWORK_TYPE', description="字典类型"),
+        type_code: DictType = Query(DictType.NETWORK_TYPE, description="字典类型"),
         service: DictService = Depends(get_dict_service)
 ):
-    items = service.list_by_type(type_code)
+    items = service.list_by_type(type_code.value)
     return Response.success(items)
 
 

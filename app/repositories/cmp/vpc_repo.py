@@ -60,7 +60,8 @@ class VpcRepository:
             self.db.query(Vpc)
             .filter(
                 Vpc.cloud_provider_code == provider_code,  # type: ignore
-                Vpc.region_id == region_id  # type: ignore
+                Vpc.region_id == region_id,  # type: ignore
+                Vpc.is_released == 0
             )
             .order_by(Vpc.id.desc())
             .all()
@@ -71,6 +72,7 @@ class VpcRepository:
         query = self.db.query(Vpc).filter(
             Vpc.cloud_provider_code == provider_code,
             Vpc.region_id == region_id,
+            Vpc.is_released == 0
         ).order_by(Vpc.id.desc())
         total = query.count()
         items = query.offset((page - 1) * page_size).limit(page_size).all()
@@ -78,8 +80,8 @@ class VpcRepository:
 
     # 释放（逻辑删除）
     def release(self, vpc: Vpc) -> VpcOut:
-        vpc.is_released = True
-        vpc.released_at = datetime.now(timezone.utc)
+        vpc.is_released = 1
+        # vpc.released_at = datetime.now(timezone.utc)
         self.db.add(vpc)
         self.db.commit()
         self.db.refresh(vpc)

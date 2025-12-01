@@ -2,7 +2,7 @@ from typing import List, Optional
 from sqlalchemy.orm import Session
 from nanoid import generate
 
-from app.models.cmp.security_group_rule import SecurityGroupRule
+from app.models import SecurityGroupRule
 from app.schemas.cmp.security_group_rule_schema import SecurityGroupRuleItem
 
 

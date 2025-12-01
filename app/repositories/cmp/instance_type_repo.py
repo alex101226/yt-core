@@ -1,9 +1,8 @@
 # app/repositories/cmp/instance_type_repo.py
-from sqlalchemy import not_, func
 from sqlalchemy.orm import Session
-from typing import List, Optional, Dict, Any, Union
+from typing import List, Optional, Any
 from datetime import datetime
-from app.models.cmp.instance_type import InstanceType
+from app.models import InstanceType
 
 
 class InstanceTypeRepo:

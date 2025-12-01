@@ -11,7 +11,6 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../'
 # 导入项目配置
 from app.core.config import settings
 from app.core.database import SsoBase
-from app import models  # 导入所有模型模块，确保 Alembic 能扫描到
 
 config = context.config
 

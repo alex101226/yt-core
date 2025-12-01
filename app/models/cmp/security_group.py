@@ -1,23 +1,27 @@
 # app/models/cmp/security_group.py
 from datetime import datetime, timezone
 from sqlalchemy import (
-    Column, String, Text, Integer, DateTime, JSON,
-    ForeignKey, Boolean, UniqueConstraint
+    Column, String, Text, Integer, DateTime,
+    ForeignKey, Boolean
 )
 from sqlalchemy.orm import relationship
 from app.core.database import CmpBase
 from app.core.config import settings
 
-class SecurityGroup(CmpBase):
+from .is_released_mixin import IsReleasedMixin
+
+class SecurityGroup(CmpBase, IsReleasedMixin):
     __tablename__ = f"{settings.CMP_TABLE_PREFIX}security_group"
     __table_args__ = {"comment": "安全组主表"}
 
     id = Column(String(36), primary_key=True, index=True, comment="安全组本地唯一 ID")
-    security_name = Column(String(100), nullable=False, comment="安全组名称")
+    user_id = Column(Integer, index=True, nullable=False, comment="所属用户ID")
+    sg_id = Column(String(100), unique=True, nullable=True, comment="云端安全组 ID（sg-xxxx）")
+    # sg_name = Column(String(100), nullable=False, comment="安全组名称")
     description = Column(Text, nullable=True, comment="安全组描述")
     resource_group_id = Column(Integer, nullable=True, comment="资源组ID")
     cloud_provider_code = Column(String(30), nullable=False, comment="云厂商code")
-    cloud_certificate_id = Column(Integer, nullable=False, comment="云凭证ID")
+    # cloud_certificate_id = Column(Integer, nullable=False, comment="云凭证ID")
     region_id = Column(String(50), nullable=False, comment="区域 ID，例如 cn-beijing")
     # CMP 内部表，可以做外键
     vpc_id = Column(

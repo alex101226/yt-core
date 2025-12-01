@@ -1,20 +1,30 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
+from sqlalchemy.orm import Session
 
 from app.common.response import Response
 from app.schemas.cmp.vpc_schema import (VpcOut, VpcPage, VpcCreate)
 
-from app.services.cmp.dependencies import get_vpc_service
 from app.services.cmp.vpc_service import VPCService
+from app.common.dependencies import get_cmp_db
+from app.core.dependencies import require_user
 
-router = APIRouter(prefix="/vpc", tags=["vpc"])
+
+def get_vpc_service(db: Session = Depends(get_cmp_db)):
+    return VPCService(db)
+
+router = APIRouter(
+    prefix="/vpc",
+    tags=["vpc"],
+    dependencies=[Depends(require_user)]
+)
 
 # -------------------------------
 # 分页查询
 # -------------------------------
 @router.get("/list", response_model=VpcOut)
 def list_vpcs(
-    provider_code: str = Query('aliyun'),
-    region_id: str = Query('cn-qingdao'),
+    provider_code: str = Query('aliyun', description="云厂商code"),
+    region_id: str = Query('cn-qingdao', description="区域 id"),
     service: VPCService = Depends(get_vpc_service)
 ):
     items = service.sync_vpcs(provider_code, region_id)
@@ -35,9 +45,13 @@ def list_page(
 @router.post("/create", response_model=VpcOut)
 def create_vpc(
     data: VpcCreate,
+    request: Request,
     service: VPCService = Depends(get_vpc_service)
 ):
-    vpc = service.create(data)
+    user_id = request.state.user.get('user_id')
+    payload = data.model_dump()
+    payload['user_id'] = user_id
+    vpc = service.create(payload)
     return Response.success(vpc)
 
 # 释放 VPC

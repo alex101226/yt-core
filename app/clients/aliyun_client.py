@@ -6,7 +6,6 @@ from alibabacloud_ecs20140526.client import Client as EcsClient
 from alibabacloud_ecs20140526 import models as ecs_models
 from app.common.credentials_manager import CredentialsManager
 from app.clients.base import BaseCloudClient
-
 from app.core.logger import logger
 
 SYSTEM_DISK_TYPES = [
@@ -307,6 +306,13 @@ class AliyunClient(BaseCloudClient):
             {
                 "image_id": i.image_id,
                 "image_name": i.image_name,
+                "size": i.size,
+                "os_type": i.ostype,
+                "os_name": i.osname,
+                "architecture": i.architecture,
+                "platform": i.platform,
+                "boot_mode": i.boot_mode,
+                "creation_time": i.creation_time,
             }
             for i in images
         ]
@@ -356,7 +362,7 @@ class AliyunClient(BaseCloudClient):
     # --------------------------
     # 实例规格（实例类型）     region_id: str, min_cpu: int = 1, min_memory: int = 1, architecture: str = "x86_64", bare_metal: bool = False
     # --------------------------
-    def list_instance_types(self, provider_code: str, region_id: Optional[str] = None, min_cpu: int = 1, min_memory: int = 1, architecture: str = "x86_64", bare_metal: bool = False) -> List[dict]:
+    def list_instance_types(self) -> List[dict]:
         # -------------------------------
         # 1. 调用 DescribeInstanceTypes 获取全量规格详情
         # -------------------------------
@@ -472,7 +478,7 @@ class AliyunClient(BaseCloudClient):
                 "network_performance": network_perf,
                 "is_io_optimized": True,
                 "price": None,
-                "cloud_provider_code": provider_code
+                # "cloud_provider_code": provider_code
             })
 
         return results
@@ -536,9 +542,11 @@ class AliyunClient(BaseCloudClient):
         return available_types
 
     # --------------------------
-    # 获取 ECS 可选计费方式
+    # 获取 ECS 实例规格费用
     # --------------------------
-    def list_pricing_options(
+
+
+    def instance_price(
         self,
         region_id: str,
         instance_type: str,
@@ -549,7 +557,6 @@ class AliyunClient(BaseCloudClient):
         req = ecs_models.DescribePriceRequest(
             region_id=region_id,
             instance_type=instance_type,
-            # system_disk_category=system_disk_category or "cloud_essd",
         )
 
         if instance_charge_type == "PostPaid":  # 按量
@@ -574,6 +581,60 @@ class AliyunClient(BaseCloudClient):
         prices = {item.resource: item.trade_price for item in detail_infos}
         normalized = {k.lower(): v for k, v in prices.items()}
         return normalized
+
+
+    #   获取服务器整体价格
+    def cloud_price(
+        self,
+        region_id: Optional[str],
+        instance_type_id: Optional[str],
+        system_disk_category: Optional[str],
+        system_disk_size: Optional[int],
+        instance_charge_type: Optional[str],
+        period: int = 1
+    ):
+
+        req = ecs_models.DescribePriceRequest(
+            region_id=region_id,
+            instance_type=instance_type_id,
+        )
+
+        if instance_charge_type == "PostPaid":  # 按量
+            req.price_unit = "Hour"
+        elif instance_charge_type == "PrePaid":  # 包年包月
+            req.price_unit = "Month"
+            req.period = period
+            req.period_unit = "Month"
+        elif instance_charge_type == "Spot":  # 抢占式
+            req.price_unit = "Hour"
+            req.spot_strategy = "SpotAsPriceGo"
+
+        req.system_disk = ecs_models.DescribePriceRequestSystemDisk(
+            category=system_disk_category,
+            size=system_disk_size
+        )
+
+        response = self.client.describe_price(req)
+        price_info = response.body.price_info
+        # 解析价格
+        result = {
+            "original_price": price_info.price.original_price,
+            "trade_price": price_info.price.trade_price,
+            "currency": price_info.price.currency,
+            "detail": [],
+        }
+
+        # systemDisk 的明细
+        details = price_info.price.detail_infos
+        if details and details.detail_info:
+            for d in details.detail_info:
+                result["detail"].append({
+                    "resource": d.resource,  # systemDisk / instanceType 等
+                    "original_price": d.original_price,
+                    "trade_price": d.trade_price,
+                })
+
+        return result
 
 
 class AliyunClientFactory:
