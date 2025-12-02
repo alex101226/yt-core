@@ -29,6 +29,7 @@ class InstanceBase(BaseModel):
     hostname: Optional[str]
     description: Optional[str]
     data_disks: Optional[List[DiskItem]] = []
+    os_type: Optional[str]
 
 class InstanceCreateSchema(InstanceBase):
     cidr_block: Optional[str]  # 子网的网段，要计算private_ip的ip

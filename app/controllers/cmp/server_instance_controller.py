@@ -6,11 +6,9 @@ from enum import Enum
 from sqlalchemy.orm import Session
 from app.schemas.cmp.server_instance_schema import InstanceCreateSchema
 from app.services.cmp.server_instance_service import InstanceService
-
 from app.common.response import Response
 from app.common.dependencies import get_cmp_db
 from app.core.dependencies import require_user
-
 
 def get_server_instance_service(
    db: Session = Depends(get_cmp_db),
@@ -23,7 +21,8 @@ class InstanceChargeType(str, Enum):
     SPOT = "Spot"
 
 router = APIRouter(prefix="/cloud_server", tags=["云服务器"], dependencies=[Depends(require_user)])
-# eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo3LCJleHAiOjE3NjQ1MTgyMzUsInR5cGUiOiJhY2Nlc3MifQ.1sMBe8a3xpsJv1_wZ22eL7NodfuZp7nLgGBsP2oP6nM
+
+# 创建服务器
 @router.post("/server_create")
 def create_instance(
     data: InstanceCreateSchema,
@@ -44,7 +43,7 @@ def create_instance(
     }
     return Response.success(result)
 
-
+# 分页列表
 @router.get("/server_page_list")
 def get_server_page_list(
     provider_code: Optional[str] = Query('aliyun', description="云厂商 code"),
@@ -66,4 +65,28 @@ def get_server_page_list(
         instance_type, ip, status, ssh_proxy_port, page, page_size
     )
     return Response.success(result)
+# 实例状态：1初始化 2运行中 3创建准备 4创建中 5创建失败 6准备关机 7关机中 8已关机 9关机失败 10准备开机
+# 11 开机中 12开机失败 13准备重启 14重启中 15重启失败 16准备释放 17释放中 18已释放 19释放失败 20云端不存在
+# 21网络配置失败 22代理配置失败 23部署中 24部署失败 25创建镜像中 26更换镜像中 27更换镜像失败
+#  28云盘扩容中 29欠费限制 30异常
+
+class ServerInstanceStatus(str, Enum):
+    PREPARE_START = "PREPARE_START" # 开机
+    PREPARE_STOP = "PREPARE_STOP"   # 关机
+    PREPARE_REBOOT = "PREPARE_REBOOT"   # 重启
+    IMAGE_CREATING="IMAGE_CREATING" # 创建镜像
+    IMAGE_REPLACING="IMAGE_REPLACING"   # 更换镜像
+    PREPARE_RELEASE="PREPARE_RELEASE"   # 释放
+# 开机
+@router.post("/action")
+def start_instance(
+    request: Request,
+    status: ServerInstanceStatus = Query(ServerInstanceStatus.PREPARE_START, description="服务器状态"),
+    instance_id: str = Query(description="服务器创建成功后的实例"),
+    service: InstanceService = Depends(get_server_instance_service)
+):
+    user_id = request.state.user.get("user_id")
+    result = service.start_instance(status, instance_id, user_id)
+    return Response.success(result)
+
 

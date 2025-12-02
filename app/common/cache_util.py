@@ -1,7 +1,7 @@
 import json
 from app.core.cache import get_redis
 from app.core.config import settings
-
+# 开机，关机，重启，创建镜像，开启ssh代理，克隆，更换镜像，修改管理密码，改包年包月，开启释放保护，释放
 async def cache_set(key: str, value, expire=None):
     if expire is None:
         expire = settings.REDIS_EXPIRE

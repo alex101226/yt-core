@@ -18,6 +18,12 @@ class ServerInstanceRepo:
     def refresh(self, obj):
         self.db.refresh(obj)
 
+    # 服务器主表根据id查一条
+    def get_instance_by_id(self, instance_id: str):
+        return self.db.query(InstanceCreateTask).filter(
+            InstanceCreateTask.instance_id == instance_id
+        ).first()
+
     # 创建服务器
     def create_instance_task(self, instance_data: dict) -> InstanceCreateTask:
         instance = InstanceCreateTask(**instance_data)
@@ -121,15 +127,9 @@ class ServerInstanceRepo:
         logger.info(f'这里是什么呢？ {items}')
         return items, total
 
-    # 创建状态检查任务
-    def create_status_check_task(
-            self,
-            main_task_id: int,
-            instance_id: str,
-            check_count: int = 0,
-            max_check: int = 30,
-            status: int = 1
-    ) -> InstanceStatusCheckTask:
+
+    # 创建轮训任务
+    def create_status_check_task(self, main_task_id: int, instance_id: str, check_count=0, max_check=10, status=1):
         task = InstanceStatusCheckTask(
             main_task_id=main_task_id,
             instance_id=instance_id,
@@ -138,4 +138,7 @@ class ServerInstanceRepo:
             status=status
         )
         self.db.add(task)
+        self.db.flush()
         return task
+
+

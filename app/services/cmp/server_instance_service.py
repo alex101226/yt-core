@@ -1,10 +1,17 @@
 # app/services/cmp/instance_service.py
 from sqlalchemy.orm import Session
+from datetime import datetime, timezone
+from nanoid import generate
+
 from app.repositories.cmp.server_instance_repo import ServerInstanceRepo
-from app.schemas.cmp.server_instance_schema import InstancePage, InstanceBaseOut
+# from app.schemas.cmp.server_instance_schema import InstancePage, InstanceBaseOut
 from app.core.security import hash_password
 
 from app.common.ipaddress import allocate_private_ip
+
+from app.common.exceptions import BusinessException
+from app.common.status_code import ErrorCode
+from app.common.messages import Message
 from app.core.logger import logger
 
 class InstanceService:
@@ -28,6 +35,9 @@ class InstanceService:
 
         # ⭐ 3) schema 中删除 cidr_block，避免无效字段传入 SQLAlchemy
         schema.pop("cidr_block", None)
+        schema['status'] = 'INIT'
+        schema['last_operation'] = 'INIT'
+        schema['instance_id'] = f"ECS-{generate(size=6)}"
         instance_task = self.repo.create_instance_task(schema)
 
         # 2️⃣ 创建数据盘任务
@@ -76,3 +86,27 @@ class InstanceService:
             "items": items,
             "page_size": page_size,
         }
+
+
+    # 开机，关机，重启，
+    def start_instance(self, status, instance_id: str, user_id: int):
+        # 1️⃣ 创建操作任务
+        instance = self.repo.get_instance_by_id(instance_id)
+        if not instance:
+            raise BusinessException(code=ErrorCode.DATA_NOT_FOUND, message=Message.DATA_NOT_FOUND)
+
+        instance.status = status.value
+        instance.last_operation = status.value
+        instance.updated_at = datetime.now(timezone.utc)
+        self.repo.commit()
+
+        # 创建轮询任务
+        self.repo.create_status_check_task(
+            main_task_id=instance.id,
+            instance_id=instance_id,
+            check_count=0,
+            max_check=10,
+            status=1
+        )
+        self.repo.commit()
+        return {"instance_id": instance_id}

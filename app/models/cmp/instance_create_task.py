@@ -11,7 +11,7 @@ class InstanceCreateTask(CmpBase):
     服务器主创建任务表
     记录一次创建 ECS 实例的整体过程
     """
-    __tablename__ = f"{settings.CMP_TABLE_PREFIX}instance_create_task"
+    __tablename__ = f"{settings.CMP_TABLE_PREFIX}server_instance"
     __table_args__ = {"comment": "服务器主创建任务表"}
 
     id = Column(Integer, primary_key=True, autoincrement=True)
@@ -29,7 +29,7 @@ class InstanceCreateTask(CmpBase):
     system_disk_category = Column(String(50), nullable=False, comment="系统盘类型，例如 ESSD_PL0, SSD")
     system_disk_size = Column(Integer, nullable=False, comment="系统盘大小")
     data_disks = Column(JSON, nullable=True, comment="数据盘列表")
-
+    os_type = Column(String(32), nullable=False, comment="操作系统")
     instance_charge_type = Column(String(10),  nullable=False, comment="实例计费类型:PrePaid（包年包月）/PostPaid（按量付费）")
     period = Column(
         Integer,
@@ -70,10 +70,10 @@ class InstanceCreateTask(CmpBase):
     request_params = Column(JSON, nullable=True, comment="用户创建实例时提交的完整参数快照")
 
     status = Column(
-        Integer,
+        String(50),
         nullable=False,
-        default=1,
-        comment="实例状态：1初始化 2运行中 3创建准备 4创建中 5创建失败 6准备关机 7关机中 8已关机"
+        default="INIT",
+        comment="实例状态：字典表里的type_code=SERVER_STATUS"
     )
     error_message = Column(Text, nullable=True, comment="失败原因")
 
