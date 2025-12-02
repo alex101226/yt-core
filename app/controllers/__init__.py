@@ -10,6 +10,7 @@ from .cmp.server_instance_controller import router as server_instance_router
 # from .cmp.image_controller import router as image_router
 
 from .cmp.cloud_controller import router as cloud_router
+from .cmp.eip_controller import router as eip_router
 
 # sso
 from .sso.auth_controller import router as auth_router

@@ -77,3 +77,7 @@ class BaseCloudClient:
         system_disk_category: Optional[str],
         system_disk_size: Optional[int]):
         raise NotImplementedError
+
+    # 获取eip价格
+    def client_eip_price(self, region_id: str, bandwidth: int, internet_charge_type: str):
+        raise NotImplementedError

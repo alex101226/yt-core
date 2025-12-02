@@ -14,3 +14,6 @@ from .sync_resource_task import SyncResourceTask
 from .instance_status_check_task import InstanceStatusCheckTask
 from .instance_create_task import InstanceCreateTask
 from .instance_provision_task import InstanceProvisionTask
+
+# eip表
+from .eip import Eip

@@ -636,6 +636,39 @@ class AliyunClient(BaseCloudClient):
 
         return result
 
+    #   获取 EIP 带宽价格（按量计费）
+    def client_eip_price(self, region_id: str, bandwidth: int, internet_charge_type: str):
+        req = ecs_models.DescribePriceRequest(
+            region_id=region_id,
+            resource_type="bandwidth",
+            internet_charge_type=internet_charge_type,
+            instance_network_type="vpc",
+            internet_max_bandwidth_out=bandwidth,
+            price_unit="Hour",  # 按量计费
+        )
+
+        response = self.client.describe_price(req)
+        price_info = response.body.price_info
+
+        # 解析价格
+        result = {
+            "original_price": price_info.price.original_price,
+            "trade_price": price_info.price.trade_price,
+            "currency": price_info.price.currency,
+            "detail": [],
+        }
+
+        details = price_info.price.detail_infos
+        if details and details.detail_info:
+            for d in details.detail_info:
+                result["detail"].append({
+                    "resource": d.resource,
+                    "original_price": d.original_price,
+                    "trade_price": d.trade_price,
+                })
+
+        return result
+
 
 class AliyunClientFactory:
     """阿里云客户端工厂"""

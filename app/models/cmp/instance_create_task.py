@@ -26,7 +26,8 @@ class InstanceCreateTask(CmpBase, IsReleasedMixin):
 
     instance_id = Column(String(100), nullable=True, comment="云厂商返回的实例 ID")
     instance_name = Column(String(100), nullable=False, comment="实例名称")
-    instance_type = Column(String(100), nullable=False, comment="实例规格 ID，如 ecs.g6.large")
+    instance_type =  Column(String(20), nullable=True, comment="实例规格类型，例如：如 ecs/bms/lb")
+    instance_type_id = Column(String(100), nullable=False, comment="实例规格 ID，如 ecs.g6.large")
     image_id = Column(String(100), nullable=False, comment="镜像 ID")
     system_disk_category = Column(String(50), nullable=False, comment="系统盘类型，例如 ESSD_PL0, SSD")
     system_disk_size = Column(Integer, nullable=False, comment="系统盘大小")
@@ -78,7 +79,6 @@ class InstanceCreateTask(CmpBase, IsReleasedMixin):
         comment="实例状态：字典表里的type_code=SERVER_STATUS"
     )
     error_message = Column(Text, nullable=True, comment="失败原因")
-    # close_release = Column(Boolean, default=True, comment="是否关闭释放保护")
 
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), comment="创建时间（UTC）")
     updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), comment="更新时间（UTC）")

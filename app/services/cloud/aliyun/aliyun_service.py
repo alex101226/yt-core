@@ -106,6 +106,7 @@ class AliyunService:
         await self.cache.set_cloud_prices(region_id, data)
         return data
 
+    # 实例规格价格
     def instance_price(
         self,
         region_id,
@@ -119,4 +120,12 @@ class AliyunService:
             instance_charge_type,
             system_disk_category,
             period
+        )
+
+    # 公网eip价格
+    def eip_price(self, region_id: str, bandwidth: int, internet_charge_type: str):
+        return self.client.client_eip_price(
+            region_id,
+            bandwidth,
+            internet_charge_type
         )

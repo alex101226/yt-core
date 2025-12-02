@@ -244,3 +244,27 @@ async def instance_price(
         instance_charge_type, period
     )
     return Response.success(price)
+
+
+# 获取eip价格
+
+class InternetChargeType(str, Enum):
+    PayByTraffic = "PayByTraffic"
+    PayByBandwidth = "PayByBandwidth"
+
+@router.get("/eip_price")
+def instance_price(
+    user_id: int = Query(7, description="用户id"),
+    region_id: str = Query('cn-beijing', description="Region ID"),
+    bandwidth: int = Query(40, description="系统盘大小"),
+    internet_charge_type: InternetChargeType = Query(InternetChargeType.PayByTraffic, description="计费方式"),
+    service: UserCertificateService = Depends(get_user_certificate_service)
+):
+    # 1️⃣ 查用户凭证
+    cer_data = service.get_user_ak(user_id)
+    aliyun_service = AliyunService(
+        access_key_id=cer_data.cloud_access_key_id,
+        access_key_secret=cer_data.cloud_access_key_secret
+    )
+    price = aliyun_service.eip_price(region_id, bandwidth, internet_charge_type.value)
+    return Response.success(price)

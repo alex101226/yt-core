@@ -19,6 +19,7 @@ class DictType(str, Enum):
     SERVER_STATUS = "SERVER_STATUS"
     NETWORK_TYPE = "NETWORK_TYPE"
     TASK_STATUS="TASK_STATUS"
+    EIP_STATUS="EIP_STATUS"
 
 router = APIRouter(prefix="/dict", tags=["字典"])
 
