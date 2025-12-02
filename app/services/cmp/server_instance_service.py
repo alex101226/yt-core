@@ -23,7 +23,8 @@ class InstanceService:
         # 1️⃣ 构造主表数据
         hashed_password = hash_password(schema['password'])
         schema['password'] = hashed_password
-
+        # 默认开启释放保护
+        schema['close_release'] = 1
         # ⭐ 2) 处理私网 IP（如果没有传 private_ip）
         if not schema.get("private_ip"):
             cidr = schema.get("cidr_block")
@@ -57,7 +58,6 @@ class InstanceService:
         self.repo.commit()
         self.repo.refresh(instance_task)
         return instance_task
-
 
     # 返回服务器列表
     def server_list_page(
@@ -110,3 +110,58 @@ class InstanceService:
         )
         self.repo.commit()
         return {"instance_id": instance_id}
+
+
+    # 修改服务器密码   hash_password
+    def save_server_password(self, instance_id: int, password: str, user_id: str):
+        instance = self.repo.get_instance_by_find(instance_id)
+        if instance.user_id != user_id:
+            raise BusinessException(code=ErrorCode.DATA_NOT_FOUND, message=Message.DATA_NOT_FOUND)
+        if not instance:
+            raise BusinessException(code=ErrorCode.DATA_NOT_FOUND, message=Message.DATA_NOT_FOUND)
+
+        hashed_password = hash_password(password)
+        result = self.repo.save_server_password(instance_id, hashed_password)
+        return result
+
+
+    # 开启/关闭释放保护
+    def toggle_server_release(self, instance_id: int, user_id: int):
+        instance = self.repo.get_instance_by_find(instance_id)
+        if instance.user_id != user_id:
+            raise BusinessException(code=ErrorCode.DATA_NOT_FOUND, message=Message.DATA_NOT_FOUND)
+        if not instance:
+            raise BusinessException(code=ErrorCode.DATA_NOT_FOUND, message=Message.DATA_NOT_FOUND)
+        return self.repo.toggle_server_release(instance_id)
+
+    # 释放
+    def server_release(self, instance_id: int, user_id: int):
+        instance = self.repo.get_instance_by_find(instance_id)
+        if not instance:
+            raise BusinessException(code=ErrorCode.DATA_NOT_FOUND, message=Message.DATA_NOT_FOUND)
+
+        if instance.user_id != user_id:
+            raise BusinessException(code=ErrorCode.DATA_NOT_FOUND, message=Message.DATA_NOT_FOUND)
+
+        if instance.enable_protection == 1:
+           raise BusinessException(code=ErrorCode.DATA_NOT_FOUND, message="改服务器无法释放")
+
+        active_status = {
+            'STARTING',
+            'CREATING',
+            'RUNNING',
+            'DEPLOYING',
+            'DISK_EXPANDING',
+            'PREPARE_REBOOT'
+        }
+
+        if instance.status in active_status:
+            raise BusinessException(code=ErrorCode.DATA_NOT_FOUND, message="当前服务器正在使用，无法释放")
+        return self.repo.server_release(instance_id)
+
+    # 克隆
+    def server_clone(self, instance_id: int):
+        db_instance = self.repo.get_instance_by_find(instance_id)
+        if not db_instance:
+            raise BusinessException(code=ErrorCode.DATA_NOT_FOUND, message=Message.DATA_NOT_FOUND)
+        return self.repo.clone_instance(instance_id)

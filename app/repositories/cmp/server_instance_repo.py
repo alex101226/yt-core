@@ -1,4 +1,6 @@
 # app/repos/cmp/instance_repo.py
+from datetime import datetime, timezone
+
 from sqlalchemy import and_
 
 from sqlalchemy.orm import Session
@@ -18,11 +20,15 @@ class ServerInstanceRepo:
     def refresh(self, obj):
         self.db.refresh(obj)
 
-    # 服务器主表根据id查一条
+    # 服务器主表根据实例id查一条
     def get_instance_by_id(self, instance_id: str):
         return self.db.query(InstanceCreateTask).filter(
             InstanceCreateTask.instance_id == instance_id
         ).first()
+
+    # 根据主表的自增id查一条
+    def get_instance_by_find(self, instance_id: int):
+        return self.db.get(InstanceCreateTask, instance_id)
 
     # 创建服务器
     def create_instance_task(self, instance_data: dict) -> InstanceCreateTask:
@@ -142,3 +148,80 @@ class ServerInstanceRepo:
         return task
 
 
+    # 修改密码
+    def save_server_password(self, instance_id: int, password: str):
+        db_instance = self.get_instance_by_find(instance_id)
+        if not db_instance:
+            return None
+
+        db_instance.password = password
+        self.db.commit()
+        self.db.refresh(db_instance)
+        return True
+
+    # 关闭释放保护
+    def toggle_server_release(self, instance_id: int):
+        db_instance = self.get_instance_by_find(instance_id)
+        if not db_instance:
+            return None
+
+        db_instance.enable_protection ^= 1   # 位运算异或，直接 0→1、1→0
+        self.db.commit()
+        self.db.refresh(db_instance)
+        return True
+
+    # 释放
+    def server_release(self, instance_id: int):
+        db_instance = self.get_instance_by_find(instance_id)
+        if not db_instance:
+            return None
+        db_instance.status = 'RELEASED'
+        db_instance.is_released = 1
+        self.db.commit()
+        self.db.refresh(db_instance)
+        return True
+
+    # 克隆
+    def clone_instance(self, instance_id: int):
+        """克隆服务器主实例"""
+        old_instance = self.get_instance_by_find(instance_id)
+        if not old_instance:
+            return None
+
+        # 需要排除的字段（不会 copy）
+        exclude_fields = {
+            "id",
+            "instance_id",
+            "created_at",
+            "updated_at",
+            "released_at",
+        }
+
+        # 将 SQLAlchemy 对象转成 dict
+        data = {
+            column.name: getattr(old_instance, column.name)
+            for column in old_instance.__table__.columns
+            if column.name not in exclude_fields
+        }
+
+        # 覆盖克隆规则要求的字段
+        data.update({
+            "status": "INIT",
+            "sync_status": 1,
+            "is_released": 0,
+            "instance_id": None,
+            "last_operation": "INIT",
+            "released_at": None,
+            "created_at": datetime.now(timezone.utc),
+            "updated_at": datetime.now(timezone.utc),
+        })
+
+        # 创建新的实例对象
+        new_instance = InstanceCreateTask(**data)
+
+        # 写入数据库
+        self.db.add(new_instance)
+        self.db.commit()
+        self.db.refresh(new_instance)
+
+        return True

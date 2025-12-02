@@ -5,8 +5,10 @@ from datetime import datetime, timezone
 from app.core.database import CmpBase
 from app.core.config import settings
 
+from .is_released_mixin import IsReleasedMixin
 
-class InstanceCreateTask(CmpBase):
+
+class InstanceCreateTask(CmpBase, IsReleasedMixin):
     """
     服务器主创建任务表
     记录一次创建 ECS 实例的整体过程
@@ -76,6 +78,7 @@ class InstanceCreateTask(CmpBase):
         comment="实例状态：字典表里的type_code=SERVER_STATUS"
     )
     error_message = Column(Text, nullable=True, comment="失败原因")
+    # close_release = Column(Boolean, default=True, comment="是否关闭释放保护")
 
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), comment="创建时间（UTC）")
     updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), comment="更新时间（UTC）")

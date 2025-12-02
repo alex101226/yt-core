@@ -35,7 +35,7 @@ async def lifespan(app: FastAPI):
     logger.info("🚀 Application starting up...")
     from app.tasks.server_instance_status_checker import start_scheduler, stop_scheduler
 
-    start_scheduler()
+    # start_scheduler()
     try:
         yield
     finally:

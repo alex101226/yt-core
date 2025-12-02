@@ -77,7 +77,7 @@ class ServerInstanceStatus(str, Enum):
     IMAGE_CREATING="IMAGE_CREATING" # 创建镜像
     IMAGE_REPLACING="IMAGE_REPLACING"   # 更换镜像
     PREPARE_RELEASE="PREPARE_RELEASE"   # 释放
-# 开机
+# 开机，关机，重启
 @router.post("/action")
 def start_instance(
     request: Request,
@@ -87,6 +87,47 @@ def start_instance(
 ):
     user_id = request.state.user.get("user_id")
     result = service.start_instance(status, instance_id, user_id)
+    return Response.success(result)
+
+@router.post('/save_server_password')
+def save_server_password(
+    request: Request,
+    password: str,
+    instance_id: int,
+    service: InstanceService = Depends(get_server_instance_service)
+):
+    user_id = request.state.user.get("user_id")
+    result = service.save_server_password(instance_id, password, user_id)
+    return Response.success(result)
+
+@router.post('/toggle_release')
+def toggle_release(
+    request: Request,
+    instance_id: int,
+    service: InstanceService = Depends(get_server_instance_service)
+):
+    user_id = request.state.user.get("user_id")
+    result = service.toggle_server_release(instance_id, user_id)
+    return Response.success(result)
+
+# 服务器释放
+@router.post('/server_release')
+def server_release(
+    request: Request,
+    instance_id: int,
+    service: InstanceService = Depends(get_server_instance_service)
+):
+    user_id = request.state.user.get("user_id")
+    result = service.server_release(instance_id, user_id)
+    return Response.success(result)
+
+# 克隆
+@router.post('/server_clone')
+def server_release(
+    instance_id: int,
+    service: InstanceService = Depends(get_server_instance_service)
+):
+    result = service.server_clone(instance_id)
     return Response.success(result)
 
 
