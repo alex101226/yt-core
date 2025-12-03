@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 from pydantic import BaseModel, Field
 
 class EIPSchema(BaseModel):
@@ -18,5 +18,19 @@ class EIPCreate(EIPSchema):
     # public_ip: Optional[str]
     pass
 
-class EIPOut(BaseModel):
-    pass
+class EIPOut(EIPSchema):
+    id: int
+    public_ip: Optional[str]
+    bind_instance_id: Optional[str]
+    status: Optional[str]
+    created_at: Optional[datetime]
+    updated_at: Optional[datetime]
+
+    class Config:
+        from_attributes = True
+
+class EIPPage(BaseModel):
+    total: int
+    page: int
+    page_size: int
+    items: List[EIPOut]

@@ -130,7 +130,7 @@ class ServerInstanceRepo:
 
         total = query.count()
         items = query.offset((page - 1) * page_size).limit(page_size).all()
-        logger.info(f'这里是什么呢？ {items}')
+        # logger.info(f'这里是什么呢？ {items}')
         return items, total
 
 
