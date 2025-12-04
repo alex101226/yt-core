@@ -27,6 +27,7 @@ subnet_router,
 security_group_router,
 server_instance_router,
 eip_router,
+cbs_router,
 # image_router,
 )
 
@@ -73,6 +74,7 @@ def create_app() -> FastAPI:
         security_group_router,
         server_instance_router,
         eip_router,
+        cbs_router,
         # image_router,
     ]
     for r in routers:

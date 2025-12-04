@@ -1,0 +1,38 @@
+from typing import List, Optional
+from sqlalchemy.orm import Session
+
+from app.repositories.cmp.cbs_repo import CbsDiskRepository
+from app.schemas.cmp.cbs_disk_schema import CbsDiskBase, CbsDiskCreate, CbsDiskOut, CbsDiskPage
+
+
+class CbsService:
+    def __init__(self, db: Session):
+        self.db = db
+        self.repo = CbsDiskRepository(db)
+
+
+    #   创建硬盘
+    def cbs_create(self, user_id: int, data: CbsDiskCreate):
+        result = self.repo.cbs_create(user_id, data)
+        return result
+
+    # 返回分页列表
+    def cbs_page_list(
+        self,
+        page: int,
+        page_size: int,
+        provider_code: Optional[str] = None,
+        region_id: Optional[int] = None,
+        zone_id: Optional[int] = None,
+        resource_group_id: Optional[int] = None,
+        cbs_id: Optional[str] = None,
+        tags: Optional[List[str]] = None,
+    ) -> CbsDiskPage:
+        items, total = self.repo.get_page_list(page, page_size, provider_code, region_id, zone_id, resource_group_id, cbs_id, tags)
+        item_out = [CbsDiskOut.model_validate(s) for s in items]
+        return CbsDiskPage(
+            total=total,
+            page=page,
+            page_size=page_size,
+            items=item_out,
+        )

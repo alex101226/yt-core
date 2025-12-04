@@ -9,17 +9,15 @@ from app.schemas.cmp.dict_schema import DictItemCreate, DictItemUpdate, DictItem
 from app.services.cmp.dict_service import DictService
 from app.common.dependencies import get_cmp_db
 
+from app.enums.enums import DictType
+
+
 # 云厂商，区域，可用区 云凭证，VPC，IP子网，安全组，计费方式，购买数量，规格列表，镜像及磁盘（要安装GPU驱动嘛，要查驱动？）
 def get_dict_service(
    db: Session = Depends(get_cmp_db),
 ):
     return DictService(db)
 
-class DictType(str, Enum):
-    SERVER_STATUS = "SERVER_STATUS"
-    NETWORK_TYPE = "NETWORK_TYPE"
-    TASK_STATUS="TASK_STATUS"
-    EIP_STATUS="EIP_STATUS"
 
 router = APIRouter(prefix="/dict", tags=["字典"])
 

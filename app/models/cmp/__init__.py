@@ -17,3 +17,6 @@ from .instance_provision_task import InstanceProvisionTask
 
 # eip表
 from .eip import Eip
+
+# 云硬盘
+from .cbs_disk import CbsDisk

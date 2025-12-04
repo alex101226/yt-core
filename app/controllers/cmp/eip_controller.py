@@ -10,6 +10,8 @@ from app.core.dependencies import require_user
 from app.schemas.cmp.eip_schema import EIPSchema, EIPCreate
 from app.services.cmp.eip_service import EIPService
 
+from app.enums.enums import EipStatus
+
 def get_eip_service(db: Session = Depends(get_cmp_db)):
     return EIPService(db)
 
@@ -20,7 +22,7 @@ router = APIRouter(
 )
 
 #   创建eip
-@router.post("/group_create")
+@router.post("/eip_create")
 def create_eip(
     data: EIPCreate,
     request: Request,
@@ -44,12 +46,6 @@ def get_eip_page_list(
 ):
     result = server.get_eip_page_list(page, page_size, provider_code, region_id, zone_id, resource_group_id, eip_id, public_ip)
     return Response.success(result)
-
-
-class EipStatus(str, Enum):
-    RELEASING = "RELEASING" # 释放
-    BINDING = "BINDING" # 绑定
-    UNBINDING = "UNBINDING" # 解绑
 
 # eip解绑，绑定，释放
 @router.post('/eip_action')
