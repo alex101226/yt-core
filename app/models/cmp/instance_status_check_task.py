@@ -5,12 +5,11 @@ from datetime import datetime, timezone
 from app.core.database import CmpBase
 from app.core.config import settings
 
-
+"""
+实例状态检查任务
+用于轮询阿里云实例状态，直到 Running
+"""
 class InstanceStatusCheckTask(CmpBase):
-    """
-    实例状态检查任务
-    用于轮询阿里云实例状态，直到 Running
-    """
     __tablename__ = f"{settings.CMP_TABLE_PREFIX}instance_status_check_task"
     __table_args__ = {"comment": "实例状态检查任务表"}
 
@@ -22,10 +21,10 @@ class InstanceStatusCheckTask(CmpBase):
     max_check = Column(Integer, nullable=False, default=30, comment="最大允许检查次数")
 
     status = Column(
-        Integer,
+        String(20),
         nullable=False,
-        default=1,
-        comment="任务状态：1待执行(PENDING) 2执行中(RUNNING) 3成功(SUCCESS) 4失败(FAILED)"
+        default="PENDING",
+        comment="任务状态：字典表type_code=TASK_STATUS"
     )
     error_message = Column(Text, nullable=True, comment="失败原因")
 

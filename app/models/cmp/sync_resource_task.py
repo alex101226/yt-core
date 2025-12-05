@@ -19,10 +19,10 @@ class SyncResourceTask(CmpBase):
     sync_type = Column(String(50), nullable=False, comment="同步类型：INSTANCE / DISK / NETWORK / BILLING")
 
     status = Column(
-        Integer,
+        String(20),
         nullable=False,
-        default=1,
-        comment="任务状态：1待执行(PENDING) 2执行中(RUNNING) 3成功(SUCCESS) 4失败(FAILED)"
+        default="PENDING",
+        comment="任务状态：字典表type_code=TASK_STATUS"
     )
     error_message = Column(Text, nullable=True, comment="错误原因")
 

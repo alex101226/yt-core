@@ -20,10 +20,10 @@ class InstanceProvisionTask(CmpBase):
     instance_id = Column(String(100), nullable=True, comment="最终创建成功的实例 ID")
 
     status = Column(
-        Integer,
+        String(20),
         nullable=False,
-        default=1,
-        comment="任务状态：1待执行(PENDING) 2执行中(RUNNING) 3成功(SUCCESS) 4失败(FAILED)"
+        default="PENDING",
+        comment="任务状态：字典表type_code=TASK_STATUS"
     )
     error_message = Column(Text, nullable=True, comment="错误原因")
 

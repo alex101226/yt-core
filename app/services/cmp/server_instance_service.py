@@ -3,6 +3,9 @@ from sqlalchemy.orm import Session
 from datetime import datetime, timezone
 from nanoid import generate
 
+from app.repositories.cmp.cbs_repo import CbsDiskRepository
+from app.schemas.cmp.cbs_disk_schema import CbsDiskCreate
+
 from app.repositories.cmp.server_instance_repo import ServerInstanceRepo
 # from app.schemas.cmp.server_instance_schema import InstancePage, InstanceBaseOut
 from app.core.security import hash_password
@@ -18,13 +21,15 @@ class InstanceService:
     def __init__(self, db: Session):
         self.db = db
         self.repo = ServerInstanceRepo(db)
+        self.cbs_repo = CbsDiskRepository(db)
+
     # 创建服务器
     def create_instance(self, schema: dict):
         # 1️⃣ 构造主表数据
         hashed_password = hash_password(schema['password'])
         schema['password'] = hashed_password
         # 默认开启释放保护
-        schema['close_release'] = 1
+        schema['enable_protection'] = 1
         # ⭐ 2) 处理私网 IP（如果没有传 private_ip）
         if not schema.get("private_ip"):
             cidr = schema.get("cidr_block")
@@ -41,23 +46,63 @@ class InstanceService:
         schema['instance_id'] = f"ECS-{generate(size=6)}"
         instance_task = self.repo.create_instance_task(schema)
 
-        # 2️⃣ 创建数据盘任务
-        if schema['data_disks']:
-            self.repo.create_disk_tasks(instance_task.id, schema['data_disks'])
+        # -----------------------------
+        # 2. 创建系统盘 CBS
+        # -----------------------------
+        system_disk_data = {
+            "disk_id": f"CBS-{generate(size=8)}",
+            "cloud_provider_code": schema['cloud_provider_code'],
+            "region_id": schema['region_id'],
+            "zone_id": schema.get('zone_id'),
+            "resource_group_id": schema.get('resource_group_id', 0),
+            "disk_type": "system",
+            "disk_category": schema['system_disk_category'],
+            "disk_size": schema['system_disk_size'],
+            "charge_type": schema['instance_charge_type'],
+            "period": schema.get('period'),
+            "attached_instance_id": instance_task.instance_id,
+            "status": "InUse",  # 系统盘创建后直接挂载
+            "description": f"系统盘，挂载到实例 {instance_task.instance_name}"
+        }
+        self.cbs_repo.cbs_create(schema['user_id'], CbsDiskCreate(**system_disk_data))
 
+        # -----------------------------
+        # 3. 创建数据盘 CBS
+        # -----------------------------
+        if schema.get('data_disks'):
+            for disk in schema['data_disks']:
+                disk_data = {
+                    "disk_id": f"CBS-{generate(size=8)}",
+                    "cloud_provider_code": schema['cloud_provider_code'],
+                    "region_id": schema['region_id'],
+                    "zone_id": schema.get('zone_id'),
+                    "resource_group_id": schema.get('resource_group_id', 0),
+                    "disk_type": "data",
+                    "disk_category": disk['disk_category'],
+                    "disk_size": disk['disk_size'],
+                    "charge_type": schema['instance_charge_type'],
+                    "period": schema.get('period'),
+                    "attached_instance_id": instance_task.instance_id,
+                    "status": "InUse",  # 数据盘创建后直接挂载
+                    "description": disk.get('description', f"数据盘，挂载到实例 {instance_task.instance_name}")
+                }
+                self.cbs_repo.cbs_create(schema['user_id'], CbsDiskCreate(**disk_data))
+                # 2️⃣ 创建数据盘任务
+                # self.repo.create_disk_tasks(instance_task.instance_id, schema['data_disks'])
         # 6️⃣ 创建状态检查任务（初始 pending）
         self.repo.create_status_check_task(
             main_task_id=instance_task.id,
             instance_id=instance_task.instance_id or "",  # 还没生成云端实例，可以先空
             check_count=0,
             max_check=30,
-            status=1  # PENDING
+            status="PENDING"
         )
 
         # 3️⃣ 提交事务
         self.repo.commit()
         self.repo.refresh(instance_task)
         return instance_task
+
 
     # 返回服务器列表
     def server_list_page(

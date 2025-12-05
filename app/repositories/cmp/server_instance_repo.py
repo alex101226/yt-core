@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from app.core.logger import logger
 from app.models.cmp import InstanceStatusCheckTask
 from app.models.cmp.instance_create_task import InstanceCreateTask
-from app.models.cmp.volume_create_task import VolumeCreateTask
+from app.models.cmp.disk_provision_task import DiskProvisionTask
 
 class ServerInstanceRepo:
     def __init__(self, db: Session):
@@ -41,12 +41,12 @@ class ServerInstanceRepo:
     def create_disk_tasks(self, instance_id: int, disks: list):
         disk_objs = []
         for d in disks:
-            disk_task = VolumeCreateTask(
+            disk_task = DiskProvisionTask(
                 main_task_id=instance_id,
                 disk_category=d["disk_category"],
                 disk_size=d["disk_size"],
                 encrypted=d.get("encrypted", False),
-                status=3
+                status="SUCCESS"
             )
             self.db.add(disk_task)
             disk_objs.append(disk_task)
@@ -135,7 +135,7 @@ class ServerInstanceRepo:
 
 
     # 创建轮训任务
-    def create_status_check_task(self, main_task_id: int, instance_id: str, check_count=0, max_check=10, status=1):
+    def create_status_check_task(self, main_task_id: int, instance_id: str, check_count=0, max_check=10, status="PENDING"):
         task = InstanceStatusCheckTask(
             main_task_id=main_task_id,
             instance_id=instance_id,

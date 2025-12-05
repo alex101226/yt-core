@@ -19,25 +19,25 @@ class CbsDiskBase(BaseModel):
     disk_category: str
     disk_size: int
 
-    iops_level: Optional[str]
+    iops_level: Optional[str] = None
 
     encrypted: bool = False
-    encryption_key_id: Optional[str]
+    encryption_key_id: Optional[str] = None
 
     charge_type: str
     period: Optional[int]
-    expired_time: Optional[datetime]
+    expired_time: Optional[datetime] = None
     auto_renew: bool = False
 
     attached_instance_id: Optional[str]
-    attached_device: Optional[str]
-    attached_time: Optional[datetime]
-    detached_time: Optional[datetime]
+    attached_device: Optional[str] = None
+    attached_time: Optional[datetime] = None
+    detached_time: Optional[datetime] = None
 
     snapshot_count: int = 0
-    last_snapshot_time: Optional[datetime]
+    last_snapshot_time: Optional[datetime] = None
     tags: Optional[List[TagItem]] = []
-    description: Optional[str]
+    description: Optional[str] = None
 
 class CbsDiskCreate(CbsDiskBase):
     pass

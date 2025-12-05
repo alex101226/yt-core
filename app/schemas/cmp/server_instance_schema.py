@@ -12,7 +12,7 @@ class InstanceBase(BaseModel):
     region_id: str
     zone_id: str
     resource_group_id: Optional[int]  # 资源组
-    instance_id: Optional[int]
+    instance_type_id: Optional[str]
     instance_name: str
     instance_type: str
     image_id: str

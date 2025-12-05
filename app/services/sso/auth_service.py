@@ -15,6 +15,7 @@ from app.schemas.sso.auth_schema import LoginRequest, TokenResponse, UserRegiste
 
 from app.common.status_code import ErrorCode
 from app.common.messages import Message
+from app.common.exceptions import BusinessException
 
 class AuthService:
     def __init__(self, db: Session):

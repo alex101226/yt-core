@@ -1,4 +1,4 @@
-# app/models/cmp/volume_create_task.py
+# app/models/cmp/disk_provision_task.py
 
 from sqlalchemy import Column, Integer, String, DateTime, Text, Boolean
 from datetime import datetime, timezone
@@ -9,8 +9,8 @@ from app.core.config import settings
 数据盘创建任务
 记录系统盘以外的所有磁盘创建情况
 """
-class VolumeCreateTask(CmpBase):
-    __tablename__ = f"{settings.CMP_TABLE_PREFIX}volume_create_task"
+class DiskProvisionTask(CmpBase):
+    __tablename__ = f"{settings.CMP_TABLE_PREFIX}disk_provision_task"
     __table_args__ = {"comment": "数据盘创建任务表"}
 
     id = Column(Integer, primary_key=True, autoincrement=True)
@@ -20,10 +20,10 @@ class VolumeCreateTask(CmpBase):
     disk_size = Column(Integer, nullable=False, comment="数据盘大小（GB）")
     encrypted = Column(Boolean, nullable=False, default=False, comment = "是否加密")
     status = Column(
-        Integer,
+        String(20),
         nullable=False,
-        default=1,
-        comment="任务状态：1待执行(PENDING) 2执行中(RUNNING) 3成功(SUCCESS) 4失败(FAILED)"
+        default="PENDING",
+        comment="任务状态：字典表type_code=TASK_STATUS"
     )
     error_message = Column(Text, nullable=True, comment="错误原因")
 

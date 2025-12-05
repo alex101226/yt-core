@@ -11,7 +11,7 @@ class NetworkProvisionTask(CmpBase):
     网络资源创建任务
     记录 VPC / 交换机 / 安全组 等网络资源的创建状态
     """
-    __tablename__ = f"{settings.CMP_TABLE_PREFIX}network_task"
+    __tablename__ = f"{settings.CMP_TABLE_PREFIX}network_provision_task"
     __table_args__ = {"comment": "网络创建任务表"}
 
     id = Column(Integer, primary_key=True, autoincrement=True)
@@ -21,10 +21,10 @@ class NetworkProvisionTask(CmpBase):
     resource_id = Column(String(100), nullable=True, comment="创建成功后的资源 ID")
 
     status = Column(
-        Integer,
+        String(20),
         nullable=False,
-        default=1,
-        comment="任务状态：1待执行(PENDING) 2执行中(RUNNING) 3成功(SUCCESS) 4失败(FAILED)"
+        default="PENDING",
+        comment="任务状态：字典表type_code=TASK_STATUS"
     )
     error_message = Column(Text, nullable=True, comment="错误原因")
 

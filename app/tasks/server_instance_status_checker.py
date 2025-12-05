@@ -23,7 +23,7 @@ def check_instance_status():
     try:
         # 查询所有轮询中任务
         tasks = db.query(InstanceStatusCheckTask).filter(
-            InstanceStatusCheckTask.status.in_([1, 2])
+            InstanceStatusCheckTask.status.in_(["PENDING", "RUNNING"])
         ).all()
 
         if not tasks:
@@ -35,16 +35,16 @@ def check_instance_status():
         for task in tasks:
             try:
                 # 模拟状态推进
-                if task.status == 1:      # PENDING
-                    task.status = 2       # RUNNING
-                elif task.status == 2:    # RUNNING
-                    task.status = 3       # SUCCESS
+                if task.status == "PENDING":      # PENDING
+                    task.status = "RUNNING"       # RUNNING
+                elif task.status == "RUNNING":    # RUNNING
+                    task.status = "SUCCESS"       # SUCCESS
 
                 task.check_count += 1
                 task.updated_at = datetime.now(timezone.utc)
 
                 # 超过最大轮询次数
-                if task.check_count >= task.max_check and task.status in [1, 2]:
+                if task.check_count >= task.max_check and task.status in ["PENDING", "RUNNING"]:
                     task.status = 4
                     task.error_message = "超过最大轮询次数"
                     logger.warning(f"任务 {task.id} 超过最大轮询次数")
@@ -85,7 +85,7 @@ def process_main_task(db: Session, check_task: type[InstanceStatusCheckTask]):
     # logger.info(f'查看状态 {check_task.status} {instance.last_operation}')
     if not instance:
         return
-    if check_task.status == 3:
+    if check_task.status == "SUCCESS":
         if instance.last_operation == 'INIT' or instance.last_operation == 'PREPARE_START' or instance.last_operation == 'PREPARE_REBOOT':
             instance.status = 'RUNNING'
 

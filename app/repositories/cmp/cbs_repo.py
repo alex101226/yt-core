@@ -15,7 +15,7 @@ class CbsDiskRepository:
     def cbs_create(self, user_id: int, data: CbsDiskCreate) -> bool:
         payload = data.model_dump()
         payload['user_id'] = user_id
-        payload['status'] = 'Creating'
+        payload['status'] = payload['status'] if payload.get('status') else 'Creating'
         disk = CbsDisk(**payload)
         self.db.add(disk)
         self.db.commit()

@@ -1,4 +1,4 @@
-# app/models/cmp/billing_record_task.py
+# app/models/cmp/billing_provision_task.py
 
 from sqlalchemy import Column, Integer, String, DateTime, Text, JSON
 from datetime import datetime, timezone
@@ -6,12 +6,12 @@ from app.core.database import CmpBase
 from app.core.config import settings
 
 
-class BillingRecordTask(CmpBase):
+class BillingProvisionTask(CmpBase):
     """
     计费任务
     用于记录实例创建过程中产生的价格计算、扣费流程
     """
-    __tablename__ = f"{settings.CMP_TABLE_PREFIX}billing_task"
+    __tablename__ = f"{settings.CMP_TABLE_PREFIX}billing_provision_task"
     __table_args__ = {"comment": "计费任务表"}
 
     id = Column(Integer, primary_key=True, autoincrement=True)
@@ -21,10 +21,10 @@ class BillingRecordTask(CmpBase):
     price_detail = Column(JSON, nullable=True, comment="价格明细快照")
 
     status = Column(
-        Integer,
+        String(20),
         nullable=False,
-        default=1,
-        comment="任务状态：1待执行(PENDING) 2执行中(RUNNING) 3成功(SUCCESS) 4失败(FAILED)"
+        default="PENDING",
+        comment="任务状态：字典表type_code=TASK_STATUS"
     )
     error_message = Column(Text, nullable=True, comment="错误原因")
 

@@ -1,7 +1,10 @@
 # app/core/config.py
 import os
+
+from pathlib import Path as FilePath
 from pydantic_settings import BaseSettings
 from functools import lru_cache
+
 
 class Settings(BaseSettings):
     ENV: str = "development"
@@ -10,11 +13,9 @@ class Settings(BaseSettings):
 
     # 多数据库配置
     DB_SSO_AUTH: str
-    # DB_PUBLIC: str
     DB_AUDIT_CENTER: str
     DB_CMP: str
 
-    # PUBLIC_TABLE_PREFIX: str = 'pu_'
     SSO_TABLE_PREFIX: str = 'ss_'
     AUDIT_TABLE_PREFIX: str = 'au_'
     CMP_TABLE_PREFIX: str = 'cm_'
@@ -33,6 +34,7 @@ class Settings(BaseSettings):
     REDIS_EXPIRE: int = 2592000  # 30天
 
     class Config:
+        # env_file = "/www/wwwroot/yt-core/.env.production",
         env_file = f".env.{os.getenv('ENV', 'development')}"
         env_file_encoding = "utf-8"
 
