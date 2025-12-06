@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List
 from sqlalchemy.orm import Session
 from app.models.cmp.user_certificate import UserCertificate
 
@@ -21,6 +21,17 @@ class UserCertificateRepository:
     # 根据code查询云凭证一条记录
     def get_by_code(self, cloud_code: str) -> Optional[UserCertificate]:
         return self.db.query(UserCertificate).filter_by(cloud_code=cloud_code).first()
+
+    # 下拉选择list
+    def certificate_list(self, user_id: int):
+        items = self.db.query(
+            UserCertificate.id,
+            UserCertificate.cloud_code,
+            UserCertificate.cloud_name,
+            UserCertificate.is_default,
+            UserCertificate.description
+        ).filter_by(user_id=user_id).all()
+        return items
 
     # 返回云凭证列表
     def list_page(self, page: int, page_size: int):

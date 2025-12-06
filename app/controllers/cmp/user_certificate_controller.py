@@ -34,14 +34,23 @@ def create_certificate(
     obj = service.create_certificate(payload)
     return Response.success(obj)
 
+@router.get("/cer_list")
+def certificates_list(
+    request: Request,
+    service: UserCertificateService = Depends(get_user_certificate_service)
+):
+    user_id = request.state.user.get('user_id')
+    items = service.certificate_list(user_id)
+    return Response.success(items)
+
 
 @router.get("/page_list")
-def list_certificates(
+def certificates_page_list(
     page: int = Query(1, ge=1),
     page_size: int = Query(10, ge=1, le=100),
     service: UserCertificateService = Depends(get_user_certificate_service)
 ):
-    total, items = service.list_certificates(page, page_size)
+    total, items = service.certificates_page_list(page, page_size)
     return Response.success(UserCertificatePage(page=page, pageSize=page_size, total=total, items=items))
 
 @router.put("/update/{record_id}")

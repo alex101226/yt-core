@@ -2,6 +2,7 @@ from sqlalchemy.orm import Session
 
 from app.repositories.cmp.user_certificate_repo import UserCertificateRepository
 
+from app.schemas.cmp.user_certificate_schema import UserCertificateList
 from app.common.exceptions import BusinessException
 from app.common.status_code import ErrorCode
 from app.common.messages import Message
@@ -32,7 +33,14 @@ class UserCertificateService:
             raise BusinessException(code=ErrorCode.DATA_NOT_FOUND, message=Message.DATA_NOT_FOUND)
         return obj
 
-    def list_certificates(self, page: int, page_size: int):
+    # 下拉选择的list
+    def certificate_list(self, user_id: int):
+        result = self.repo.certificate_list(user_id)
+        out_result = [UserCertificateList.model_validate(i) for i in result]
+        return out_result
+
+    # 分页查找
+    def certificates_page_list(self, page: int, page_size: int):
         return self.repo.list_page(page, page_size)
 
     def update_certificate(self, record_id: int, **kwargs):

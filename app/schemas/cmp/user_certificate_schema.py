@@ -4,8 +4,6 @@ from typing import Optional, List
 class CertificateBase(BaseModel):
     cloud_code: str = Field(..., description="云凭证编码，例如 aliyun")
     cloud_name: str = Field(..., description="云凭证名称")
-    cloud_access_key_id: str = Field(..., description="AccessKey ID")
-    cloud_access_key_secret: str = Field(..., description="AccessKey Secret（加密存储）")
     description: Optional[str] = Field(None, description="描述信息")
 
 class UserCertificateOut(BaseModel):
@@ -21,6 +19,8 @@ class UserCertificateOut(BaseModel):
         from_attributes = True
 
 class UserCertificateCreate(CertificateBase):
+    cloud_access_key_id: str = Field(..., description="AccessKey ID")
+    cloud_access_key_secret: str = Field(..., description="AccessKey Secret（加密存储）")
     pass
 
 class UserCertificateUpdate(BaseModel):
@@ -34,3 +34,10 @@ class UserCertificatePage(BaseModel):
     pageSize: int
     total: int
     items: List[UserCertificateOut]
+
+
+class UserCertificateList(CertificateBase):
+    id: int
+
+    class Config:
+        from_attributes = True
