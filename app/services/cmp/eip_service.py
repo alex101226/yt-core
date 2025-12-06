@@ -46,14 +46,15 @@ class EIPService:
     # eip解绑，绑定，释放
     def eip_action(self, status: str, eip_id: int, user_id: int):
         eip_find = self.repo.get_eip_by_id(eip_id)
+        if eip_find is None:
+            raise BusinessException(code=ErrorCode.DATA_NOT_FOUND, message=Message.DATA_NOT_FOUND)
+
         if eip_find.status == 'ALLOCATING' or eip_find.status == 'BINDING':
             raise BusinessException(code=ErrorCode.DATA_NOT_FOUND, message="当前eip状态不支持操作")
 
         if eip_find.user_id != user_id:
             raise BusinessException(code=ErrorCode.USER_NOT_FOUND, message="用户错误")
 
-        if eip_find is None:
-            raise BusinessException(code=ErrorCode.DATA_NOT_FOUND, message=Message.DATA_NOT_FOUND)
         result = self.repo.eip_action(status, eip_id)
 
         # logger.info(f'来到这里 {result}')

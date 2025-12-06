@@ -4,6 +4,10 @@ from sqlalchemy.orm import Session
 from app.repositories.cmp.cbs_repo import CbsDiskRepository
 from app.schemas.cmp.cbs_disk_schema import CbsDiskBase, CbsDiskCreate, CbsDiskOut, CbsDiskPage
 
+from app.common.exceptions import BusinessException
+from app.common.status_code import ErrorCode
+from app.common.messages import Message
+
 
 class CbsService:
     def __init__(self, db: Session):
@@ -36,3 +40,30 @@ class CbsService:
             page_size=page_size,
             items=item_out,
         )
+
+
+    # 释放
+    def cbs_release(self, cbs_id: int, user_id: int) -> bool:
+        db_cbs = self.repo.get_find(cbs_id)
+        if db_cbs is None:
+            raise BusinessException(code=ErrorCode.DATA_NOT_FOUND, message=Message.DATA_NOT_FOUND)
+        invalid = {'Creating', 'Attaching', 'Detaching'}
+        if db_cbs.status in invalid:
+            raise BusinessException(code=ErrorCode.DATA_NOT_FOUND, message="请先卸载实例后再执行释放操作")
+
+        if db_cbs.user_id != user_id:
+            raise BusinessException(code=ErrorCode.USER_NOT_FOUND, message="用户错误")
+        return self.repo.cbs_release(cbs_id)
+
+    # 卸载
+    def cbs_uninstall(self, cbs_id: int, user_id: int) -> bool:
+        db_cbs = self.repo.get_find(cbs_id)
+        if db_cbs is None:
+            raise BusinessException(code=ErrorCode.DATA_NOT_FOUND, message=Message.DATA_NOT_FOUND)
+
+        if db_cbs.disk_type == 'system':
+            raise BusinessException(code=ErrorCode.DATA_NOT_FOUND, message="系统盘不允许卸载实例")
+
+        if db_cbs.user_id != user_id:
+            raise BusinessException(code=ErrorCode.USER_NOT_FOUND, message="用户错误")
+        return self.repo.cbs_uninstall(cbs_id)

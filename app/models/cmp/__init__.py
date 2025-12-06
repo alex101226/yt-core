@@ -20,3 +20,6 @@ from .eip import Eip
 
 # 云硬盘
 from .cbs_disk import CbsDisk
+
+from .oss import OssBucket
+from .cephfs_file import CephfsFile

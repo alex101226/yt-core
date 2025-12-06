@@ -12,6 +12,8 @@ from .cmp.server_instance_controller import router as server_instance_router
 from .cmp.cloud_controller import router as cloud_router
 from .cmp.eip_controller import router as eip_router
 from .cmp.cbs_controller import router as cbs_router
+from .cmp.oss_controller import router as oss_router
+from .cmp.cephfs_file_controller import router as cephfs_file_router
 
 # sso
 from .sso.auth_controller import router as auth_router

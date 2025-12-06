@@ -1,4 +1,6 @@
 import json
+from datetime import datetime, timezone
+
 from sqlalchemy import func, or_
 
 from sqlalchemy.orm import Session
@@ -15,7 +17,7 @@ class CbsDiskRepository:
     def cbs_create(self, user_id: int, data: CbsDiskCreate) -> bool:
         payload = data.model_dump()
         payload['user_id'] = user_id
-        payload['status'] = payload['status'] if payload.get('status') else 'Creating'
+        payload['status'] = payload['status'] if payload.get('status') else 'Available'
         disk = CbsDisk(**payload)
         self.db.add(disk)
         self.db.commit()
@@ -26,15 +28,15 @@ class CbsDiskRepository:
         return self.db.query(CbsDisk).filter(CbsDisk.id == disk_id, CbsDisk.is_released == 0).first()
 
     def get_page_list(
-            self,
-            page: int,
-            page_size: int,
-            provider_code: Optional[str] = None,
-            region_id: Optional[int] = None,
-            zone_id: Optional[int] = None,
-            resource_group_id: Optional[int] = None,
-            cbs_id: Optional[str] = None,
-            tags: Optional[List[str]] = None,
+        self,
+        page: int,
+        page_size: int,
+        provider_code: Optional[str] = None,
+        region_id: Optional[int] = None,
+        zone_id: Optional[int] = None,
+        resource_group_id: Optional[int] = None,
+        cbs_id: Optional[str] = None,
+        tags: Optional[List[str]] = None,
     ):
         query = self.db.query(
             CbsDisk.id,
@@ -89,14 +91,28 @@ class CbsDiskRepository:
         items = query.order_by(CbsDisk.id.desc()).offset(offset_value).limit(page_size).all()
         return items, total
 
-    # def update(self, db: Session, db_obj: CbsDisk, data: CbsDiskUpdate):
-    #     for field, value in data.dict(exclude_unset=True).items():
-    #         setattr(db_obj, field, value)
-    #     db.commit()
-    #     db.refresh(db_obj)
-    #     return db_obj
-    #
-    # def delete(self, db: Session, db_obj: CbsDisk):
-    #     db_obj.is_deleted = True
-    #     db.commit()
-    #     return db_obj
+    # 释放
+    def cbs_release(self, cbs_id: int):
+        db_obj = self.get_find(cbs_id)
+        if db_obj is None:
+            return None
+        db_obj.is_released = 1
+        self.db.commit()
+        self.db.refresh(db_obj)
+        return True
+
+    # 卸载
+    def cbs_uninstall(self, cbs_id: int):
+        db_obj = self.get_find(cbs_id)
+        if db_obj is None:
+            return None
+        # 1) 状态改为 AVAILABLE
+        db_obj.status = 'AVAILABLE'
+
+        # 2) 清除挂载关联
+        db_obj.attached_instance_id = None
+        db_obj.attached_device = None
+        db_obj.detached_time = datetime.now(timezone.utc)
+        self.db.commit()
+        self.db.refresh(db_obj)
+        return True

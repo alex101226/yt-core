@@ -3,13 +3,12 @@ from typing import Optional, List
 from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.orm import Session
 
-from app.common.response import Response
-
 from app.services.cmp.cbs_service import CbsService
 from app.schemas.cmp.cbs_disk_schema import CbsDiskCreate
 
 from app.common.dependencies import get_cmp_db
 from app.core.dependencies import require_user
+from app.common.response import Response
 
 from app.enums.enums import DiskType, DiskCategory, ChargeType, DiskStatus
 
@@ -47,4 +46,27 @@ def cbs_page_list(
     service: CbsService = Depends(get_cbs_disk_service)
 ):
     result = service.cbs_page_list(page, page_size, provider_code, region_id, zone_id, resource_group_id, cbs_id, tag)
+    return Response.success(result)
+
+
+# 释放
+@router.post("/cbs_release")
+def cbs_release(
+    request: Request,
+    cbs_id: Optional[int] = Query(None, description="云硬盘 id"),
+    service: CbsService = Depends(get_cbs_disk_service)
+):
+    user_id = request.state.user.get('user_id')
+    result = service.cbs_release(cbs_id, user_id)
+    return Response.success(result)
+
+# 卸载
+@router.post("/cbs_uninstall")
+def cbs_uninstall(
+    request: Request,
+    cbs_id: Optional[int] = Query(None, description="云硬盘 id"),
+    service: CbsService = Depends(get_cbs_disk_service)
+):
+    user_id = request.state.user.get('user_id')
+    result = service.cbs_uninstall(cbs_id, user_id)
     return Response.success(result)

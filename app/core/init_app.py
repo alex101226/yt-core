@@ -28,6 +28,8 @@ security_group_router,
 server_instance_router,
 eip_router,
 cbs_router,
+oss_router,
+cephfs_file_router,
 # image_router,
 )
 
@@ -37,7 +39,7 @@ async def lifespan(app: FastAPI):
     logger.info("🚀 Application starting up...")
     from app.tasks.server_instance_status_checker import start_scheduler, stop_scheduler
 
-    start_scheduler()
+    # start_scheduler()
     try:
         yield
     finally:
@@ -75,6 +77,8 @@ def create_app() -> FastAPI:
         server_instance_router,
         eip_router,
         cbs_router,
+        oss_router,
+        cephfs_file_router,
         # image_router,
     ]
     for r in routers:
