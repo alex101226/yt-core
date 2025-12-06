@@ -38,6 +38,7 @@ class UserCertificatePage(BaseModel):
 
 class UserCertificateList(CertificateBase):
     id: int
+    is_default: int
 
     class Config:
         from_attributes = True
