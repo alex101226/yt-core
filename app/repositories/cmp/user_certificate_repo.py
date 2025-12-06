@@ -34,8 +34,15 @@ class UserCertificateRepository:
         return items
 
     # 返回云凭证列表
-    def list_page(self, page: int, page_size: int):
-        q = self.db.query(UserCertificate).order_by(UserCertificate.id.desc())
+    def list_page(self, user_id, page: int, page_size: int):
+        q = self.db.query(
+            UserCertificate.id,
+            UserCertificate.cloud_code,
+            UserCertificate.cloud_name,
+            UserCertificate.is_default,
+            UserCertificate.description,
+            UserCertificate.user_id,
+        ).filter(UserCertificate.user_id == user_id).order_by(UserCertificate.id.desc())
         total = q.count()
         items = q.offset((page - 1) * page_size).limit(page_size).all()
         return total, items

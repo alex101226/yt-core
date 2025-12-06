@@ -6,13 +6,8 @@ class CertificateBase(BaseModel):
     cloud_name: str = Field(..., description="云凭证名称")
     description: Optional[str] = Field(None, description="描述信息")
 
-class UserCertificateOut(BaseModel):
+class UserCertificateOut(CertificateBase):
     id: int
-    cloud_code: str
-    cloud_name: str
-    cloud_access_key_id: str
-    cloud_access_key_secret: str
-    description: Optional[str]
     user_id: int
 
     class Config:
@@ -30,9 +25,9 @@ class UserCertificateUpdate(BaseModel):
     description: Optional[str] = Field(None, description="描述信息")
 
 class UserCertificatePage(BaseModel):
-    page: int
-    pageSize: int
     total: int
+    page: int
+    page_size: int
     items: List[UserCertificateOut]
 
 

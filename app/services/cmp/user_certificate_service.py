@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 
 from app.repositories.cmp.user_certificate_repo import UserCertificateRepository
 
-from app.schemas.cmp.user_certificate_schema import UserCertificateList
+from app.schemas.cmp.user_certificate_schema import UserCertificateList, UserCertificatePage, UserCertificateOut
 from app.common.exceptions import BusinessException
 from app.common.status_code import ErrorCode
 from app.common.messages import Message
@@ -40,8 +40,14 @@ class UserCertificateService:
         return out_result
 
     # 分页查找
-    def certificates_page_list(self, page: int, page_size: int):
-        return self.repo.list_page(page, page_size)
+    def certificates_page_list(self, user_id: int, page: int, page_size: int):
+        total, items = self.repo.list_page(user_id, page, page_size)
+        return UserCertificatePage(
+            total=total,
+            page=page,
+            page_size=page_size,
+            items=[UserCertificateOut.model_validate(i) for i in items],
+        )
 
     def update_certificate(self, record_id: int, **kwargs):
         obj = self.repo.update(record_id, **kwargs)

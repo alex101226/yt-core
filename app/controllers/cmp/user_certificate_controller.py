@@ -7,7 +7,7 @@ from app.common.response import Response
 from app.core.logger import logger
 
 from app.schemas.cmp.user_certificate_schema import (
-    UserCertificateCreate, UserCertificatePage, UserCertificateUpdate, UserCertificateOut
+    UserCertificateCreate, UserCertificateUpdate
 )
 from app.services.cmp.user_certificate_service import UserCertificateService
 
@@ -46,12 +46,14 @@ def certificates_list(
 
 @router.get("/page_list")
 def certificates_page_list(
+    request: Request,
     page: int = Query(1, ge=1),
     page_size: int = Query(10, ge=1, le=100),
     service: UserCertificateService = Depends(get_user_certificate_service)
 ):
-    total, items = service.certificates_page_list(page, page_size)
-    return Response.success(UserCertificatePage(page=page, pageSize=page_size, total=total, items=items))
+    user_id = request.state.user.get('user_id')
+    result = service.certificates_page_list(user_id, page, page_size)
+    return Response.success(result)
 
 @router.put("/update/{record_id}")
 def update_certificate(
