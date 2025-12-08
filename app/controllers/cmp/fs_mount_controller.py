@@ -35,6 +35,7 @@ def cbs_create(
     request: Request,
     page: int = Query(1, description="第几页"),
     page_size: int = Query(10, description="页码"),
+    mount_type: str = Query('cephfs', description="文件挂载类型"),
     provider_code: Optional[str] = Query('aliyun', description="云厂商 code"),
     region_id: Optional[str] = Query('cn-qingdao', description="区域 id"),
     zone_id: Optional[str] = Query('cn-qingdao-b', description="可用区 id"),
@@ -43,5 +44,5 @@ def cbs_create(
 ):
     user_id = request.state.user.get('user_id')
 
-    result = service.fs_mount_page_list(page, page_size, user_id, provider_code, region_id, zone_id, mount_name)
+    result = service.fs_mount_page_list(page, page_size, user_id, mount_type, provider_code, region_id, zone_id, mount_name)
     return Response.success(result)

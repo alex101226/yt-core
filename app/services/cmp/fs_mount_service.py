@@ -33,6 +33,7 @@ class FileMountService:
         page: int,
         page_size: int,
         user_id: int,
+        mount_type: str,
         provider_code: Optional[str] = None,
         region_id: Optional[str] = None,
         zone_id: Optional[str] = None,
@@ -41,7 +42,7 @@ class FileMountService:
         if not user_id:
             raise BusinessException(code=ErrorCode.DATA_NOT_FOUND, message=Message.DATA_NOT_FOUND)
 
-        items, total = self.repo.fs_mount_page_list(page, page_size, user_id, provider_code, region_id, zone_id, mount_name)
+        items, total = self.repo.fs_mount_page_list(page, page_size, user_id, mount_type, provider_code, region_id, zone_id, mount_name)
         return FileSystemMountPage(
             total=total,
             page=page,

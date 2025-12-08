@@ -23,6 +23,7 @@ class FileMountRepository:
         page: int,
         page_size: int,
         user_id: int,
+        mount_type: str,
         provider_code: Optional[str] = None,
         region_id: Optional[str] = None,
         zone_id: Optional[str] = None,
@@ -49,17 +50,19 @@ class FileMountRepository:
             FileSystemMount.fs_type,
             FileSystemMount.fs_id,
             FileSystemMount.created_at,
-            FileSystemMount.updated_at,
+            FileSystemMount.updated_at
         )
 
         filters = [FileSystemMount.created_by == user_id]
-        if provider_code is not None:
+        if mount_type:
+            filters.append(FileSystemMount.fs_id == mount_type)
+        if provider_code:
             filters.append(FileSystemMount.cloud_provider_code == provider_code)
-        if region_id is not None:
+        if region_id:
             filters.append(FileSystemMount.region_id == region_id)
-        if zone_id is not None:
+        if zone_id:
             filters.append(FileSystemMount.zone_id == zone_id)
-        if mount_name is not None:
+        if mount_name:
             filters.append(FileSystemMount.mount_name.like(f"%{mount_name}%"))
 
         if filters:
@@ -67,5 +70,5 @@ class FileMountRepository:
         total = query.count()
         offset_value = (page - 1) * page_size
         items = query.order_by(FileSystemMount.id.desc()).offset(offset_value).limit(page_size).all()
-        logger.info(f'看下 {items}')
+        # logger.info(f'看下 {items}')
         return items, total

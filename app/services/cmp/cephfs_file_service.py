@@ -21,8 +21,9 @@ class CephfsFileService:
         result = self.repo.cephfs_file_create(payload)
         return result
 
-    def oss_page_list(
+    def cephfs_page_list(
             self,
+            user_id: int,
             page: int,
             page_size: int,
             provider_code: Optional[str] = None,
@@ -32,7 +33,7 @@ class CephfsFileService:
             fs_name: str = None
     ):
         items, total = self.repo.cephfs_page_list(
-            page, page_size, provider_code, region_id, resource_group_id,
+            user_id, page, page_size, provider_code, region_id, resource_group_id,
             storage_type, fs_name
         )
 
