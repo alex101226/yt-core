@@ -14,6 +14,7 @@ from .cmp.eip_controller import router as eip_router
 from .cmp.cbs_controller import router as cbs_router
 from .cmp.oss_controller import router as oss_router
 from .cmp.cephfs_file_controller import router as cephfs_file_router
+from .cmp.fs_mount_controller import router as fs_mount_router
 
 # sso
 from .sso.auth_controller import router as auth_router

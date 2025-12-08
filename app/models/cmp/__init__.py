@@ -23,3 +23,4 @@ from .cbs_disk import CbsDisk
 
 from .oss import OssBucket
 from .cephfs_file import CephfsFile
+from .fs_mount_point import FileSystemMount

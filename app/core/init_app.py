@@ -30,6 +30,7 @@ eip_router,
 cbs_router,
 oss_router,
 cephfs_file_router,
+fs_mount_router,
 # image_router,
 )
 
@@ -79,6 +80,7 @@ def create_app() -> FastAPI:
         cbs_router,
         oss_router,
         cephfs_file_router,
+        fs_mount_router,
         # image_router,
     ]
     for r in routers:

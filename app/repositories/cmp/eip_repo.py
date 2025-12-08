@@ -2,9 +2,8 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from app.core.logger import logger
-from app.models.cmp import Eip
 from app.models.cmp.eip import Eip
-from app.schemas.cmp.eip_schema import EIPSchema, EIPCreate
+from app.schemas.cmp.eip_schema import EIPCreate
 
 # eip的repository
 class EipRepository:
@@ -77,7 +76,7 @@ class EipRepository:
     # eip各种操作
     def eip_action(self, status: str, eip_id: int):
         eip_find = self.get_eip_by_id(eip_id)
-        logger.info(f"eip_find.eip_id: {eip_id} {eip_find.status}")
+        # logger.info(f"eip_find.eip_id: {eip_id} {eip_find.status}")
         if eip_find is None:
             return None
         if status == 'RELEASING':
