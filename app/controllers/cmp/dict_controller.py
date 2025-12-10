@@ -1,13 +1,13 @@
-from enum import Enum
 from typing import Optional, List
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.common.response import Response
-from app.schemas.cmp.dict_schema import DictItemCreate, DictItemUpdate, DictItemOut, DictItemListOut
-from app.services.cmp.dict_service import DictService
 from app.common.dependencies import get_cmp_db
+from app.services.cmp.dict_service import DictService
+
+from app.schemas.cmp.dict_schema import DictItemCreate, DictItemUpdate, DictItemOut, DictItemListOut
 
 from app.enums.enums import DictType
 

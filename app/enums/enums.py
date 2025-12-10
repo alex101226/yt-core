@@ -42,3 +42,17 @@ class DiskStatus(str, Enum):
     DETACHING = "Detaching"
     RECYCLING = "Recycling"
     DELETED = "Deleted"
+
+
+
+class EndpointType(str, Enum):
+    PUBLIC = "public"
+    PRIVATE = "private"
+    VPC = "vpc"
+
+
+class RepositoryStatus(str, Enum):
+    CREATING = "creating"
+    AVAILABLE = "available"
+    FAILED = "failed"
+    DELETING = "deleting"

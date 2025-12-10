@@ -17,6 +17,8 @@ from .cmp.gpfs_controller import router as gpfs_router
 from .cmp.cephfs_file_controller import router as cephfs_file_router
 from .cmp.fs_mount_controller import router as fs_mount_router
 
+from .cmp.container_image_controller import router as container_image_router
+
 # sso
 from .sso.auth_controller import router as auth_router
 from .sso.user_controller import router as user_router

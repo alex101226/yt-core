@@ -2,8 +2,8 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from app.core.logger import logger
 from app.models.cmp import CephfsFile
+from app.core.logger import logger
 from app.schemas.cmp.cephfs_file_schema import CephfsBase, CephfsCreate
 
 
