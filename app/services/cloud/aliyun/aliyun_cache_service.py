@@ -1,5 +1,5 @@
 from app.common.cache_util import cache_get, cache_set, cache_delete
-from .aliyun_cache_keys import (
+from app.services.cloud.aliyun.aliyun_cache_keys import (
     ALIYUN_REGION_KEY,
     aliyun_zones_key,
     aliyun_images_key,

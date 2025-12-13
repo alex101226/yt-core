@@ -2,7 +2,8 @@ from typing import Optional
 from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.orm import Session
 
-from app.schemas.cmp.security_group_rule_schema import SecurityGroupRuleOut, SecurityGroupRuleUpdate
+from app.schemas.cmp.security_group_rule_schema import SecurityGroupRuleOut, SecurityGroupRuleUpdate, \
+    SecurityGroupRuleItem
 from app.schemas.cmp.security_group_schema import SecurityGroupPage, SecurityGroupOut, SecurityGroupCreate
 from app.services.cmp.security_group_service import SecurityGroupService
 from app.common.response import Response
@@ -22,15 +23,17 @@ router = APIRouter(
 
 @router.get("/group_list_page", response_model=SecurityGroupPage)
 def list_security_groups(
-    provider_code: str = Query('aliyun', description="云厂商 code"),
-    region_id: str = Query('cn-qingdao', description="区域 id"),
-    resource_group_id: Optional[int] = Query(None, description="资源组"),
-    security_name: Optional[str] = Query(None, description="安全组 name"),
+    request: Request,
     page: int = Query(1, ge=1),
     page_size: int = Query(10, ge=1, le=200),
+    provider_code: str = Query(None, description="云厂商 code"),
+    region_id: str = Query(None, description="区域 id"),
+    resource_group_id: Optional[str] = Query(None, description="资源组"),
+    sg_name: Optional[str] = Query(None, description="安全组 name"),
     service: SecurityGroupService = Depends(get_security_service),
 ):
-    items =  service.list_page(provider_code, region_id, resource_group_id, security_name, page, page_size)
+    user_id = request.state.user.get('user_id')
+    items =  service.list_page(user_id, page, page_size, provider_code, region_id, resource_group_id, sg_name)
     return Response.success(items)
 
 @router.post("/group_create", response_model=SecurityGroupOut)
@@ -40,18 +43,16 @@ def create_security_group(
     service: SecurityGroupService = Depends(get_security_service)
 ):
     user_id = request.state.user.get('user_id')
-    payload = data.model_dump()
-    payload['user_id'] = user_id
-    result = service.create(payload)
+    result = service.create(user_id, data)
     return Response.success(result)
 
 
-@router.post("/group_release")
+@router.put("/group_release")
 def release_security_group(
-    groud_id: str,
+    group_id: int,
     service: SecurityGroupService = Depends(get_security_service)
 ):
-    result = service.release(groud_id)
+    result = service.release(group_id)
     return Response.success(result)
 
 
@@ -63,16 +64,25 @@ def list_security_groups(
     vpc_id: int = Query(None, description="vpc的id"),
     service: SecurityGroupService = Depends(get_security_service),
 ):
-
     items =  service.list_security_groups(provider_code, region_id, vpc_id)
     return Response.success(items)
 
-@router.put("/rule_update")
+# 创建安全组时，批量创建规则
+@router.put("/batch_rule_update")
 def update_rules(
     data: SecurityGroupRuleUpdate,
     service: SecurityGroupService = Depends(get_security_service)
 ):
-    result = service.update_rules(data)
+    result = service.batch_update_rules(data)
+    return Response.success(result)
+
+#   创建单条规则
+@router.post('/rule_create', response_model=SecurityGroupOut)
+def create_security_group_rule(
+    data: SecurityGroupRuleItem,
+    service: SecurityGroupService = Depends(get_security_service)
+):
+    result = service.create_rule(data)
     return Response.success(result)
 
 

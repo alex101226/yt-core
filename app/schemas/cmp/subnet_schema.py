@@ -4,7 +4,7 @@ from typing import Optional, List
 from pydantic import BaseModel, Field
 
 class SubnetBase(BaseModel):
-    subnet_id: str = Field(..., description="子网名称")
+    subnet_name: str = Field(..., description="子网名称")
     description: Optional[str] = Field(None, description="子网描述信息")
     vpc_id: int = Field(..., description="所属 VPC ID")
     resource_group_id: Optional[int] = Field(None, description="资源组ID")
@@ -28,10 +28,13 @@ class SubnetUpdate(BaseModel):
 class SubnetOut(SubnetBase):
     id: int
     subnet_id: str = Field(..., description="云厂商原始子网 ID")
+    resource_group_name: Optional[str]
+    vpc_name: Optional[str]
     is_released: int
     released_at: Optional[datetime]
     created_at: datetime
-    updated_at: datetime
+    updated_at: Optional[datetime]
+    sync_status: Optional[int]
 
     class Config:
         from_attributes = True

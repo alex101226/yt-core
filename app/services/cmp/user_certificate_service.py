@@ -7,6 +7,8 @@ from app.common.exceptions import BusinessException
 from app.common.status_code import ErrorCode
 from app.common.messages import Message
 
+from app.core.logger import logger
+
 class UserCertificateService:
     def __init__(self, db: Session):
         self.db = db

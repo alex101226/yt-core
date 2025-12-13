@@ -9,18 +9,20 @@ class SecurityGroupRuleItem(BaseModel):
     port_range: str
     source: str
     description: Optional[str] = None
+    security_group_id: int = None
+    sort: int = 1
 
 
 # 批量规则更新（入 + 出）
 class SecurityGroupRuleUpdate(BaseModel):
-    security_group_id: str = Field(..., description="所属安全组ID")
+    security_group_id: int = Field(..., description="所属安全组ID")
     ingress_rules: List[SecurityGroupRuleItem] = Field(default_factory=list)
     egress_rules: List[SecurityGroupRuleItem] = Field(default_factory=list)
 
 
 # 输出模型
 class SecurityGroupRuleOut(BaseModel):
-    id: str
+    id: int
     security_group_id: str
     direction: str
     policy_code: str

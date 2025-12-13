@@ -1,31 +1,38 @@
 from typing import List
 from sqlalchemy.orm import Session
-from app.schemas.cmp.security_group_schema import SecurityGroupPage, SecurityGroup, SecurityGroupOut
-from app.schemas.cmp.security_group_rule_schema import SecurityGroupRuleOut, SecurityGroupRuleUpdate
+from nanoid import generate
 
-from app.repositories.cmp.security_group_repo import SecurityGroupRepository
 from app.common.status_code import ErrorCode
 from app.common.messages import Message
 from app.common.exceptions import BusinessException
+
+from app.schemas.cmp.security_group_schema import SecurityGroupPage, SecurityGroup, SecurityGroupOut, SecurityGroupCreate
+from app.schemas.cmp.security_group_rule_schema import SecurityGroupRuleUpdate, SecurityGroupRuleItem
+from app.repositories.cmp.security_group_repo import SecurityGroupRepository
+
+from app.services.cmp.resource_group_service import ResourceGroupService
+from app.schemas.cmp.resource_group_schema import ResourceGroupBindingCreate
 
 class SecurityGroupService:
     def __init__(self, cmp_db: Session):
         self.db = cmp_db
         self.security_group_repo = SecurityGroupRepository(cmp_db)
+        self.resource_bind_service = ResourceGroupService(self.db)
 
     #   分页
     def list_page(
         self,
+        user_id: int,
+        page: int,
+        page_size: int,
         provider_code: str,
         region_id: str,
-        resource_group_id: int,
-        security_name: str,
-        page: int,
-        page_size: int
+        resource_group_id: str,
+        sg_name: str
     ) -> SecurityGroupPage:
 
         items, total = self.security_group_repo.list_page(
-            provider_code, region_id, resource_group_id, security_name, page, page_size
+            user_id, page, page_size, provider_code, region_id, resource_group_id, sg_name
         )
 
         return SecurityGroupPage(
@@ -75,13 +82,32 @@ class SecurityGroupService:
     # ----------------------------
     # 创建安全组（本地 + 云端）
     # ----------------------------
-    def create(self, data: dict):
-        return self.security_group_repo.create_group(data)
+    def create(self, user_id: int, data: SecurityGroupCreate):
+        payload = {
+            **data.model_dump(),
+            "created_by": user_id,
+            "sg_id": f'sg-{generate(size=12)}',
+            "status": "AVAILABLE"
+        }
+        result = self.security_group_repo.create_group(payload)
+        if not result:
+            return False
+        # self.update_rules(result)
+        self.resource_bind_service.bind(
+            ResourceGroupBindingCreate(
+                cloud_provider_code=data.cloud_provider_code,
+                user_id=user_id,
+                resource_group_id=2,
+                resource_type="security",
+                resource_id=str(result),
+            )
+        )
+        return result
 
     # ----------------------------
     # 释放安全组
     # ----------------------------
-    def release(self, group_id: str):
+    def release(self, group_id: int):
         sg = self.security_group_repo.group_mark_released(group_id)
         if not sg:
             raise BusinessException(
@@ -95,7 +121,7 @@ class SecurityGroupService:
         return self.security_group_repo.get_by_security_group(provider_code, region_id, vpc_id)
 
     # 更新规则（入 + 出）
-    def update_rules(self, data: SecurityGroupRuleUpdate):
+    def batch_update_rules(self, data: SecurityGroupRuleUpdate):
         sg = self.security_group_repo.get_by_id(data.security_group_id)
         if not sg:
             raise BusinessException(
@@ -123,6 +149,19 @@ class SecurityGroupService:
         return True
 
         #   删除规则
+
+    # 单挑规则插入（入 + 出）
+    def create_rule(self, data: SecurityGroupRuleItem):
+        sg = self.security_group_repo.get_by_id(data.security_group_id)
+        if not sg:
+            raise BusinessException(
+                code=ErrorCode.DATA_NOT_FOUND,
+                message=Message.DATA_NOT_FOUND,
+            )
+        result = self.security_group_repo.create_rule(data)
+        if not result:
+            return False
+        return True
 
     # 删除某个规则
     def delete_rules(self, rule_id: str):

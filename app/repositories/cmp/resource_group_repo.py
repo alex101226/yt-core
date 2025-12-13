@@ -1,6 +1,7 @@
 from typing import Optional
 from sqlalchemy.orm import Session
 from app.models.cmp.resource_group import ResourceGroup, ResourceGroupBinding
+from app.schemas.cmp.resource_group_schema import ResourceGroupBindingCreate
 
 """资源组仓储层"""
 class ResourceGroupRepository:
@@ -53,7 +54,7 @@ class ResourceGroupRepository:
 
 
     # 绑定资源
-    def resource_bind_create(self, data: ResourceGroupBinding) -> ResourceGroupBinding:
+    def resource_bind_create(self, data: dict) -> ResourceGroupBinding:
         obj = ResourceGroupBinding(**data)
         self.db.add(obj)
         self.db.commit()

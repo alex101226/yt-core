@@ -1,8 +1,8 @@
 from sqlalchemy.orm import Session
 from app.repositories.cmp.resource_group_repo import ResourceGroupRepository
-from app.common.exceptions import BusinessException
-
 from app.schemas.cmp.resource_group_schema import ResourceGroupCreate, ResourceGroupBindingCreate
+
+from app.common.exceptions import BusinessException
 from app.common.messages import Message
 from app.common.status_code import ErrorCode
 
@@ -72,7 +72,14 @@ class ResourceGroupService:
                 message=Message.RESOURCE_ALREADY_BOUND
             )
 
-        return self.repo.resource_bind_create(data)
+        resource_find = self.repo.get_by_group_id(data.resource_group_id)
+
+        payload = {
+            **data.model_dump(),
+            "resource_name": resource_find.rg_name
+        }
+
+        return self.repo.resource_bind_create(payload)
 
     # 删除绑定
     def unbind(self, binding_id: int):

@@ -14,10 +14,10 @@ class SecurityGroup(CmpBase, IsReleasedMixin):
     __tablename__ = f"{settings.CMP_TABLE_PREFIX}security_group"
     __table_args__ = {"comment": "安全组主表"}
 
-    id = Column(String(36), primary_key=True, index=True, comment="安全组本地唯一 ID")
-    user_id = Column(Integer, index=True, nullable=False, comment="所属用户ID")
+    id = Column(Integer, primary_key=True, index=True, comment="安全组本地唯一 ID")
+
     sg_id = Column(String(100), unique=True, nullable=True, comment="云端安全组 ID（sg-xxxx）")
-    # sg_name = Column(String(100), nullable=False, comment="安全组名称")
+    sg_name = Column(String(100), nullable=False, comment="安全组名称")
     description = Column(Text, nullable=True, comment="安全组描述")
     resource_group_id = Column(Integer, nullable=True, comment="资源组ID")
     cloud_provider_code = Column(String(30), nullable=False, comment="云厂商code")
@@ -36,10 +36,11 @@ class SecurityGroup(CmpBase, IsReleasedMixin):
         default=0,
         comment="同步状态：0未同步，1已同步，2待更新，3删除中"
     )
-    # 释放字段
-    is_released = Column(Boolean, default=False, nullable=False, comment="是否已释放")
-    released_at = Column(DateTime(timezone=True), nullable=True, comment="释放时间 (UTC)")
 
+    # 安全组的状态
+    status = Column(String(50), default="AVAILABLE", comment="安全组的状态，字典表type_code=SECURITY_GROUP_STATUS")
+
+    created_by = Column(Integer, index=True, nullable=False, comment="所属用户ID")
     created_at = Column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc), nullable=False,

@@ -32,12 +32,12 @@ class ResourceGroupPage(BaseModel):
     items: List[ResourceGroupOut]
 
 
-
-
 class ResourceGroupBindingBase(BaseModel):
     resource_group_id: int
     resource_type: str
     resource_id: str
+    user_id: int
+    cloud_provider_code: str
 
 
 class ResourceGroupBindingCreate(ResourceGroupBindingBase):

@@ -1,8 +1,10 @@
+from typing import Optional
+
 from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.orm import Session
 
 from app.common.response import Response
-from app.schemas.cmp.vpc_schema import (VpcOut, VpcPage, VpcCreate)
+from app.schemas.cmp.vpc_schema import (VpcOut, VpcPage, VpcCreate, VpcList)
 
 from app.services.cmp.vpc_service import VPCService
 from app.common.dependencies import get_cmp_db
@@ -19,39 +21,43 @@ router = APIRouter(
 )
 
 # -------------------------------
-# 分页查询
+# 下拉选择列表
 # -------------------------------
-@router.get("/list", response_model=VpcOut)
+@router.get("/list")
 def list_vpcs(
-    provider_code: str = Query('aliyun', description="云厂商code"),
-    region_id: str = Query('cn-qingdao', description="区域 id"),
+    request: Request,
+    provider_code: str = Query(None, description="云厂商code"),
+    region_id: str = Query(None, description="区域 id"),
     service: VPCService = Depends(get_vpc_service)
 ):
-    items = service.sync_vpcs(provider_code, region_id)
+    user_id = request.state.user.get('user_id')
+    items = service.sync_vpcs(user_id, provider_code, region_id)
     return Response.success(items)
 
 @router.get('/page_list', response_model=VpcPage)
 def list_page(
-        provider_code: str = Query('aliyun', description="云厂商code"),
-        region_id: str = Query('cn-qingdao', description="区域id"),
-        page: int = Query(1, ge=1, description="页码（从1开始）"),
-        page_size: int = Query(10, ge=1, le=100, description="每页条数"),
-        service: VPCService = Depends(get_vpc_service)
+    request: Request,
+    provider_code: Optional[str] = Query(None, description="云厂商code"),
+    region_id: Optional[str] = Query(None, description="区域id"),
+    resource_group_id: Optional[str] = Query(None, description="资源组"),
+    vpc_name: Optional[str] = Query(None, description="vpc name"),
+    page: int = Query(1, ge=1, description="页码（从1开始）"),
+    page_size: int = Query(10, ge=1, le=100, description="每页条数"),
+    service: VPCService = Depends(get_vpc_service)
 ):
-    total, items = service.list_page(provider_code, region_id, page, page_size)
+    user_id = request.state.user.get('user_id')
+    total, items = service.list_page(user_id, page, page_size, provider_code, region_id, resource_group_id, vpc_name)
     return Response.success(VpcPage(page=page, pageSize=page_size, total=total, items=items))
 
 
 @router.post("/create", response_model=VpcOut)
 def create_vpc(
-    data: VpcCreate,
     request: Request,
+    data: VpcCreate,
     service: VPCService = Depends(get_vpc_service)
 ):
     user_id = request.state.user.get('user_id')
-    payload = data.model_dump()
-    payload['user_id'] = user_id
-    vpc = service.create(payload)
+    vpc = service.create(user_id, data)
     return Response.success(vpc)
 
 # 释放 VPC

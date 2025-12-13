@@ -4,6 +4,7 @@ from sqlalchemy import and_
 
 from nanoid import generate
 
+from app.core.logger import logger
 from app.models.cmp import SecurityGroupRule
 from app.models.cmp.security_group import SecurityGroup
 from datetime import datetime, timezone
@@ -20,14 +21,16 @@ class SecurityGroupRepository:
 
     def list_page(
         self,
+        user_id: int,
+        page: int,
+        page_size: int,
         provider_code: str,
         region_id: str,
-        resource_group_id: int,
-        security_name: str,
-        page: int,
-        page_size: int):
+        resource_group_id: str,
+        sg_name: str):
+
         query = self.db.query(SecurityGroup)
-        filters = []
+        filters = [SecurityGroup.created_by == user_id, SecurityGroup.is_released == 0]
         if provider_code:
             filters.append(SecurityGroup.cloud_provider_code == provider_code)
         if region_id:
@@ -35,8 +38,8 @@ class SecurityGroupRepository:
         if resource_group_id:
             filters.append(SecurityGroup.resource_group_id == resource_group_id)
 
-        if security_name:
-            filters.append(SecurityGroup.sg_id == security_name)
+        if sg_name:
+            filters.append(SecurityGroup.sg_name.like(f"%{sg_name}%"))
 
         if filters:
             query = query.filter(and_(*filters))
@@ -46,26 +49,27 @@ class SecurityGroupRepository:
         return items, total
 
     #   根据安全组id获取数据
-    def get_by_id(self, group_id: str) -> Optional[type[SecurityGroup]]:
+    def get_by_id(self, group_id: int) -> Optional[type[SecurityGroup]]:
         return self.db.query(SecurityGroup).filter(
             SecurityGroup.id == group_id,
             SecurityGroup.is_released==0
         ).first()
+
     # --------------------------
     # 创建安全组（仅主表）
     # --------------------------
     def create_group(self, data: dict):
-        data['id'] = self._gen_uuid()
+        # data['id'] = self._gen_uuid()
         sg = SecurityGroup(**data)
         self.db.add(sg)
         self.db.commit()
         self.db.refresh(sg)
-        return sg
+        return sg.id
 
     # --------------------------
     # 安全组标记释放
     # --------------------------
-    def group_mark_released(self, group_id: str):
+    def group_mark_released(self, group_id: int):
         sg = self.get_by_id(group_id)
         if not sg:
             return None
@@ -86,7 +90,7 @@ class SecurityGroupRepository:
         # 清空原规则
 
     # 清空原规则
-    def delete_by_group(self, security_group_id: str):
+    def delete_by_group(self, security_group_id: int):
         self.db.query(SecurityGroupRule).filter(
             SecurityGroupRule.security_group_id == security_group_id,
             SecurityGroupRule.is_released == 0
@@ -95,10 +99,9 @@ class SecurityGroupRepository:
 
 
     # 本地批量插入
-    def bulk_create(self, security_group_id: str, rules: List[SecurityGroupRuleItem]):
+    def bulk_create(self, security_group_id: int, rules: List[SecurityGroupRuleItem]):
         for item in rules:
             rule = SecurityGroupRule(
-                id=self._gen_uuid(),
                 security_group_id=security_group_id,
                 direction=item.direction,
                 policy_code=item.policy_code,
@@ -106,21 +109,26 @@ class SecurityGroupRepository:
                 port_range=item.port_range,
                 source=item.source,
                 description=item.description,
-                sync_status=0,  # 本地新增 → 未同步
+                sort=item.sort,
             )
             self.db.add(rule)
         self.db.flush()
 
+    def create_rule(self, data: SecurityGroupRuleItem):
+        rule = SecurityGroupRule(**data.model_dump())
+        self.db.add(rule)
+        self.db.flush()
+        self.db.commit()
+        return rule.id
+
     # 配置规则列表
     def list_by_rule(self, security_group_id: str) -> List[SecurityGroupRuleItem]:
-        return (
-            self.db.query(SecurityGroupRule)
-            .filter(
+        result = ((self.db.query(SecurityGroupRule)
+        .filter(
                 SecurityGroupRule.security_group_id == security_group_id,
                 SecurityGroupRule.is_released == 0,
-            )
-            .all()
-        )
+            )).all())
+        return result
 
     # 删除规格
     def rule_mark_delete(self, rule_id: str):

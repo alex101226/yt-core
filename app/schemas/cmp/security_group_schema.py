@@ -3,7 +3,7 @@ from datetime import datetime
 from pydantic import BaseModel, Field
 
 class SecurityGroup(BaseModel):
-    id: str
+    id: int
     sg_id: str
     cloud_group_id: Optional[str]
     description: Optional[str]
@@ -13,9 +13,10 @@ class SecurityGroup(BaseModel):
     resource_group_id: Optional[int]
 
 class SecurityGroupOut(BaseModel):
-    id: str
+    id: int
     cloud_group_id: Optional[str]
     sg_id: str
+    sg_name: str
     description: Optional[str]
     cloud_provider_code: str
     region_id: str
@@ -36,7 +37,7 @@ class SecurityGroupPage(BaseModel):
     items: List[SecurityGroupOut]
 
 class SecurityGroupCreate(BaseModel):
-    sg_id: str
+    sg_name: str
     description: Optional[str] = None
     cloud_provider_code: str
     resource_group_id: Optional[int] = None

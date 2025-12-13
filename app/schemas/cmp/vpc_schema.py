@@ -1,22 +1,39 @@
 # app/schemas/cmp/vpc_schema.py
 from datetime import datetime
 from typing import Optional, List
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 # -------------------------
 # 1️⃣ 基础字段模型
 # -------------------------
 class VpcBase(BaseModel):
-    vpc_id: str
-    # resource_group_id: int
+    vpc_name: str
     description: Optional[str] = None
     resource_group_id: Optional[int] = None
     cloud_provider_code: str
-    # cloud_certificate_id: int
     region_id: str
     network_type: str
+    service_cidr: str
 
+
+# -------------------------
+# 4️⃣ 输出用模型
+# -------------------------
+class VpcOut(VpcBase):
+    id: int
+    vpc_id: str
+    status: str
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+# 返回列表
+class VpcList(VpcOut):
+    resource_group_name: Optional[str]
+    sync_status: Optional[int]
 
 # -------------------------
 # 2️⃣ 创建用模型
@@ -38,22 +55,10 @@ class VpcUpdate(BaseModel):
 
 
 # -------------------------
-# 4️⃣ 输出用模型
-# -------------------------
-class VpcOut(VpcBase):
-    id: int
-    created_at: datetime
-    updated_at: datetime
-
-    class Config:
-        from_attributes = True
-
-
-# -------------------------
 # 5️⃣ 分页用模型
 # -------------------------
 class VpcPage(BaseModel):
     total: int
     page: int
     pageSize: int
-    items: List[VpcOut]
+    items: List[VpcList]

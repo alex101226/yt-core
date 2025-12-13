@@ -34,8 +34,8 @@ async def list_regions(
 ):
     # 1️⃣ 查用户凭证
     cer_data = service.get_user_ak(user_id)
-    aliyun_service = AliyunService(access_key_id=cer_data.cloud_access_key_id, access_key_secret=cer_data.cloud_access_key_secret)
 
+    aliyun_service = AliyunService(access_key_id=cer_data.cloud_access_key_id, access_key_secret=cer_data.cloud_access_key_secret)
     regions = await aliyun_service.list_regions()
     return Response.success(regions)
 

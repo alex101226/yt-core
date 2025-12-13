@@ -19,3 +19,5 @@ alembic -c alembic/cmp/alembic.ini upgrade head
 
 更新requirements文件：pip freeze > requirements.txt
 使用requirements下载依赖(要先生成/更新requirements后): pip install -r requirements.txt
+
+启动redis: redis-server --port 6379 --requirepass "dev_password_123" &

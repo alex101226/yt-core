@@ -17,11 +17,11 @@ class SecurityGroupRule(CmpBase, IsReleasedMixin):
     __table_args__ = {"comment": "安全组规则表"}
 
     # 主键 ID（UUID）
-    id = Column(String(36), primary_key=True, index=True, comment="主键ID")
+    id = Column(Integer, primary_key=True, index=True, comment="主键ID")
 
     # 所属安全组 ID
     security_group_id = Column(
-        String(36),
+        Integer,
         ForeignKey("cm_security_group.id"),
         nullable=False,
         index=True,
@@ -70,6 +70,13 @@ class SecurityGroupRule(CmpBase, IsReleasedMixin):
         comment="规则描述信息"
     )
 
+    # 优先级
+    sort = Column(
+        Integer,
+        default=1,
+        comment="优先级"
+    )
+
     # 云端规则 ID（不同云是否支持不一致，可为空）
     # sgl_id = Column(
     #     String(100),
@@ -78,11 +85,11 @@ class SecurityGroupRule(CmpBase, IsReleasedMixin):
     # )
 
     # 同步状态：0未同步，1已同步，2待更新，3删除中
-    sync_status = Column(
-        Integer,
-        default=0,
-        comment="同步状态：0未同步，1已同步，2待更新，3删除中"
-    )
+    # sync_status = Column(
+    #     Integer,
+    #     default=0,
+    #     comment="同步状态：0未同步，1已同步，2待更新，3删除中"
+    # )
 
     created_at = Column(
         DateTime(timezone=True),

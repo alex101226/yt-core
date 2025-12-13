@@ -27,3 +27,8 @@ from .gpfs_file import GPFSFile
 from .fs_mount_point import FileSystemMount
 
 from .image_repository import ImageRepository
+
+# 集群
+from .k8s_cluster import K8sCluster
+from .cluster_node_pool import ClusterNodePool
+from .cluster_node import ClusterNode

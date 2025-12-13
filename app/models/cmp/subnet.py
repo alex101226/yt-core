@@ -17,7 +17,7 @@ class Subnet(CmpBase, IsReleasedMixin):
     id = Column(Integer, primary_key=True, autoincrement=True)
     user_id = Column(Integer, index=True, nullable=False)
     subnet_id = Column(String(50), nullable=False, comment="云厂商原始子网ID，例如 vsw-xxxx/subnet-xxx")
-    # subnet_name = Column(String(100), nullable=False, comment="子网名称")
+    subnet_name = Column(String(100), nullable=False, comment="子网名称")
     description = Column(Text, nullable=True, comment="子网描述信息")
 
     # VPC、资源组、云厂商、云凭证
@@ -33,9 +33,8 @@ class Subnet(CmpBase, IsReleasedMixin):
     # 子网网段
     cidr_block = Column(String(50), nullable=False, comment="子网网段，例如 192.168.1.0/24")
 
-    # 释放字段
-    # is_released = Column(Boolean, default=False, nullable=False, comment="是否已释放")
-    # released_at = Column(DateTime(timezone=True), nullable=True, comment="释放时间 (UTC)")
+    # 子网的状态
+    status = Column(String(50), default="AVAILABLE", comment="子网的状态，字典表type_code=SUBNET_STATUS")
 
     sync_status = Column(
         Integer,

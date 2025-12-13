@@ -33,33 +33,38 @@ def list_subnets(
 # 分页列表
 @router.get("/page_list", response_model=SubnetPage)
 def page_subnets(
-    cloud_provider_code: Optional[str] = Query('aliyun', description="云厂商 code"),
-    region_id: Optional[str] = Query('cn-beijing', description="区域id"),
-    # zone_id: Optional[str] = Query(None),
-    subnet_id: Optional[str] = Query(None, description="子网名称"),
-    resource_group_id: Optional[int] = Query(1, description="默认资源组"),
+    request: Request,
+    cloud_provider_code: Optional[str] = Query(None, description="云厂商 code"),
+    region_id: Optional[str] = Query(None, description="区域id"),
+    zone_id: Optional[str] = Query(None, description="可用区"),
+    vpc_id: Optional[str] = Query(None, description="vpc id"),
+    resource_group_id: Optional[str] = Query(None, description="默认资源组"),
     page: int = Query(1, ge=1),
-    page_size: int = Query(20, ge=1),
+    page_size: int = Query(20, ge=20),
     service = Depends(get_subnet_service)
 ):
+    user_id = request.state.user.get('user_id')
     result = service.page_subnets(
+            user_id=user_id,
             cloud_provider_code=cloud_provider_code,
             region_id=region_id,
-            subnet_id=subnet_id,
+            zone_id=zone_id,
+            vpc_id=vpc_id,
             resource_group_id=resource_group_id,
             page=page,
             page_size=page_size
         )
-    """分页查询子网"""
     return Response.success(result)
 
 # select的list
 @router.get("/list", response_model=SubnetOut)
 def list_subnets(
-    vpc_id: int = Query(1, description="vpc id"),
+    request: Request,
+    vpc_id: int = Query(None, description="vpc id"),
     service = Depends(get_subnet_service)
 ):
-    result = service.list_subnets(vpc_id)
+    user_id = request.state.user.get('user_id')
+    result = service.list_subnets(user_id, vpc_id)
     return Response.success(result)
 
 # 创建
@@ -70,17 +75,14 @@ def create_subnet(
     service = Depends(get_subnet_service)
 ):
     user_id = request.state.user.get('user_id')
-    payload = data.model_dump()
-    payload['user_id'] = user_id
-    result = service.create(payload)
+    result = service.create(user_id, data)
     return Response.success(result)
 
 # 删除
-@router.post("/release/{subnet_id}", response_model=SubnetOut)
+@router.post("/release/{subnet_id}")
 def release_subnet(
     subnet_id: str,
-    cloud_provider_code: str,
     service = Depends(get_subnet_service)
 ):
-    result = service.subnet_release(subnet_id, cloud_provider_code)
+    result = service.subnet_release(subnet_id)
     return Response.success(result)

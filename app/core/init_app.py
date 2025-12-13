@@ -33,6 +33,7 @@ gpfs_router,
 cephfs_file_router,
 fs_mount_router,
 container_image_router,
+cluster_router,
 # image_router,
 )
 
@@ -85,6 +86,7 @@ def create_app() -> FastAPI:
         cephfs_file_router,
         fs_mount_router,
         container_image_router,
+        cluster_router,
         # image_router,
     ]
     for r in routers:
