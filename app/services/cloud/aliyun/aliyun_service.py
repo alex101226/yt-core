@@ -124,8 +124,10 @@ class AliyunService:
 
     # 公网eip价格
     def eip_price(self, region_id: str, bandwidth: int, internet_charge_type: str):
-        return self.client.client_eip_price(
+        price = self.client.client_eip_price(
             region_id,
             bandwidth,
             internet_charge_type
         )
+        # logger.info(f'来获取价格吧 --------------》〉》〉》〉》〉{price}')
+        return price

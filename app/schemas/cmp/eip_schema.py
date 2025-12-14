@@ -8,7 +8,7 @@ class EIPSchema(BaseModel):
     region_id: str
     zone_id: str
     description: Optional[str]
-    eip_id: str
+    eip_name: str
     internet_charge_type: str
     bandwidth: int
     price: float
@@ -25,6 +25,8 @@ class EIPOut(EIPSchema):
     status: Optional[str]
     created_at: Optional[datetime]
     updated_at: Optional[datetime]
+    resource_group_name: Optional[str]
+    sync_status: Optional[int]
 
     class Config:
         from_attributes = True
@@ -34,3 +36,8 @@ class EIPPage(BaseModel):
     page: int
     page_size: int
     items: List[EIPOut]
+
+
+class EIPSave(BaseModel):
+    eip_id: int
+    status: str

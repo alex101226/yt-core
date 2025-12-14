@@ -27,7 +27,7 @@ class BusinessException(Exception):
 
 async def business_exception_handler(request: Request, exc: BusinessException):
     """全局捕获业务异常"""
-    logger.warning(f"BusinessException: {exc.code} - {exc.message}")
+    # logger.warning(f"BusinessException: {exc.code} - {exc.message}")
     return exc.to_response()
 
 async def global_exception_handler(request: Request, exc: Exception):

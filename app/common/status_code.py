@@ -6,6 +6,10 @@ class ErrorCode:
     FAILED = 40000
     PARAMS_ERROR=40001
 
+    # === 阿里云 / 云厂商错误 ===
+    ALIYUN_EIP_BANDWIDTH_NOT_SUPPORTED = 40050
+    ALIYUN_EIP_PRICE_ERROR = 50050
+
     # 用户相关
     USER_NOT_FOUND = 40401
     USER_ALREADY_EXISTS = 40002

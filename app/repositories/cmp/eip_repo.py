@@ -2,6 +2,7 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from app.core.logger import logger
+from app.models.cmp import ResourceGroup
 from app.models.cmp.eip import Eip
 from app.schemas.cmp.eip_schema import EIPCreate
 
@@ -11,25 +12,23 @@ class EipRepository:
         self.db = db
 
     # 创建eip
-    def create_eip(self, user_id, data: EIPCreate):
-        item = data.model_dump()
-        item['user_id'] = user_id
-
-        obj = Eip(**item)
+    def create_eip(self, data: dict):
+        obj = Eip(**data)
         self.db.add(obj)
         self.db.commit()
         self.db.refresh(obj)
-        return True
+        return obj.id
 
-    #   分页列表
+    #   分页列表： 云厂商，云凭证，区域，可用区，按量付费，带宽上限，名称，资源组。
     def eip_page_list(
         self,
+        user_id: int,
         page: int,
         page_size: int,
         provider_code: Optional[str] = None,
         region_id: Optional[str] = None,
         zone_id: Optional[str] = None,
-        resource_group_id: Optional[int] = None,
+        resource_group_id: Optional[str] = None,
         eip_id: Optional[str] = None,
         public_ip: Optional[str] = None
     ):
@@ -44,26 +43,32 @@ class EipRepository:
             Eip.zone_id,
             Eip.description,
             Eip.eip_id,
+            Eip.eip_name,
             Eip.internet_charge_type,
             Eip.bandwidth,
             Eip.price,
             Eip.public_ip,
             Eip.bind_instance_id,
-            Eip.status
+            Eip.status,
+            Eip.sync_status,
+            ResourceGroup.rg_name.label("resource_group_name")
+        ).outerjoin(
+            ResourceGroup,
+            ResourceGroup.id == Eip.resource_group_id
         )
         # logger.info(f'查询 {query}')
-        filters = []
-        if provider_code is not None:
+        filters = [Eip.created_by == user_id, Eip.is_released == 0]
+        if provider_code:
             filters.append(Eip.cloud_provider_code == provider_code)
-        if region_id is not None:
+        if region_id:
             filters.append(Eip.region_id == region_id)
-        if zone_id is not None:
+        if zone_id:
             filters.append(Eip.zone_id == zone_id)
-        if resource_group_id is not None:
+        if resource_group_id:
             filters.append(Eip.resource_group_id == resource_group_id)
-        if eip_id is not None:
+        if eip_id:
             filters.append(Eip.eip_id.like(f"%{eip_id}%"))
-        if public_ip is not None:
+        if public_ip:
             filters.append(Eip.public_ip == public_ip)
 
         if filters:
@@ -76,12 +81,14 @@ class EipRepository:
     # eip各种操作
     def eip_action(self, status: str, eip_id: int):
         eip_find = self.get_eip_by_id(eip_id)
-        # logger.info(f"eip_find.eip_id: {eip_id} {eip_find.status}")
         if eip_find is None:
+            return None
+        if eip_find.status == 'RELEASED':
             return None
         if status == 'RELEASING':
             eip_find.status = 'RELEASED'
             eip_find.last_operation = 'RELEASED'
+            eip_find.is_released = 1
         elif status == 'BINDING':
             eip_find.status = 'BOUND'
             eip_find.last_operation = 'BOUND'
@@ -91,13 +98,12 @@ class EipRepository:
 
         self.db.commit()
         self.db.refresh(eip_find)
-        # logger.info(f'看下状态 {eip_find.status} {eip_find.last_operation}')
         return True
 
 
     # 根据eip的自增id
     def get_eip_by_id(self, eip_id: int) -> Optional[type[Eip]]:
-        return self.db.query(Eip).filter_by(id = eip_id).first()
+        return self.db.get(Eip, eip_id)
 
 
 

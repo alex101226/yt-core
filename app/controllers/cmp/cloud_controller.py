@@ -2,15 +2,13 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
 from enum import Enum
-
 from sqlalchemy.orm import Session
+
 from app.common.response import Response
-
 from app.common.dependencies import get_cmp_db
-from app.core.logger import logger
-from app.common.filter_spec import filter_spec, filter_available_instances, fetch_prices_concurrent
-
 from app.services.cloud.aliyun.aliyun_service import AliyunService
+from app.common.filter_spec import filter_spec, filter_available_instances, fetch_prices_concurrent
+from app.core.logger import logger
 
 from app.services.cmp.user_certificate_service import UserCertificateService
 
@@ -254,10 +252,10 @@ class InternetChargeType(str, Enum):
 
 @router.get("/eip_price")
 def instance_price(
-    user_id: int = Query(7, description="用户id"),
-    region_id: str = Query('cn-beijing', description="Region ID"),
-    bandwidth: int = Query(40, description="系统盘大小"),
-    internet_charge_type: InternetChargeType = Query(InternetChargeType.PayByTraffic, description="计费方式"),
+    user_id: int = Query(None, description="用户id"),
+    region_id: str = Query(None, description="Region ID"),
+    bandwidth: int = Query(None, description="系统盘大小"),
+    internet_charge_type: str = Query(None, description="计费方式"),
     service: UserCertificateService = Depends(get_user_certificate_service)
 ):
     # 1️⃣ 查用户凭证
@@ -266,5 +264,5 @@ def instance_price(
         access_key_id=cer_data.cloud_access_key_id,
         access_key_secret=cer_data.cloud_access_key_secret
     )
-    price = aliyun_service.eip_price(region_id, bandwidth, internet_charge_type.value)
+    price = aliyun_service.eip_price(region_id, bandwidth, internet_charge_type)
     return Response.success(price)

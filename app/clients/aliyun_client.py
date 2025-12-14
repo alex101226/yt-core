@@ -4,8 +4,14 @@ import re
 
 from alibabacloud_ecs20140526.client import Client as EcsClient
 from alibabacloud_ecs20140526 import models as ecs_models
+from alibabacloud_tea_openapi.exceptions import ClientException
+from sqlalchemy import Null
+
 from app.common.credentials_manager import CredentialsManager
 from app.clients.base import BaseCloudClient
+
+from app.common.exceptions import BusinessException
+from app.common.status_code import ErrorCode
 from app.core.logger import logger
 
 SYSTEM_DISK_TYPES = [
@@ -638,37 +644,52 @@ class AliyunClient(BaseCloudClient):
 
     #   获取 EIP 带宽价格（按量计费）
     def client_eip_price(self, region_id: str, bandwidth: int, internet_charge_type: str):
-        req = ecs_models.DescribePriceRequest(
-            region_id=region_id,
-            resource_type="bandwidth",
-            internet_charge_type=internet_charge_type,
-            instance_network_type="vpc",
-            internet_max_bandwidth_out=bandwidth,
-            price_unit="Hour",  # 按量计费
-        )
+        try:
+            req = ecs_models.DescribePriceRequest(
+                region_id=region_id,
+                resource_type="bandwidth",
+                internet_charge_type=internet_charge_type,
+                instance_network_type="vpc",
+                internet_max_bandwidth_out=bandwidth,
+                price_unit="Hour",  # 按量计费
+            )
 
-        response = self.client.describe_price(req)
-        price_info = response.body.price_info
+            response = self.client.describe_price(req)
+            price_info = response.body.price_info
+            # logger.info(f'来获取价格吧 --------------》〉》〉》〉》〉{response}')
+            # 解析价格
+            result = {
+                "original_price": price_info.price.original_price,
+                "trade_price": price_info.price.trade_price,
+                "currency": price_info.price.currency,
+                "detail": [],
+            }
 
-        # 解析价格
-        result = {
-            "original_price": price_info.price.original_price,
-            "trade_price": price_info.price.trade_price,
-            "currency": price_info.price.currency,
-            "detail": [],
-        }
+            details = price_info.price.detail_infos
+            if details and details.detail_info:
+                for d in details.detail_info:
+                    result["detail"].append({
+                        "resource": d.resource,
+                        "original_price": d.original_price,
+                        "trade_price": d.trade_price,
+                    })
 
-        details = price_info.price.detail_infos
-        if details and details.detail_info:
-            for d in details.detail_info:
-                result["detail"].append({
-                    "resource": d.resource,
-                    "original_price": d.original_price,
-                    "trade_price": d.trade_price,
-                })
+            return result
 
-        return result
+        except ClientException as e:
+            # 阿里云错误码
+            code = e.code
+            if code == "InvalidInternetMaxBandwidthOut.ValueNotSupported":
+                raise BusinessException(
+                    code=ErrorCode.ALIYUN_EIP_BANDWIDTH_NOT_SUPPORTED,
+                    message="当前地域和计费方式下不支持该最大带宽，请调整带宽规格",
+                )
 
+            # 2️⃣ 兜底：其他云厂商错误
+            raise BusinessException(
+                code=ErrorCode.ALIYUN_EIP_PRICE_ERROR,
+                message="获取 EIP 价格失败，请稍后重试",
+            )
 
 class AliyunClientFactory:
     """阿里云客户端工厂"""

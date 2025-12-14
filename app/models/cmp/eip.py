@@ -15,7 +15,6 @@ class Eip(CmpBase, IsReleasedMixin):
     __table_args__ = {"comment": "弹性公网 IP 资源表"}
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    user_id = Column(Integer, nullable=False, comment="提交用户ID")
     resource_group_id = Column(Integer, nullable=True, comment="资源组ID")
 
     cloud_provider_code = Column(String(30), nullable=False, comment="云厂商")
@@ -25,7 +24,8 @@ class Eip(CmpBase, IsReleasedMixin):
     description = Column(Text, nullable=True, comment="描述")
 
     # 云端标识
-    eip_id = Column(String(100), nullable=True, comment="EIP ID的名称")
+    eip_id = Column(String(100), nullable=True, comment="EIP ID")
+    eip_name = Column(String(100), nullable=True, comment="EIP 的名称")
     public_ip = Column(String(50), nullable=True, comment="分配的公网 IP")
 
     # 绑定信息
@@ -39,11 +39,16 @@ class Eip(CmpBase, IsReleasedMixin):
     price = Column(Float, nullable=True, comment="按量计费价格（元/小时）")
 
     # 状态信息
-    status = Column(String(50), nullable=False, default="ALLOCATING", comment="EIP 状态")
-    sync_status = Column(Integer, nullable=False, default=1, comment="同步状态：1待执行 2同步中 3成功 4失败")
+    status = Column(String(50), default="ALLOCATING", comment="EIP 状态")
+    sync_status = Column(Integer, default=1, comment="同步状态：1待执行 2同步中 3成功 4失败")
     last_operation = Column(String(50), nullable=True, comment="最近一次操作：CREATE/BIND/UNBIND/RELEASE")
     error_message = Column(Text, nullable=True, comment="失败原因")
 
+    created_by = Column(Integer, nullable=False, comment="提交用户ID")
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), comment="创建时间（UTC）")
-    updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc),
-                        onupdate=lambda: datetime.now(timezone.utc), comment="更新时间（UTC）")
+    updated_at = Column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+        comment="更新时间（UTC）"
+    )
