@@ -59,7 +59,6 @@ class SecurityGroupRepository:
     # 创建安全组（仅主表）
     # --------------------------
     def create_group(self, data: dict):
-        # data['id'] = self._gen_uuid()
         sg = SecurityGroup(**data)
         self.db.add(sg)
         self.db.commit()
