@@ -19,7 +19,7 @@ class ResourceGroupRepository:
 
     # 根据id查找资源组
     def get_by_group_id(self, group_id: int) -> Optional[ResourceGroup]:
-        return self.db.query(ResourceGroup).get(group_id)
+        return self.db.query(ResourceGroup).filter_by(id=group_id).first()
 
     # 根据code查找资源组
     def get_by_group_code(self, code: str) -> Optional[ResourceGroup]:
