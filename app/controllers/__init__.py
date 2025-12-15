@@ -7,6 +7,7 @@ from .cmp.vpc_controller import router as vpc_router
 from .cmp.subnet_controller import router as subnet_router
 from .cmp.security_group_controller import router as security_group_router
 from .cmp.server_instance_controller import router as server_instance_router
+from .cmp.bare_metal_instance_controller import router as bare_metal_instance_router
 # from .cmp.image_controller import router as image_router
 
 from .cmp.cloud_controller import router as cloud_router

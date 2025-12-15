@@ -28,7 +28,7 @@ class InstanceService:
         hashed_password = hash_password(schema['password'])
         schema['password'] = hashed_password
         # 默认开启释放保护
-        schema['enable_protection'] = 1
+        # schema['enable_protection'] = 1
         # ⭐ 2) 处理私网 IP（如果没有传 private_ip）
         if not schema.get("private_ip"):
             cidr = schema.get("cidr_block")

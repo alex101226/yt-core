@@ -8,16 +8,22 @@ class DiskItem(BaseModel):
     encrypted: Optional[bool] = False
 
 class InstanceBase(BaseModel):
+    instance_name: str
+    description: Optional[str]
+
     cloud_provider_code: str
     region_id: str
     zone_id: str
     resource_group_id: Optional[int]  # 资源组
-    instance_type_id: Optional[str]
-    instance_name: str
+
     instance_type: str
+    instance_type_id: Optional[str]
+
+
     image_id: str
     system_disk_category: str
     system_disk_size: int
+
     instance_charge_type: str  # PrePaid / PostPaid
     period: Optional[int]
     spot_strategy: Optional[str]
@@ -27,9 +33,10 @@ class InstanceBase(BaseModel):
     vswitch_id: str
     security_group_id: Optional[str]
     hostname: Optional[str]
-    description: Optional[str]
     data_disks: Optional[List[DiskItem]] = []
     os_type: Optional[str]
+    os_version: Optional[str] = None
+    ssh_proxy_port: Optional[int] = 0
 
 class InstanceCreateSchema(InstanceBase):
     cidr_block: Optional[str]  # 子网的网段，要计算private_ip的ip

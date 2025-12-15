@@ -8,7 +8,7 @@ from nanoid import generate
 from app.core.logger import logger
 
 from app.models.cmp.instance_status_check_task import InstanceStatusCheckTask
-from app.models.cmp.instance_create_task import InstanceCreateTask
+from app.models.cmp.cloud_server_instance import CloudServerInstance
 
 from app.common.dependencies import get_cmp_db
 
@@ -79,7 +79,7 @@ def process_main_task(db: Session, check_task: type[InstanceStatusCheckTask]):
     # -------------------
     # 1）创建任务 CREATE
     # -------------------
-    instance = db.query(InstanceCreateTask).filter_by(
+    instance = db.query(CloudServerInstance).filter_by(
        id=check_task.main_task_id
     ).first()
     # logger.info(f'查看状态 {check_task.status} {instance.last_operation}')

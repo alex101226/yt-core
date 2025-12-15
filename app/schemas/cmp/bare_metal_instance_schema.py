@@ -1,0 +1,41 @@
+from pydantic import BaseModel
+from typing import Optional
+
+class BareMetalInstanceBase(BaseModel):
+    instance_name: str
+    description: Optional[str] = None
+
+    cloud_provider_code: str
+    region_id: str
+    zone_id: str
+    resource_group_id: int
+
+    instance_type: str
+    instance_type_id: Optional[str]
+    image_id: str
+    cpu: Optional[int] = 0
+    gpu: Optional[int] = 0
+    system_disk_category: str
+    system_disk_size: int
+
+    internet_charge_type: Optional[str] # PayByBandwidth/PayByTraffic
+    instance_charge_type: str  # PrePaid / PostPaid
+    period: Optional[int]
+    internet_max_bandwidth_out: Optional[int]
+    auto_renew: Optional[bool]
+
+    vpc_id: str
+    vswitch_id: str
+    security_group_id: str
+    ssh_proxy_port: Optional[bool] = False
+
+    os_type: Optional[str] = None
+    os_version: Optional[str] = None
+    hostname: Optional[str] = None
+
+class BareMetalInstanceCreate(BareMetalInstanceBase):
+    password: str
+    cidr_block: Optional[str]  # 子网的网段，要计算private_ip的ip
+    enable_protection: Optional[bool] = False
+    install_gpu_driver: Optional[bool] = False
+    pass
