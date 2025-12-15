@@ -15,11 +15,6 @@ from app.services.cmp.user_certificate_service import UserCertificateService
 def get_user_certificate_service(db: Session = Depends(get_cmp_db)):
     return UserCertificateService(db)
 
-class InstanceChargeType(str, Enum):
-    POSTPAID = "PostPaid"
-    PREPAID = "PrePaid"
-    SPOT = "Spot"
-
 router = APIRouter(prefix="/cloud", tags=["云厂商信息"])
 
 # -----------------------------
@@ -61,10 +56,10 @@ async def list_zones(
 # -----------------------------
 @router.get("/images")
 async def list_images(
-    user_id: int = Query(7, description="用户id"),
-    region_id: str = Query('cn-beijing', description="Region ID"),
-    instance_type_id: str = Query('ecs.c2.medium', description="Instance Type ID"),
-    architecture: str = Query('x86_64', description="Architecture, e.g., x86_64"),
+    user_id: int = Query(..., description="用户id"),
+    region_id: str = Query(..., description="Region ID"),
+    instance_type_id: str = Query(..., description="Instance Type ID"),
+    architecture: str = Query(..., description="Architecture, e.g., x86_64"),
     service: UserCertificateService = Depends(get_user_certificate_service)
 ):
     # 1️⃣ 查用户凭证
@@ -79,13 +74,18 @@ async def list_images(
 # -----------------------------
 # List 系统盘
 # -----------------------------
+class InstanceChargeType(str, Enum):
+    POSTPAID = "PostPaid"
+    PREPAID = "PrePaid"
+    SPOT = "Spot"
+
 @router.get("/system_disk_categories")
 async def list_system_disk_categories(
-    user_id: int = Query(7, description="用户id"),
-    region_id: str = Query('cn-beijing', description="Region ID"),
-    zone_id: str = Query('cn-beijing-g', description="Zone ID"),
-    instance_type_id: str = Query('ecs.c2.medium', description="Instance Type ID"),
-    instance_charge_type: InstanceChargeType = Query(InstanceChargeType.POSTPAID, description="计费方式"),
+    user_id: int = Query(..., description="用户id"),
+    region_id: str = Query(..., description="Region ID"),
+    zone_id: str = Query(..., description="Zone ID"),
+    instance_type_id: str = Query(..., description="Instance Type ID"),
+    instance_charge_type: str = Query(..., description="计费方式"),
     service: UserCertificateService = Depends(get_user_certificate_service)
 ):
     # 1️⃣ 查用户凭证
@@ -120,18 +120,18 @@ async def list_system_disk_categories(
 # -----------------------------
 @router.get("/spec_page_list")
 async def list_available_instance_types(
-    page: int = Query(1, description="分页"),
-    page_size: int = Query(10, description="页码"),
-    user_id: int = Query(7, description="用户id"),
-    region_id: str = Query('cn-beijing', description="Region ID"),
-    zone_id: str = Query('cn-beijing-g', description="Zone ID"),
-    instance_charge_type: InstanceChargeType = Query(InstanceChargeType.POSTPAID, description="计费方式"),
-    disk_category: str = Query('cloud_essd', description="系统盘种类，默认 cloud_essd"),
+    page: int = Query(..., description="分页"),
+    page_size: int = Query(..., description="页码"),
+    user_id: int = Query(..., description="用户id"),
+    region_id: str = Query(..., description="Region ID"),
+    zone_id: str = Query(..., description="Zone ID"),
+    instance_charge_type: str = Query(..., description="计费方式"),
+    disk_category: str = Query(..., description="系统盘种类，默认 cloud_essd"),
     cpu_number: Optional[int] = Query(None, description="cpu核数"),
     memory_number: Optional[int] = Query(None, description="内存大小"),
     gpu_name: Optional[str] = Query(None, description="GPU规格名称 "),
     instance_spec: Optional[str] = Query(None, description="实例规格名称"),
-    hide_soldout: bool = Query(False, description="隐藏售罄的规格"),
+    hide_soldout: Optional[bool] = Query(None, description="隐藏售罄的规格"),
     service: UserCertificateService = Depends(get_user_certificate_service)
 ):
     # 1️⃣ 查用户凭证
@@ -187,7 +187,7 @@ async def list_available_instance_types(
         client=aliyun_service,
         region_id=region_id,
         instance_type_ids=instance_type_ids_page,
-        instance_charge_type=instance_charge_type.value,
+        instance_charge_type=instance_charge_type,
         system_disk_category=disk_category,
         max_workers=10,
     )
@@ -222,13 +222,13 @@ async def list_available_instance_types(
 # -----------------------------
 @router.get("/cloud_price")
 async def instance_price(
-    user_id: int = Query(7, description="用户id"),
-    region_id: str = Query('cn-beijing', description="Region ID"),
-    instance_type_id: str = Query('ecs.c2.medium', description="Instance Type ID"),
-    disk_category: str = Query('cloud_essd', description="系统盘种类，默认 cloud_essd"),
-    system_disk_size: int = Query(40, description="系统盘大小"),
-    instance_charge_type: InstanceChargeType = Query(InstanceChargeType.POSTPAID, description="计费方式"),
-    period: int = Query(1, description="包年包月要传递的参数，单位是month"),
+    user_id: int = Query(..., description="用户id"),
+    region_id: str = Query(..., description="Region ID"),
+    instance_type_id: str = Query(..., description="Instance Type ID"),
+    disk_category: str = Query(..., description="系统盘种类，默认 cloud_essd"),
+    system_disk_size: int = Query(..., description="系统盘大小"),
+    instance_charge_type: str = Query(..., description="计费方式"),
+    period: Optional[int] = Query(None, description="包年包月要传递的参数"),
     service: UserCertificateService = Depends(get_user_certificate_service)
 ):
     # 1️⃣ 查用户凭证
@@ -245,17 +245,16 @@ async def instance_price(
 
 
 # 获取eip价格
-
 class InternetChargeType(str, Enum):
     PayByTraffic = "PayByTraffic"
     PayByBandwidth = "PayByBandwidth"
 
 @router.get("/eip_price")
 def instance_price(
-    user_id: int = Query(None, description="用户id"),
-    region_id: str = Query(None, description="Region ID"),
-    bandwidth: int = Query(None, description="系统盘大小"),
-    internet_charge_type: str = Query(None, description="计费方式"),
+    user_id: int = Query(..., description="用户id"),
+    region_id: str = Query(..., description="Region ID"),
+    bandwidth: int = Query(..., description="系统盘大小"),
+    internet_charge_type: str = Query(..., description="计费方式"),
     service: UserCertificateService = Depends(get_user_certificate_service)
 ):
     # 1️⃣ 查用户凭证

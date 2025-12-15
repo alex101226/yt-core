@@ -3,19 +3,18 @@ from sqlalchemy.orm import Session
 from datetime import datetime, timezone
 from nanoid import generate
 
-from app.repositories.cmp.cbs_repo import CbsDiskRepository
-from app.schemas.cmp.cbs_disk_schema import CbsDiskCreate
-
-from app.repositories.cmp.server_instance_repo import ServerInstanceRepo
-# from app.schemas.cmp.server_instance_schema import InstancePage, InstanceBaseOut
-from app.core.security import hash_password
-
-from app.common.ipaddress import allocate_private_ip
-
 from app.common.exceptions import BusinessException
 from app.common.status_code import ErrorCode
 from app.common.messages import Message
 from app.core.logger import logger
+from app.common.ipaddress import allocate_private_ip
+from app.core.security import hash_password
+
+from app.repositories.cmp.cbs_repo import CbsDiskRepository
+from app.schemas.cmp.cbs_disk_schema import CbsDiskCreate
+
+from app.repositories.cmp.server_instance_repo import ServerInstanceRepo
+from app.schemas.cmp.server_instance_schema import InstanceActionSchema, InstanceUpdatePassword
 
 class InstanceService:
     def __init__(self, db: Session):
@@ -110,7 +109,7 @@ class InstanceService:
         provider_code: str,
         region_id: str,
         zone_id: str,
-        resource_group_id: int,
+        resource_group_id: str,
         instance_id: str,
         instance_name: str,
         instance_type: str,
@@ -134,41 +133,38 @@ class InstanceService:
 
 
     # 开机，关机，重启，
-    def start_instance(self, status, instance_id: str, user_id: int):
+    def start_instance(self, data: InstanceActionSchema):
         # 1️⃣ 创建操作任务
-        instance = self.repo.get_instance_by_id(instance_id)
+        instance = self.repo.get_instance_by_find(data.instance_id)
         if not instance:
             raise BusinessException(code=ErrorCode.DATA_NOT_FOUND, message=Message.DATA_NOT_FOUND)
 
-        instance.status = status.value
-        instance.last_operation = status.value
+        instance.status = data.status
+        instance.last_operation = data.status
         instance.updated_at = datetime.now(timezone.utc)
         self.repo.commit()
 
         # 创建轮询任务
         self.repo.create_status_check_task(
             main_task_id=instance.id,
-            instance_id=instance_id,
+            instance_id=instance.instance_id,
             check_count=0,
             max_check=10,
             status=1
         )
         self.repo.commit()
-        return {"instance_id": instance_id}
+        return {"instance_id": instance.instance_id}
 
 
     # 修改服务器密码   hash_password
-    def save_server_password(self, instance_id: int, password: str, user_id: str):
-        instance = self.repo.get_instance_by_find(instance_id)
-        if instance.user_id != user_id:
-            raise BusinessException(code=ErrorCode.DATA_NOT_FOUND, message=Message.DATA_NOT_FOUND)
+    def save_server_password(self, data: InstanceUpdatePassword):
+        instance = self.repo.get_instance_by_find(data.instance_id)
         if not instance:
             raise BusinessException(code=ErrorCode.DATA_NOT_FOUND, message=Message.DATA_NOT_FOUND)
 
-        hashed_password = hash_password(password)
-        result = self.repo.save_server_password(instance_id, hashed_password)
+        hashed_password = hash_password(data.password)
+        result = self.repo.save_server_password(instance.instance_id, hashed_password)
         return result
-
 
     # 开启/关闭释放保护
     def toggle_server_release(self, instance_id: int, user_id: int):
@@ -180,16 +176,13 @@ class InstanceService:
         return self.repo.toggle_server_release(instance_id)
 
     # 释放
-    def server_release(self, instance_id: int, user_id: int):
+    def server_release(self, instance_id: int):
         instance = self.repo.get_instance_by_find(instance_id)
         if not instance:
             raise BusinessException(code=ErrorCode.DATA_NOT_FOUND, message=Message.DATA_NOT_FOUND)
 
-        if instance.user_id != user_id:
-            raise BusinessException(code=ErrorCode.DATA_NOT_FOUND, message=Message.DATA_NOT_FOUND)
-
         if instance.enable_protection == 1:
-           raise BusinessException(code=ErrorCode.DATA_NOT_FOUND, message="改服务器无法释放")
+           raise BusinessException(code=ErrorCode.DATA_NOT_FOUND, message="此服务器无法释放")
 
         active_status = {
             'STARTING',

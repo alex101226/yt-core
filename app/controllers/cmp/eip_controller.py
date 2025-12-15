@@ -35,11 +35,11 @@ def create_eip(
 @router.get("/eip_page_list")
 def get_eip_page_list(
     request: Request,
-    page: int = Query(1, description="第几页"),
-    page_size: int = Query(10, description="页码"),
-    provider_code: Optional[str] = Query('aliyun', description="云厂商 code"),
-    region_id: Optional[str] = Query('cn-qingdao', description="区域 id"),
-    zone_id: Optional[str] = Query('cn-qingdao-b', description="可用区 id"),
+    page: int = Query(..., description="第几页"),
+    page_size: int = Query(..., description="页码"),
+    provider_code: Optional[str] = Query(None, description="云厂商 code"),
+    region_id: Optional[str] = Query(None, description="区域 id"),
+    zone_id: Optional[str] = Query(None, description="可用区 id"),
     resource_group_id: Optional[str] = Query(None, description="资源组 id"),
     eip_name: str = Query(None, description="eip名称"),
     public_ip: str = Query(None, description="ip地址"),

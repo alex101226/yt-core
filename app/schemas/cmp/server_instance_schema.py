@@ -55,3 +55,12 @@ class InstancePage(InstanceBase):
     page: int
     page_size: int
     items: List[InstanceBaseOut]
+
+# 开机，关机，重启
+class InstanceActionSchema(BaseModel):
+    status: str
+    instance_id: int
+
+class InstanceUpdatePassword(BaseModel):
+    password: str
+    instance_id: int

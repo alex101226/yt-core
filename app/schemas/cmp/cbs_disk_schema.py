@@ -55,3 +55,7 @@ class CbsDiskPage(BaseModel):
     page: int
     page_size: int
     items: List[CbsDiskOut]
+
+
+class CbsDiskReleaseSchema(BaseModel):
+    cbs_id: int

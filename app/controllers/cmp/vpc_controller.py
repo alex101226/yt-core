@@ -26,8 +26,8 @@ router = APIRouter(
 @router.get("/list")
 def list_vpcs(
     request: Request,
-    provider_code: str = Query(None, description="云厂商code"),
-    region_id: str = Query(None, description="区域 id"),
+    provider_code: str = Query(..., description="云厂商code"),
+    region_id: str = Query(..., description="区域 id"),
     service: VPCService = Depends(get_vpc_service)
 ):
     user_id = request.state.user.get('user_id')
@@ -41,8 +41,8 @@ def list_page(
     region_id: Optional[str] = Query(None, description="区域id"),
     resource_group_id: Optional[str] = Query(None, description="资源组"),
     vpc_name: Optional[str] = Query(None, description="vpc name"),
-    page: int = Query(1, ge=1, description="页码（从1开始）"),
-    page_size: int = Query(10, ge=1, le=100, description="每页条数"),
+    page: int = Query(..., description="页码（从1开始）"),
+    page_size: int = Query(..., description="每页条数"),
     service: VPCService = Depends(get_vpc_service)
 ):
     user_id = request.state.user.get('user_id')

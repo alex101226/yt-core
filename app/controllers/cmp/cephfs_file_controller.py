@@ -32,13 +32,13 @@ def cephfs_create(
 
 
 # 分页列表
-@router.post("/cephfs_page_list")
+@router.get("/cephfs_page_list")
 def cephfs_page_list(
     request: Request,
-    page: int = Query(1, description="第几页"),
-    page_size: int = Query(10, description="页码"),
-    provider_code: str = Query('aliyun', description="云厂商 code"),
-    region_id: Optional[str] = Query('cn-qingdao', description="区域 id"),
+    page: int = Query(..., description="第几页"),
+    page_size: int = Query(..., description="页码"),
+    provider_code: str = Query(None, description="云厂商 code"),
+    region_id: Optional[str] = Query(None, description="区域 id"),
     resource_group_id: Optional[int] = Query(None, description="资源组 id"),
     storage_type: Optional[str] = Query(None, description="存储类型"),
     fs_name: Optional[str] = Query(None, description="名称"),

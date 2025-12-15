@@ -28,7 +28,7 @@ class ServerInstanceRepo:
 
     # 根据主表的自增id查一条
     def get_instance_by_find(self, instance_id: int):
-        return self.db.get(InstanceCreateTask, instance_id)
+        return self.db.query(InstanceCreateTask).filter(InstanceCreateTask.id == instance_id).first()
 
     # 创建服务器
     def create_instance_task(self, instance_data: dict) -> InstanceCreateTask:
@@ -59,7 +59,7 @@ class ServerInstanceRepo:
         provider_code: str,
         region_id: str,
         zone_id: str,
-        resource_group_id: int,
+        resource_group_id: str,
         instance_id: str,
         instance_name: str,
         instance_type: str,

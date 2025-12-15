@@ -33,13 +33,13 @@ def cbs_create(
 @router.get("/mount_page_list")
 def cbs_create(
     request: Request,
-    page: int = Query(1, description="第几页"),
-    page_size: int = Query(10, description="页码"),
-    mount_type: str = Query('cephfs', description="文件挂载类型"),
-    provider_code: Optional[str] = Query('aliyun', description="云厂商 code"),
-    region_id: Optional[str] = Query('cn-qingdao', description="区域 id"),
-    zone_id: Optional[str] = Query('cn-qingdao-b', description="可用区 id"),
-    mount_name: Optional[str] = Query('aliyun', description="挂载点 名称"),
+    page: int = Query(..., description="第几页"),
+    page_size: int = Query(..., description="页码"),
+    mount_type: str = Query(..., description="文件挂载类型, gpfs/cephfs"),
+    provider_code: Optional[str] = Query(None, description="云厂商 code"),
+    region_id: Optional[str] = Query(None, description="区域 id"),
+    zone_id: Optional[str] = Query(None, description="可用区 id"),
+    mount_name: Optional[str] = Query(None, description="挂载点 名称"),
     service: FileMountService = Depends(get_mount_service)
 ):
     user_id = request.state.user.get('user_id')

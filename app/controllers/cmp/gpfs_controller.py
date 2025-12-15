@@ -31,14 +31,14 @@ def gpfs_create(
     return Response.success(result)
 
 # 分页列表
-@router.post("/gpfs_page_list")
+@router.get("/gpfs_page_list")
 def gpfs_page_list(
     request: Request,
-    page: int = Query(1, description="第几页"),
-    page_size: int = Query(10, description="页码"),
-    provider_code: str = Query('aliyun', description="云厂商 code"),
-    region_id: Optional[str] = Query('cn-qingdao', description="区域 id"),
-    zone_id: Optional[str] = Query('cn-qingdao-b', description="可用区 id"),
+    page: int = Query(..., description="第几页"),
+    page_size: int = Query(..., description="页码"),
+    provider_code: str = Query(None, description="云厂商 code"),
+    region_id: Optional[str] = Query(None, description="区域 id"),
+    zone_id: Optional[str] = Query(None, description="可用区 id"),
     storage_type: Optional[str] = Query(None, description="存储类型"),
     fs_name: Optional[str] = Query(None, description="名称"),
     service: GPFSService = Depends(get_gpfs_service),

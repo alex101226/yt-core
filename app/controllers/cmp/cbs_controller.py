@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.orm import Session
 
 from app.services.cmp.cbs_service import CbsService
-from app.schemas.cmp.cbs_disk_schema import CbsDiskCreate
+from app.schemas.cmp.cbs_disk_schema import CbsDiskCreate, CbsDiskReleaseSchema
 
 from app.common.dependencies import get_cmp_db
 from app.core.dependencies import require_user
@@ -35,38 +35,36 @@ def cbs_create(
 # 分页列表
 @router.post("/cbs_page_list")
 def cbs_page_list(
-    page: int = Query(1, description="第几页"),
-    page_size: int = Query(1, description="页码"),
-    provider_code: str = Query('aliyun', description="云厂商 code"),
-    region_id: Optional[str] = Query('cn-qingdao', description="区域 id"),
-    zone_id: Optional[str] = Query('cn-qingdao-b', description="可用区 id"),
+    page: int = Query(..., description="第几页"),
+    page_size: int = Query(..., description="页码"),
+    provider_code: str = Query(None, description="云厂商 code"),
+    region_id: Optional[str] = Query(None, description="区域 id"),
+    zone_id: Optional[str] = Query(None, description="可用区 id"),
     resource_group_id: Optional[int] = Query(None, description="资源组 id"),
     cbs_id: Optional[str] = Query(None, description="云硬盘名称"),
-    tag: Optional[List[str]] = Query(None, description="标签"),
+    # tag: Optional[List[str]] = Query(None, description="标签"),
     service: CbsService = Depends(get_cbs_disk_service)
 ):
-    result = service.cbs_page_list(page, page_size, provider_code, region_id, zone_id, resource_group_id, cbs_id, tag)
+    result = service.cbs_page_list(page, page_size, provider_code, region_id, zone_id, resource_group_id, cbs_id)
     return Response.success(result)
 
 
 # 释放
 @router.post("/cbs_release")
 def cbs_release(
-    request: Request,
-    cbs_id: Optional[int] = Query(None, description="云硬盘 id"),
+    data: CbsDiskReleaseSchema,
     service: CbsService = Depends(get_cbs_disk_service)
 ):
-    user_id = request.state.user.get('user_id')
-    result = service.cbs_release(cbs_id, user_id)
+    # user_id = request.state.user.get('user_id')
+    result = service.cbs_release(data.cbs_id)
     return Response.success(result)
 
 # 卸载
 @router.post("/cbs_uninstall")
 def cbs_uninstall(
-    request: Request,
-    cbs_id: Optional[int] = Query(None, description="云硬盘 id"),
+    data: CbsDiskReleaseSchema,
     service: CbsService = Depends(get_cbs_disk_service)
 ):
-    user_id = request.state.user.get('user_id')
-    result = service.cbs_uninstall(cbs_id, user_id)
+    # user_id = request.state.user.get('user_id')
+    result = service.cbs_uninstall(data.cbs_id)
     return Response.success(result)

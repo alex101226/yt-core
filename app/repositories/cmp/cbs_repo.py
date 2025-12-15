@@ -36,7 +36,6 @@ class CbsDiskRepository:
         zone_id: Optional[int] = None,
         resource_group_id: Optional[int] = None,
         cbs_id: Optional[str] = None,
-        tags: Optional[List[str]] = None,
     ):
         query = self.db.query(
             CbsDisk.id,
@@ -77,12 +76,12 @@ class CbsDiskRepository:
             filters.append(CbsDisk.resource_group_id == resource_group_id)
         if cbs_id is not None:
             filters.append(CbsDisk.cbs_id.like(f"%{cbs_id}%"))
-        if tags:
-            tag_filters = [
-                func.json_contains(CbsDisk.tags, json.dumps([{"title": tag["title"]}]))
-                for tag in tags
-            ]
-            filters.append(or_(*tag_filters))
+        # if tags:
+        #     tag_filters = [
+        #         func.json_contains(CbsDisk.tags, json.dumps([{"title": tag["title"]}]))
+        #         for tag in tags
+        #     ]
+        #     filters.append(or_(*tag_filters))
 
         if filters:
             query = query.filter(*filters)

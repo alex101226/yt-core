@@ -4,7 +4,7 @@ from typing import Optional, List
 from enum import Enum
 
 from sqlalchemy.orm import Session
-from app.schemas.cmp.server_instance_schema import InstanceCreateSchema
+from app.schemas.cmp.server_instance_schema import InstanceCreateSchema, InstanceActionSchema, InstanceUpdatePassword
 from app.services.cmp.server_instance_service import InstanceService
 from app.common.response import Response
 from app.common.dependencies import get_cmp_db
@@ -46,18 +46,18 @@ def create_instance(
 # 分页列表
 @router.get("/server_page_list")
 def get_server_page_list(
-    provider_code: Optional[str] = Query('aliyun', description="云厂商 code"),
-    region_id: Optional[str] = Query('cn-qingdao', description="区域 id"),
-    zone_id: Optional[str] = Query('cn-qingdao-b', description="可用区id"),
-    resource_group_id: Optional[int] = Query(2, description="资源组id"),
+    provider_code: Optional[str] = Query(None, description="云厂商 code"),
+    region_id: Optional[str] = Query(None, description="区域 id"),
+    zone_id: Optional[str] = Query(None, description="可用区id"),
+    resource_group_id: Optional[str] = Query(None, description="资源组id"),
     instance_id: Optional[str] =  Query(None, description="服务器实例id"),
     instance_name: Optional[str] =  Query(None, description="服务器实例名称"),
-    instance_type: Optional[str] =  Query('ecs.g6.large', description="实例规格"),
-    ip: Optional[str] =  Query('ecs.g6.large', description="ip"),
-    status: Optional[int] = Query(1, description="服务器状态"),
+    instance_type: Optional[str] =  Query(None, description="实例规格"),
+    ip: Optional[str] =  Query(None, description="ip"),
+    status: Optional[int] = Query(None, description="服务器状态"),
     ssh_proxy_port: Optional[int] = Query(None, description="ssh 代理端口"),
-    page: int = Query(1, description="分页"),
-    page_size:int = Query(10, description="页码"),
+    page: int = Query(..., description="分页"),
+    page_size:int = Query(..., description="页码"),
     service: InstanceService = Depends(get_server_instance_service),
 ):
     result = service.server_list_page(
@@ -80,24 +80,18 @@ class ServerInstanceStatus(str, Enum):
 # 开机，关机，重启
 @router.post("/action")
 def start_instance(
-    request: Request,
-    status: ServerInstanceStatus = Query(ServerInstanceStatus.PREPARE_START, description="服务器状态"),
-    instance_id: str = Query(description="服务器创建成功后的实例"),
+    data: InstanceActionSchema,
     service: InstanceService = Depends(get_server_instance_service)
 ):
-    user_id = request.state.user.get("user_id")
-    result = service.start_instance(status, instance_id, user_id)
+    result = service.start_instance(data)
     return Response.success(result)
 
 @router.post('/save_server_password')
 def save_server_password(
-    request: Request,
-    password: str,
-    instance_id: int,
+    data: InstanceUpdatePassword,
     service: InstanceService = Depends(get_server_instance_service)
 ):
-    user_id = request.state.user.get("user_id")
-    result = service.save_server_password(instance_id, password, user_id)
+    result = service.save_server_password(data)
     return Response.success(result)
 
 @router.post('/toggle_release')
@@ -111,18 +105,16 @@ def toggle_release(
     return Response.success(result)
 
 # 服务器释放
-@router.post('/server_release')
+@router.put('/server_release')
 def server_release(
-    request: Request,
     instance_id: int,
     service: InstanceService = Depends(get_server_instance_service)
 ):
-    user_id = request.state.user.get("user_id")
-    result = service.server_release(instance_id, user_id)
+    result = service.server_release(instance_id)
     return Response.success(result)
 
 # 克隆
-@router.post('/server_clone')
+@router.put('/server_clone')
 def server_release(
     instance_id: int,
     service: InstanceService = Depends(get_server_instance_service)

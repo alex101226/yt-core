@@ -32,12 +32,12 @@ def cbs_create(
 
 
 # 分页列表
-@router.post("/oss_page_list")
+@router.get("/oss_page_list")
 def oss_page_list(
-    page: int = Query(1, description="第几页"),
-    page_size: int = Query(10, description="页码"),
-    provider_code: str = Query('aliyun', description="云厂商 code"),
-    region_id: Optional[str] = Query('cn-qingdao', description="区域 id"),
+    page: int = Query(..., description="第几页"),
+    page_size: int = Query(..., description="页码"),
+    provider_code: str = Query(None, description="云厂商 code"),
+    region_id: Optional[str] = Query(None, description="区域 id"),
     resource_group_id: Optional[int] = Query(None, description="资源组 id"),
     bucket_name: Optional[str] = Query(None, description="oss存储痛名称"),
     permission: Optional[str] = Query(None, description="访问权限：private-read-write / public-read-write / public-read-private-write"),

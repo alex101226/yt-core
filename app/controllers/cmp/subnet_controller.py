@@ -20,15 +20,15 @@ router = APIRouter(
 )
 
 # 返回某个vpc列表下的子网
-@router.get("/vpc_list/{vpc_id}", response_model=List[SubnetOut])
-def list_subnets(
-    vpc_id: str,
-    page: int = Query(1, ge=1),
-    page_size: int = Query(20, ge=1),
-    service = Depends(get_subnet_service)
-):
-    result = service.vpc_id_by_subnet(vpc_id, page, page_size)
-    return Response.success(result)
+# @router.get("/vpc_list/{vpc_id}", response_model=List[SubnetOut])
+# def list_subnets(
+#     vpc_id: str,
+#     page: int = Query(...),
+#     page_size: int = Query(...),
+#     service = Depends(get_subnet_service)
+# ):
+#     result = service.vpc_id_by_subnet(vpc_id, page, page_size)
+#     return Response.success(result)
 
 # 分页列表
 @router.get("/page_list", response_model=SubnetPage)
@@ -60,7 +60,7 @@ def page_subnets(
 @router.get("/list", response_model=SubnetOut)
 def list_subnets(
     request: Request,
-    vpc_id: int = Query(None, description="vpc id"),
+    vpc_id: int = Query(..., description="vpc id"),
     service = Depends(get_subnet_service)
 ):
     user_id = request.state.user.get('user_id')

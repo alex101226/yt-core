@@ -24,8 +24,8 @@ router = APIRouter(
 @router.get("/group_list_page", response_model=SecurityGroupPage)
 def list_security_groups(
     request: Request,
-    page: int = Query(1, ge=1),
-    page_size: int = Query(10, ge=1, le=200),
+    page: int = Query(...),
+    page_size: int = Query(...),
     provider_code: str = Query(None, description="云厂商 code"),
     region_id: str = Query(None, description="区域 id"),
     resource_group_id: Optional[str] = Query(None, description="资源组"),
@@ -59,9 +59,9 @@ def release_security_group(
 #   返回安全组列表
 @router.get("/group_list", response_model=SecurityGroupPage)
 def list_security_groups(
-    provider_code: str = Query('aliyun', description="云厂商 code"),
-    region_id: str = Query('cn-qingdao', description="区域 id"),
-    vpc_id: int = Query(None, description="vpc的id"),
+    provider_code: str = Query(..., description="云厂商 code"),
+    region_id: str = Query(..., description="区域 id"),
+    vpc_id: int = Query(..., description="vpc的id"),
     service: SecurityGroupService = Depends(get_security_service),
 ):
     items =  service.list_security_groups(provider_code, region_id, vpc_id)

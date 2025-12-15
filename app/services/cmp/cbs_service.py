@@ -29,10 +29,9 @@ class CbsService:
         region_id: Optional[int] = None,
         zone_id: Optional[int] = None,
         resource_group_id: Optional[int] = None,
-        cbs_id: Optional[str] = None,
-        tags: Optional[List[str]] = None,
+        cbs_id: Optional[str] = None
     ) -> CbsDiskPage:
-        items, total = self.repo.get_page_list(page, page_size, provider_code, region_id, zone_id, resource_group_id, cbs_id, tags)
+        items, total = self.repo.get_page_list(page, page_size, provider_code, region_id, zone_id, resource_group_id, cbs_id)
         item_out = [CbsDiskOut.model_validate(s) for s in items]
         return CbsDiskPage(
             total=total,
@@ -43,7 +42,7 @@ class CbsService:
 
 
     # 释放
-    def cbs_release(self, cbs_id: int, user_id: int) -> bool:
+    def cbs_release(self, cbs_id: int) -> bool:
         db_cbs = self.repo.get_find(cbs_id)
         if db_cbs is None:
             raise BusinessException(code=ErrorCode.DATA_NOT_FOUND, message=Message.DATA_NOT_FOUND)
@@ -51,12 +50,10 @@ class CbsService:
         if db_cbs.status in invalid:
             raise BusinessException(code=ErrorCode.DATA_NOT_FOUND, message="请先卸载实例后再执行释放操作")
 
-        if db_cbs.user_id != user_id:
-            raise BusinessException(code=ErrorCode.USER_NOT_FOUND, message="用户错误")
         return self.repo.cbs_release(cbs_id)
 
     # 卸载
-    def cbs_uninstall(self, cbs_id: int, user_id: int) -> bool:
+    def cbs_uninstall(self, cbs_id: int) -> bool:
         db_cbs = self.repo.get_find(cbs_id)
         if db_cbs is None:
             raise BusinessException(code=ErrorCode.DATA_NOT_FOUND, message=Message.DATA_NOT_FOUND)
@@ -64,6 +61,6 @@ class CbsService:
         if db_cbs.disk_type == 'system':
             raise BusinessException(code=ErrorCode.DATA_NOT_FOUND, message="系统盘不允许卸载实例")
 
-        if db_cbs.user_id != user_id:
-            raise BusinessException(code=ErrorCode.USER_NOT_FOUND, message="用户错误")
+        # if db_cbs.user_id != user_id:
+        #     raise BusinessException(code=ErrorCode.USER_NOT_FOUND, message="用户错误")
         return self.repo.cbs_uninstall(cbs_id)

@@ -35,23 +35,23 @@ def create_group(
     return Response.success(group)
 
 # 修改资源组
-@router.put("/update/{record_id}", response_model=ResourceGroupOut)
-def update_group(
-    record_id: int = Path(..., ge=1, description="记录ID"),
-    data: ResourceGroupUpdate = ...,
-    service: ResourceGroupService = Depends(get_resource_group_service)
-):
-    group = service.update_group(record_id, data.model_dump())
-    return Response.success(group)
+# @router.put("/update/{record_id}", response_model=ResourceGroupOut)
+# def update_group(
+#     record_id: int = Path(..., ge=1, description="记录ID"),
+#     data: ResourceGroupUpdate = ...,
+#     service: ResourceGroupService = Depends(get_resource_group_service)
+# ):
+#     group = service.update_group(record_id, data.model_dump())
+#     return Response.success(group)
 
 # 删除资源组
-@router.delete("/delete/{record_id}")
-def delete_group(
-    record_id: int = Path(..., ge=1, description="记录ID"),
-    service: ResourceGroupService = Depends(get_resource_group_service)
-):
-    service.delete_group(record_id)
-    return Response.success(message="删除成功")
+# @router.delete("/delete/{record_id}")
+# def delete_group(
+#     record_id: int = Path(..., ge=1, description="记录ID"),
+#     service: ResourceGroupService = Depends(get_resource_group_service)
+# ):
+#     service.delete_group(record_id)
+#     return Response.success(message="删除成功")
 
 # 分页查询资源组
 @router.get("/group_page_list", response_model=ResourceGroupPage)
@@ -66,13 +66,13 @@ def list_groups(
 
 
 # 创建绑定
-@router.post("/resource_bind", response_model=ResourceGroupBindingOut)
-def bind_resource(
-    data: ResourceGroupBindingCreate,
-    service: ResourceGroupService = Depends(get_resource_group_service),
-):
-    result = service.bind(data)
-    return Response.success(result)
+# @router.post("/resource_bind", response_model=ResourceGroupBindingOut)
+# def bind_resource(
+#     data: ResourceGroupBindingCreate,
+#     service: ResourceGroupService = Depends(get_resource_group_service),
+# ):
+#     result = service.bind(data)
+#     return Response.success(result)
 
 
 # 删除绑定
