@@ -23,7 +23,8 @@ class ResourceGroupService:
                 code=ErrorCode.RESOURCE_GROUP_EXISTS,
                 message=Message.RESOURCE_GROUP_EXISTS
             )
-        return self.repo.create_group(data)
+        # logger.info(f'创建返回的数据查看 {result}')
+        return result
 
     # 根据id查找资源组
     def get_group(self, group_id: int):
@@ -73,7 +74,11 @@ class ResourceGroupService:
             )
 
         resource_find = self.repo.get_by_group_id(data.resource_group_id)
-
+        if not resource_find:
+            raise BusinessException(
+                code=ErrorCode.RESOURCE_BINDING_NOT_FOUND,
+                message=Message.RESOURCE_BINDING_NOT_FOUND
+            )
         payload = {
             **data.model_dump(),
             "resource_name": resource_find.rg_name

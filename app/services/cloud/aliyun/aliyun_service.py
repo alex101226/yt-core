@@ -81,7 +81,7 @@ class AliyunService:
         if cache_data:
             return cache_data
 
-        data = self.client.list_system_disk_categories(region_id, zone_id, instance_type_id, instance_charge_type.value)
+        data = self.client.list_system_disk_categories(region_id, zone_id, instance_type_id, instance_charge_type)
         await self.cache.set_system_disks(region_id, data)
         return data
 

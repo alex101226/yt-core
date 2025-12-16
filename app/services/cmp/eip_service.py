@@ -82,3 +82,20 @@ class EIPService:
 
         result = self.repo.eip_action(data.status, data.eip_id)
         return result
+
+
+    # 绑定eip
+    def allocate_eip(self, provider_code: str, region_id: str, instance_id: int) -> str:
+        eip = self.repo.get_free_eip(provider_code, region_id)
+
+        if not eip:
+            raise BusinessException(
+                code=ErrorCode.RESOURCE_BINDING_FAILED,
+                message="暂无可用的eip"
+            )
+
+        # 绑定
+        eip.status = "BOUND"
+        eip.bind_instance_id = str(instance_id)
+
+        return eip.public_ip

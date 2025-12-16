@@ -22,6 +22,7 @@ class FileMountService:
             "created_by": user_id,
             "mount_id": f"{data.fs_type}-{generate(size=12)}",
             "mount_name": f"{data.fs_type}-{generate(size=16)}",
+            "instance_id": user_id,
         }
         result = self.repo.fs_mount_create(payload)
         return result

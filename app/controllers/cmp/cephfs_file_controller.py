@@ -39,12 +39,24 @@ def cephfs_page_list(
     page_size: int = Query(..., description="页码"),
     provider_code: str = Query(None, description="云厂商 code"),
     region_id: Optional[str] = Query(None, description="区域 id"),
-    resource_group_id: Optional[int] = Query(None, description="资源组 id"),
+    resource_group_id: Optional[str] = Query(None, description="资源组 id"),
     storage_type: Optional[str] = Query(None, description="存储类型"),
     fs_name: Optional[str] = Query(None, description="名称"),
     service: CephfsFileService = Depends(get_cephfs_service),
 ):
     user_id = request.state.user.get('user_id')
     result = service.cephfs_page_list(user_id, page, page_size, provider_code, region_id, resource_group_id, storage_type, fs_name)
+    return Response.success(result)
+
+
+# list
+@router.get("/cephfs_list")
+def cephfs_list(
+    request: Request,
+    region_id: str = Query(..., description="区域的id"),
+    service: CephfsFileService = Depends(get_cephfs_service),
+):
+    user_id = request.state.user.get('user_id')
+    result = service.cephfs_list(user_id, region_id)
     return Response.success(result)
 

@@ -1,15 +1,19 @@
 import ipaddress
 import random
 
-# ip计算
-def allocate_private_ip(cidr, used_ips):
-    net = ipaddress.ip_network(cidr)
+# 私网ip计算
+def allocate_private_ip(cidr: str, used_ips: set[str]) -> str:
+    try:
+        net = ipaddress.ip_network(cidr, strict=False)
+    except ValueError as e:
+        raise ValueError(f"Invalid CIDR: {cidr}") from e
 
-    for ip in net.hosts():  # hosts() 自动跳过网络号和广播地址
-        if str(ip) not in used_ips:
-            return str(ip)
+    for ip in net.hosts():
+        ip_str = str(ip)
+        if ip_str not in used_ips:
+            return ip_str
 
-    raise Exception("No available IP in this subnet")
+    raise RuntimeError("No available IP in this subnet")
 
 
 # 区域映射ip

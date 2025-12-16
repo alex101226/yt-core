@@ -1,5 +1,8 @@
+from datetime import datetime
+
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List
+
 
 class BareMetalInstanceBase(BaseModel):
     instance_name: str
@@ -21,11 +24,12 @@ class BareMetalInstanceBase(BaseModel):
     internet_charge_type: Optional[str] # PayByBandwidth/PayByTraffic
     instance_charge_type: str  # PrePaid / PostPaid
     period: Optional[int]
+    quantity: int
     internet_max_bandwidth_out: Optional[int]
     auto_renew: Optional[bool]
 
-    vpc_id: str
-    vswitch_id: str
+    vpc_id: int
+    vswitch_id: int
     security_group_id: str
     ssh_proxy_port: Optional[bool] = False
 
@@ -39,3 +43,21 @@ class BareMetalInstanceCreate(BareMetalInstanceBase):
     enable_protection: Optional[bool] = False
     install_gpu_driver: Optional[bool] = False
     pass
+
+class BareMetalInstanceOut(BareMetalInstanceBase):
+    id: int
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+    is_released: Optional[bool] = False
+    sync_status: Optional[int] = 0
+    released_at: Optional[datetime] = None
+    status: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+class BareMetalInstancePage(BaseModel):
+    total: int
+    page: int
+    page_size: int
+    items: List[BareMetalInstanceOut]

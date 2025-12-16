@@ -6,7 +6,6 @@ class FileSystemMountBase(BaseModel):
     cloud_provider_code: str
     region_id: str
     zone_id: str
-    instance_id: str
     vpc_id: int
     subnet_id: int
     mount_alias: str
@@ -14,6 +13,7 @@ class FileSystemMountBase(BaseModel):
     fs_id: int
 
 class FileSystemMountCreate(FileSystemMountBase):
+    security_group_id: int
     pass
 
 class FileSystemMountOut(FileSystemMountBase):
@@ -22,6 +22,10 @@ class FileSystemMountOut(FileSystemMountBase):
     mount_name: str = None
     domain_name: Optional[str] = None
     security_group_id: Optional[int] = 0
+    security_group_name: Optional[str] = None
+    vpc_name: Optional[str] = None
+    subnet_name: Optional[str] = None
+    fs_name: Optional[str] = None
     status: Optional[str] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None

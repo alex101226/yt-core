@@ -27,7 +27,7 @@ class CephfsFileRepository:
             page_size: int,
             provider_code: Optional[str] = None,
             region_id: Optional[str] = None,
-            resource_group_id: Optional[int] = None,
+            resource_group_id: Optional[str] = None,
             storage_type: str = None,
             fs_name: str = None
     ):
@@ -68,3 +68,25 @@ class CephfsFileRepository:
         offset_value = (page - 1) * page_size
         items = query.order_by(CephfsFile.id.desc()).offset(offset_value).limit(page_size).all()
         return items, total
+
+
+
+    # 下拉列表接口
+    def cephfs_list(self, user_id: int, region_id: str):
+        rows = self.db.query(
+            CephfsFile.id,
+            CephfsFile.fs_name,
+        ).filter(
+            CephfsFile.is_released == 0,
+            CephfsFile.region_id == region_id,
+            CephfsFile.user_id == user_id,
+        ).order_by(CephfsFile.id.desc()).all()
+        if not rows:
+            return None
+        return [
+            {
+                "id": row.id,
+                "fs_name": row.fs_name,
+            }
+            for row in rows
+        ]

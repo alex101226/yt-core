@@ -47,3 +47,14 @@ def gpfs_page_list(
     result = service.gpfs_page_list(user_id, page, page_size, provider_code, region_id, zone_id, storage_type, fs_name)
     return Response.success(result)
 
+# list
+@router.get("/gpfs_list")
+def gpfs_list(
+    request: Request,
+    subnet_id: str = Query(..., description="子网的id"),
+    service: GPFSService = Depends(get_gpfs_service),
+):
+    user_id = request.state.user.get('user_id')
+    result = service.gpfs_list(user_id, subnet_id)
+    return Response.success(result)
+

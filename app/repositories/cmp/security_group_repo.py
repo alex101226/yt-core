@@ -63,6 +63,8 @@ class SecurityGroupRepository:
         self.db.add(sg)
         self.db.commit()
         self.db.refresh(sg)
+        if not sg.id:
+            return None
         return sg.id
 
     # --------------------------

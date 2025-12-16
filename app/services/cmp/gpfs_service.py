@@ -2,6 +2,11 @@ from sqlalchemy.orm import Session
 from typing import Optional
 from nanoid import generate
 
+from app.common.exceptions import BusinessException
+from app.common.status_code import ErrorCode
+from app.common.messages import Message
+from app.core.logger import logger
+
 from app.repositories.cmp.gpfs_repo import GPFSRepository
 from app.schemas.cmp.gpfs_schema import GPFSCreate, GPFSOut, GPFSPage
 
@@ -22,7 +27,6 @@ class GPFSService:
         result = self.repo.gpfs_create(payload)
         return result
 
-# eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo3LCJleHAiOjE3NjUxNjU5MjMsInR5cGUiOiJhY2Nlc3MifQ.u3u-TJQNWSFJ23Tn0OM85CyLDUqoNoaRLaxlIHoBKkc
     # 分页列表
     def gpfs_page_list(
         self,
@@ -45,3 +49,15 @@ class GPFSService:
             page_size=page_size,
             items=[GPFSOut.model_validate(i) for i in items]
         )
+
+
+    # 返回gpfs的列表
+    def gpfs_list(self, user_id: int, subnet_id: str):
+        result = self.repo.gpfs_list(user_id, subnet_id)
+        # logger.info(f'查看列表呗 {result}')
+        if not result:
+            raise BusinessException(
+                code=ErrorCode.DATA_NOT_FOUND,
+                message=Message.DATA_NOT_FOUND
+            )
+        return result

@@ -263,5 +263,6 @@ def instance_price(
         access_key_id=cer_data.cloud_access_key_id,
         access_key_secret=cer_data.cloud_access_key_secret
     )
+
     price = aliyun_service.eip_price(region_id, bandwidth, internet_charge_type)
     return Response.success(price)

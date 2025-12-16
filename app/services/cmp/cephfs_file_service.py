@@ -28,7 +28,7 @@ class CephfsFileService:
             page_size: int,
             provider_code: Optional[str] = None,
             region_id: Optional[int] = None,
-            resource_group_id: Optional[int] = None,
+            resource_group_id: Optional[str] = None,
             storage_type: str = None,
             fs_name: str = None
     ):
@@ -43,3 +43,15 @@ class CephfsFileService:
             page_size=page_size,
             items=[CephfsOut.model_validate(item) for item in items]
         )
+
+
+    # 返回gpfs的列表
+    def cephfs_list(self, user_id: int, region_id: str):
+        result = self.repo.cephfs_list(user_id, region_id)
+        # logger.info(f'查看列表呗 {result}')
+        if not result:
+            raise BusinessException(
+                code=ErrorCode.DATA_NOT_FOUND,
+                message=Message.DATA_NOT_FOUND
+            )
+        return result

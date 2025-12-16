@@ -27,7 +27,7 @@ class GPFSOut(GPFSSchema):
     fs_name: str
     status: str
     used_capacity_gb: int
-    price: float = 0
+    price: Optional[float] = 0.00
     created_by: int = 0
     created_at: datetime = None
     updated_at: datetime = None

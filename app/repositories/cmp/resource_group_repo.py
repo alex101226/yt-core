@@ -1,5 +1,7 @@
 from typing import Optional
 from sqlalchemy.orm import Session
+
+from app.core.logger import logger
 from app.models.cmp.resource_group import ResourceGroup, ResourceGroupBinding
 from app.schemas.cmp.resource_group_schema import ResourceGroupBindingCreate
 
@@ -72,11 +74,8 @@ class ResourceGroupRepository:
 
     # 查询资源是否已绑定
     def get_by_resource_bind(self, resource_type: str, resource_id: str) -> Optional[ResourceGroupBinding]:
-        return (
-            self.db.query(ResourceGroupBinding)
-            .filter_by(resource_type=resource_type, resource_id=resource_id)
-            .first()
-        )
+        find = self.db.query(ResourceGroupBinding).filter_by(resource_type=resource_type, resource_id=resource_id).first()
+        return find
 
     # 获取某组下的绑定（分页）
     def resource_bind_list_page(self, group_id: int, page: int, page_size: int):

@@ -2,6 +2,8 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
+from app.common.exceptions import BusinessException
+from app.core.logger import logger
 from app.models.cmp.gpfs_file import GPFSFile
 
 
@@ -51,17 +53,18 @@ class GPFSRepository:
             GPFSFile.created_at,
             GPFSFile.updated_at
         )
-        filters = [GPFSFile.created_by == user_id]
-        if provider_code is not None:
+
+        filters = [GPFSFile.created_by == user_id, GPFSFile.is_released == 0]
+        if provider_code:
             filters.append(GPFSFile.cloud_provider_code == provider_code)
-        if region_id is not None:
+        if region_id:
             filters.append(GPFSFile.region_id == region_id)
-        if zone_id is not None:
+        if zone_id:
             filters.append(GPFSFile.zone_id == zone_id)
-        if storage_type is not None:
+        if storage_type:
             filters.append(GPFSFile.storage_type == storage_type)
-        if fs_name is not None:
-            filters.append(GPFSFile.bucket_name.like(f"%{fs_name}%"))
+        if fs_name:
+            filters.append(GPFSFile.fs_name.like(f"%{fs_name}%"))
 
         if filters:
             query = query.filter(*filters)
@@ -70,3 +73,24 @@ class GPFSRepository:
         offset_value = (page - 1) * page_size
         items = query.order_by(GPFSFile.id.desc()).offset(offset_value).limit(page_size).all()
         return items, total
+
+
+    # 下拉列表接口
+    def gpfs_list(self, user_id: int, subnet_id: str):
+        rows = self.db.query(
+            GPFSFile.id,
+            GPFSFile.fs_name,
+        ).filter(
+            GPFSFile.is_released == 0,
+            GPFSFile.subnet_id == subnet_id,
+            GPFSFile.created_by == user_id,
+        ).order_by(GPFSFile.id.desc()).all()
+        if not rows:
+            return None
+        return [
+            {
+                "id": row.id,
+                "fs_name": row.fs_name,
+            }
+            for row in rows
+        ]

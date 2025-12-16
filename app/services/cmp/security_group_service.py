@@ -97,7 +97,7 @@ class SecurityGroupService:
             ResourceGroupBindingCreate(
                 cloud_provider_code=data.cloud_provider_code,
                 user_id=user_id,
-                resource_group_id=2,
+                resource_group_id=data.resource_group_id,
                 resource_type="security",
                 resource_id=str(result),
             )
