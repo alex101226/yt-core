@@ -50,10 +50,12 @@ class ServerInstanceRepo:
             disk_objs.append(disk_task)
         return disk_objs
 
-
     # 返回服务器分页列表
     def list_page(
         self,
+        user_id: int,
+        page: int,
+        page_size: int,
         provider_code: str,
         region_id: str,
         zone_id: str,
@@ -64,21 +66,21 @@ class ServerInstanceRepo:
         ip: str,
         status: int,
         ssh_proxy_port: int,
-        page: int,
-        page_size: int,
     ):
         query = self.db.query(
-            CloudServerInstance.id,
-            CloudServerInstance.instance_id,
             CloudServerInstance.instance_name,
-            CloudServerInstance.instance_type,
-            # CloudServerInstance.ip,
-            CloudServerInstance.status,
-            CloudServerInstance.ssh_proxy_port,
+            CloudServerInstance.description,
+            CloudServerInstance.cloud_provider_code,
+            CloudServerInstance.region_id,
             CloudServerInstance.zone_id,
             CloudServerInstance.resource_group_id,
-            CloudServerInstance.cloud_provider_code,
+            CloudServerInstance.instance_type,
+            CloudServerInstance.instance_type_id,
             CloudServerInstance.image_id,
+            CloudServerInstance.cpu,
+            CloudServerInstance.gpu_memory,
+            CloudServerInstance.gpu_amount,
+            CloudServerInstance.gpu_spec,
             CloudServerInstance.system_disk_category,
             CloudServerInstance.system_disk_size,
             CloudServerInstance.instance_charge_type,
@@ -88,19 +90,23 @@ class ServerInstanceRepo:
             CloudServerInstance.internet_max_bandwidth_out,
             CloudServerInstance.vpc_id,
             CloudServerInstance.vswitch_id,
-            # CloudServerInstance.cidr_block,
             CloudServerInstance.security_group_id,
+            CloudServerInstance.ssh_proxy_port,
+            CloudServerInstance.data_disks,
+            CloudServerInstance.os_type,
+            CloudServerInstance.architecture,
             CloudServerInstance.hostname,
-            CloudServerInstance.description,
-            CloudServerInstance.password,
-            CloudServerInstance.key_pair_name,
+            CloudServerInstance.id,
+            CloudServerInstance.instance_id,
+            CloudServerInstance.private_ip,
+            CloudServerInstance.public_ip,
+            CloudServerInstance.status,
+            CloudServerInstance.sync_status,
             CloudServerInstance.enable_ssh_agent,
             CloudServerInstance.enable_protection,
-            CloudServerInstance.resource_group_id,
-            CloudServerInstance.data_disks
         )
 
-        filters = []
+        filters = [CloudServerInstance.created_by == user_id, CloudServerInstance.is_released == 0]
 
         if provider_code:
             filters.append(CloudServerInstance.cloud_provider_code == provider_code)
@@ -111,13 +117,13 @@ class ServerInstanceRepo:
         if resource_group_id:
             filters.append(CloudServerInstance.resource_group_id == resource_group_id)
         if instance_id:
-            filters.append(CloudServerInstance.instance_id == instance_id)
+            filters.append(CloudServerInstance.instance_id.like(f'%{instance_id}%'))
         if instance_name:
-            filters.append(CloudServerInstance.instance_name == instance_name)
+            filters.append(CloudServerInstance.instance_name.like(f'%{instance_name}%'))
         if instance_type:
             filters.append(CloudServerInstance.instance_type == instance_type)
         if ip:
-            filters.append(CloudServerInstance.private_ip == ip)
+            filters.append(CloudServerInstance.public_ip == ip)
         if status:
             filters.append(CloudServerInstance.status == status)
         if ssh_proxy_port:
@@ -223,3 +229,15 @@ class ServerInstanceRepo:
         self.db.refresh(new_instance)
 
         return True
+
+    # 根据子网ip来查已创建的服务器的ip
+    def get_find_by_subnet_id(self, subnet_id):
+        items = (self.db.query(
+            CloudServerInstance.vswitch_id,
+            CloudServerInstance.private_ip,
+            CloudServerInstance.public_ip,
+        ).filter(
+            CloudServerInstance.vswitch_id == subnet_id,
+            CloudServerInstance.is_released == 0,
+        ).all())
+        return items

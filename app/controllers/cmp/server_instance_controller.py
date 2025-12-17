@@ -30,22 +30,23 @@ def create_instance(
     service: InstanceService = Depends(get_server_instance_service)):
 
     user_id = request.state.user.get('user_id')
-    payload = data.model_dump()
-    payload['user_id'] = user_id
+    # payload = data.model_dump()
+    # payload['user_id'] = user_id
 
-    instance = service.create_instance(payload)
+    instance = service.create_instance(user_id, data)
 
-    result = {
-        "id": instance.id,
-        "instance_name": instance.instance_name,
-        "status": instance.status,
-        "resource_group_id": instance.resource_group_id
-    }
-    return Response.success(result)
+    # result = {
+    #     "id": instance.id,
+    #     "instance_name": instance.instance_name,
+    #     "status": instance.status,
+    #     "resource_group_id": instance.resource_group_id
+    # }
+    return Response.success(instance)
 
 # 分页列表
 @router.get("/server_page_list")
 def get_server_page_list(
+    request: Request,
     provider_code: Optional[str] = Query(None, description="云厂商 code"),
     region_id: Optional[str] = Query(None, description="区域 id"),
     zone_id: Optional[str] = Query(None, description="可用区id"),
@@ -60,8 +61,9 @@ def get_server_page_list(
     page_size:int = Query(..., description="页码"),
     service: InstanceService = Depends(get_server_instance_service),
 ):
+    user_id = request.state.user.get('user_id')
     result = service.server_list_page(
-        provider_code, region_id, zone_id, resource_group_id, instance_id, instance_name,
+        user_id, provider_code, region_id, zone_id, resource_group_id, instance_id, instance_name,
         instance_type, ip, status, ssh_proxy_port, page, page_size
     )
     return Response.success(result)

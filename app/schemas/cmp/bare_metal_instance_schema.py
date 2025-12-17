@@ -33,7 +33,7 @@ class BareMetalInstanceBase(BaseModel):
     vpc_id: int
     vswitch_id: int
     security_group_id: str
-    ssh_proxy_port: Optional[bool] = False
+    ssh_proxy_port: Optional[int] = 0
 
     os_type: Optional[str] = None
     architecture: Optional[str] = None
@@ -44,6 +44,7 @@ class BareMetalInstanceCreate(BareMetalInstanceBase):
     cidr_block: Optional[str]  # 子网的网段，要计算private_ip的ip
     enable_protection: Optional[bool] = False
     install_gpu_driver: Optional[bool] = False
+    enable_ssh_agent: Optional[bool] = False
     pass
 
 class BareMetalInstanceOut(BareMetalInstanceBase):

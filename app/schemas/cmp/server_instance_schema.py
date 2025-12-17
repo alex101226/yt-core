@@ -9,55 +9,65 @@ class DiskItem(BaseModel):
 
 class InstanceBase(BaseModel):
     instance_name: str
-    description: Optional[str]
+    description: Optional[str] = None
 
     cloud_provider_code: str
     region_id: str
     zone_id: str
     resource_group_id: Optional[int]  # 资源组
 
-    instance_type: str
+    instance_type: Optional[str] = None
     instance_type_id: Optional[str]
 
-
     image_id: str
+    cpu: Optional[int] = 0
+    gpu_memory: Optional[int] = 0
+    gpu_amount: Optional[int] = 0
+    gpu_spec: Optional[str] = None
     system_disk_category: str
     system_disk_size: int
 
     instance_charge_type: str  # PrePaid / PostPaid
-    period: Optional[int]
-    spot_strategy: Optional[str]
-    internet_charge_type: Optional[str]
-    internet_max_bandwidth_out: Optional[int]
-    vpc_id: str
-    vswitch_id: str
-    security_group_id: Optional[str]
-    hostname: Optional[str]
-    data_disks: Optional[List[DiskItem]] = []
-    os_type: Optional[str]
-    os_version: Optional[str] = None
+    period: Optional[int] = 0
+    spot_strategy: Optional[str] = None
+    internet_charge_type: Optional[str] = None
+    internet_max_bandwidth_out: Optional[int] = 0
+
+    vpc_id: int
+    vswitch_id: int
+    security_group_id: str
     ssh_proxy_port: Optional[int] = 0
+
+    data_disks: Optional[List[DiskItem]] = []
+
+    os_type: Optional[str] = None
+    architecture: Optional[str] = None
+    hostname: Optional[str] = None
 
 class InstanceCreateSchema(InstanceBase):
     cidr_block: Optional[str]  # 子网的网段，要计算private_ip的ip
     password: Optional[str]
-    key_pair_name: Optional[str]
-    enable_ssh_agent: Optional[bool] = False
     enable_protection: Optional[bool] = False
+    enable_ssh_agent: Optional[bool] = False
     pass
 
 
 class InstanceBaseOut(InstanceBase):
     id: int
+    instance_id: str
     public_ip: Optional[str]
     private_ip: Optional[str]
+    status: Optional[str]
+    sync_status: Optional[int]
+    enable_ssh_agent: Optional[bool] = False
+    enable_protection: Optional[bool] = False
     pass
 
     class Config:
         from_attributes = True
 
 
-class InstancePage(InstanceBase):
+class InstancePage(BaseModel):
     total: int
     page: int
     page_size: int

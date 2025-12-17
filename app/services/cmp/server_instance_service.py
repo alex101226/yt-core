@@ -7,105 +7,115 @@ from app.common.exceptions import BusinessException
 from app.common.status_code import ErrorCode
 from app.common.messages import Message
 from app.core.logger import logger
+
 from app.common.ipaddress import allocate_private_ip
 from app.core.security import hash_password
+
+from app.services.cmp.eip_service import EIPService
+
+from app.services.cmp.resource_group_service import ResourceGroupService
+from app.schemas.cmp.resource_group_schema import ResourceGroupBindingCreate
 
 from app.repositories.cmp.cbs_repo import CbsDiskRepository
 from app.schemas.cmp.cbs_disk_schema import CbsDiskCreate
 
 from app.repositories.cmp.server_instance_repo import ServerInstanceRepo
-from app.schemas.cmp.server_instance_schema import InstanceActionSchema, InstanceUpdatePassword
+from app.schemas.cmp.server_instance_schema import (
+InstanceActionSchema, InstanceUpdatePassword, InstanceCreateSchema, InstanceBaseOut, InstancePage
+)
 
 class InstanceService:
     def __init__(self, db: Session):
         self.db = db
         self.repo = ServerInstanceRepo(db)
         self.cbs_repo = CbsDiskRepository(db)
+        self.resource_bind_service = ResourceGroupService(db)
+        self.eip_service = EIPService(db)
 
     # 创建服务器
-    def create_instance(self, schema: dict):
-        # 1️⃣ 构造主表数据
-        hashed_password = hash_password(schema['password'])
-        schema['password'] = hashed_password
+    def create_instance(self, user_id: int, data: InstanceCreateSchema):
+        # 先查子网
+        subnet_all = self.repo.get_find_by_subnet_id(data.vswitch_id)
+        private_ips = {row.private_ip for row in subnet_all}
+
         # 默认开启释放保护
         # schema['enable_protection'] = 1
         # ⭐ 2) 处理私网 IP（如果没有传 private_ip）
-        if not schema.get("private_ip"):
-            cidr = schema.get("cidr_block")
-            if cidr:
-                # 获取子网已占用的 IP（TODO: 你后面可以接阿里云 API）
-                used_ips = []
-                private_ip = allocate_private_ip(cidr, used_ips)
-                schema["private_ip"] = private_ip
+        cidr = data.cidr_block
+        private_ip = ''
+        if cidr:
+            # 获取子网已占用的 IP（TODO: 你后面可以接阿里云 API）
+            private_ip = allocate_private_ip(cidr, private_ips)
 
-        # ⭐ 3) schema 中删除 cidr_block，避免无效字段传入 SQLAlchemy
-        schema.pop("cidr_block", None)
-        schema['status'] = 'INIT'
-        schema['last_operation'] = 'INIT'
-        schema['instance_id'] = f"ECS-{generate(size=6)}"
-        instance_task = self.repo.create_instance_task(schema)
+        payload = {
+            **data.model_dump(),
+            "hashed_password": hash_password(data.password),
+            "status": "RUNNING",
+            "last_operation": "RUNNING",
+            "instance_id": f"cloud_server-{generate(size=12)}",
+            "created_by": user_id,
+            "private_ip": private_ip
+        }
+
+        # ⭐ 3) payload 中删除 cidr_block
+        payload.pop("cidr_block", None)
+        payload.pop("password", None)
+
+        instance = self.repo.create_instance_task(payload)
+        if not instance:
+            return False
+
+        # 5. 是否需要公网 IP
+        public_ip = self.eip_service.allocate_eip(
+            provider_code=data.cloud_provider_code,
+            region_id=data.region_id,
+            instance_id=instance.id,
+            internet_charge_type=data.internet_charge_type,
+        )
+
+        instance.public_ip = public_ip
 
         # -----------------------------
         # 2. 创建系统盘 CBS
         # -----------------------------
         system_disk_data = {
             "disk_id": f"CBS-{generate(size=8)}",
-            "cloud_provider_code": schema['cloud_provider_code'],
-            "region_id": schema['region_id'],
-            "zone_id": schema.get('zone_id'),
-            "resource_group_id": schema.get('resource_group_id', 0),
+            "cloud_provider_code": data.cloud_provider_code,
+            "region_id": data.region_id,
+            "zone_id": data.zone_id,
+            "resource_group_id": data.resource_group_id,
             "disk_type": "system",
-            "disk_category": schema['system_disk_category'],
-            "disk_size": schema['system_disk_size'],
-            "charge_type": schema['instance_charge_type'],
-            "period": schema.get('period'),
-            "attached_instance_id": instance_task.instance_id,
+            "disk_category": data.system_disk_category,
+            "disk_size": data.system_disk_size,
+            "charge_type": data.instance_charge_type,
+            "period": data.period or 1,
+            "attached_instance_id": str(instance.id),
             "status": "InUse",  # 系统盘创建后直接挂载
-            "description": f"系统盘，挂载到实例 {instance_task.instance_name}"
+            "description": f"系统盘，挂载到实例 {instance.instance_name}",
+            "attached_time": datetime.now(timezone.utc).isoformat(),
         }
-        self.cbs_repo.cbs_create(schema['user_id'], CbsDiskCreate(**system_disk_data))
+        self.cbs_repo.cbs_create(user_id, CbsDiskCreate(**system_disk_data))
 
-        # -----------------------------
-        # 3. 创建数据盘 CBS
-        # -----------------------------
-        if schema.get('data_disks'):
-            for disk in schema['data_disks']:
-                disk_data = {
-                    "disk_id": f"CBS-{generate(size=8)}",
-                    "cloud_provider_code": schema['cloud_provider_code'],
-                    "region_id": schema['region_id'],
-                    "zone_id": schema.get('zone_id'),
-                    "resource_group_id": schema.get('resource_group_id', 0),
-                    "disk_type": "data",
-                    "disk_category": disk['disk_category'],
-                    "disk_size": disk['disk_size'],
-                    "charge_type": schema['instance_charge_type'],
-                    "period": schema.get('period'),
-                    "attached_instance_id": instance_task.instance_id,
-                    "status": "InUse",  # 数据盘创建后直接挂载
-                    "description": disk.get('description', f"数据盘，挂载到实例 {instance_task.instance_name}")
-                }
-                self.cbs_repo.cbs_create(schema['user_id'], CbsDiskCreate(**disk_data))
-                # 2️⃣ 创建数据盘任务
-                # self.repo.create_disk_tasks(instance_task.instance_id, schema['data_disks'])
-        # 6️⃣ 创建状态检查任务（初始 pending）
-        self.repo.create_status_check_task(
-            main_task_id=instance_task.id,
-            instance_id=instance_task.instance_id or "",  # 还没生成云端实例，可以先空
-            check_count=0,
-            max_check=30,
-            status="PENDING"
+        #   绑定安全组
+        self.resource_bind_service.bind(
+            ResourceGroupBindingCreate(
+                cloud_provider_code=data.cloud_provider_code,
+                user_id=user_id,
+                resource_group_id=data.resource_group_id,
+                resource_type="cloud_server",
+                resource_id=str(instance.id),
+            )
         )
 
         # 3️⃣ 提交事务
         self.repo.commit()
-        self.repo.refresh(instance_task)
-        return instance_task
+        return True
 
 
     # 返回服务器列表
     def server_list_page(
         self,
+        user_id: int,
         provider_code: str,
         region_id: str,
         zone_id: str,
@@ -120,16 +130,16 @@ class InstanceService:
         page_size: int,
     ):
         items, total = self.repo.list_page(
-            provider_code, region_id, zone_id, resource_group_id, instance_id,
-            instance_name, instance_type, ip, status, ssh_proxy_port, page, page_size
+            user_id, page, page_size, provider_code, region_id, zone_id, resource_group_id, instance_id,
+            instance_name, instance_type, ip, status, ssh_proxy_port
         )
 
-        return {
-            "page": page,
-            "total": total,
-            "items": items,
-            "page_size": page_size,
-        }
+        return InstancePage(
+            total=total,
+            page=page,
+            page_size=page_size,
+            items=[InstanceBaseOut.model_validate(i) for i in items],
+        )
 
 
     # 开机，关机，重启，

@@ -7,12 +7,11 @@ from app.core.config import settings
 
 from .is_released_mixin import IsReleasedMixin
 
-
+"""
+服务器主创建任务表
+记录一次创建 ECS 实例的整体过程
+"""
 class CloudServerInstance(CmpBase, IsReleasedMixin):
-    """
-    服务器主创建任务表
-    记录一次创建 ECS 实例的整体过程
-    """
     __tablename__ = f"{settings.CMP_TABLE_PREFIX}cloud_server_instance"
     __table_args__ = {"comment": "服务器主创建任务表"}
 
@@ -32,26 +31,27 @@ class CloudServerInstance(CmpBase, IsReleasedMixin):
     instance_type = Column(String(20), nullable=True, comment="实例规格类型，例如：如 ecs/bms/lb")
     instance_type_id = Column(String(100), nullable=False, comment="实例规格 ID，如 ecs.g6.large")
     cpu = Column(Integer, nullable=True, comment="CPU核数")
-    gpu = Column(Integer, nullable=True, comment="GPU核数")
+    gpu_memory = Column(Integer, nullable=True, comment="GPU 显存")
+    gpu_spec = Column(String(100), nullable=True, comment="GPU类型")
+    gpu_amount = Column(Integer, nullable=True, comment="GPU数量")
     system_disk_category = Column(String(50), nullable=False, comment="系统盘类型，例如 ESSD_PL0, SSD")
     system_disk_size = Column(Integer, nullable=False, comment="系统盘大小")
-    data_disks = Column(JSON, nullable=True, comment="数据盘列表")
 
     # ---------- 操作系统 ----------
     image_id = Column(String(100), nullable=False, comment="镜像 ID")
     os_type = Column(String(32), nullable=False, comment="操作系统")
-    os_version = Column(String(64), nullable=True, comment="操作系统版本")
+    architecture = Column(String(64), nullable=True, comment="CPU架构")
 
     # ---------- 网络 ----------
-    vpc_id = Column(String(100), nullable=True, comment="VPC ID")
-    vswitch_id = Column(String(100), nullable=True, comment="交换机 ID")
-    public_ip = Column(String(50), nullable=True, comment="分配的公网 IP（可选）")
-    private_ip = Column(String(50), nullable=True, comment="私网 IP（可选）")
+    vpc_id = Column(Integer, nullable=True, comment="VPC ID")
+    vswitch_id = Column(Integer, nullable=True, comment="子网ID")
+    private_ip = Column(String(64), nullable=True, comment="内网IP")
+    public_ip = Column(String(64), nullable=True, comment="公网IP")
     internet_max_bandwidth_out = Column(Integer, nullable=True, comment="公网最大带宽（Mbps）")
 
     # ---------- 安全 ----------
     security_group_id = Column(String(100), nullable=True, comment="安全组 ID")
-    hashed_password = Column(String(100), nullable=True, comment="管理密码（可选，如果用密钥登录则为空）")
+    hashed_password = Column(String(256), nullable=True, comment="管理员密码(加密)")
     key_pair_name = Column(String(100), nullable=True, comment="SSH 密钥名称（可选）")
     enable_ssh_agent = Column(Boolean, default=False, comment="是否开启 SSH 代理")
     ssh_proxy_port = Column(Integer, default=False, comment="SSH 代理端口")
@@ -59,19 +59,19 @@ class CloudServerInstance(CmpBase, IsReleasedMixin):
     enable_protection = Column(Boolean, default=False, comment="是否开启释放保护")
 
     # ---------- 计费 ----------
-    internet_charge_type = Column(String(30), nullable=True, comment="公网计费类型：PayByBandwidth/PayByTraffic")
-    instance_charge_type = Column(String(10),  nullable=False, comment="实例计费类型:PrePaid（包年包月）/PostPaid（按量付费）")
-    period = Column(
-        Integer,
-        nullable=True,
-        comment="包年包月购买时长（单位：月），仅在 instance_charge_type=PrePaid 时有效"
+    instance_charge_type = Column(
+        String(10),
+        nullable=False,
+        comment="实例计费类型:PrePaid（包年包月）/PostPaid（按量付费）"
     )
+    internet_charge_type = Column(String(30), nullable=True, comment="公网计费类型：PayByBandwidth/PayByTraffic")
+    period = Column(Integer, nullable=True, comment="购买周期(月)")
+    quantity = Column(Integer, default=1, comment="购买数量")
     spot_strategy = Column(
         String(20),
         nullable=True,
         comment="抢占式策略：NoSpot（非抢占式）/ SpotWithPriceLimit（竞价抢占式）/ SpotAsPriceGo（按当前价格抢占式）"
     )
-    quantity = Column(Integer, default=1, comment="购买数量")
     auto_renew = Column(Boolean, default=False, comment="是否到期自动续费(仅包年包月)")
 
     # ---------- 状态 ----------
@@ -85,6 +85,7 @@ class CloudServerInstance(CmpBase, IsReleasedMixin):
 
     # ---------- 云服务器特有 ----------
     instance_id = Column(String(100), nullable=True, comment="云厂商返回的实例 ID")
+    data_disks = Column(JSON, nullable=True, comment="数据盘列表")
 
     # ---------- 审计 ----------
     created_by = Column(Integer, nullable=False, comment="提交创建的用户 ID")
