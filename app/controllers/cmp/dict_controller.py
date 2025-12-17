@@ -26,10 +26,10 @@ router = APIRouter(prefix="/dict", tags=["字典"])
 # -------------------------
 @router.get("/list", response_model=List[DictItemOut])
 def get_dict_by_type(
-        type_code: DictType = Query(DictType.NETWORK_TYPE, description="字典类型"),
+        type_code: str = Query(..., description="字典类型"),
         service: DictService = Depends(get_dict_service)
 ):
-    items = service.list_by_type(type_code.value)
+    items = service.list_by_type(type_code)
     return Response.success(items)
 
 
