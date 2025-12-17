@@ -25,14 +25,16 @@ class BareMetalInstance(CmpBase, IsReleasedMixin):
     instance_type = Column(String(20), nullable=True, comment="实例规格类型，例如：如 ebm/bm")
     instance_type_id = Column(String(100), nullable=False, comment="实例规格 ID，如 ecs.g6.large")
     cpu = Column(Integer, nullable=True, comment="CPU核数")
-    gpu = Column(Integer, nullable=True, comment="GPU核数")
+    gpu_memory = Column(Integer, nullable=True, comment="GPU 显存")
+    gpu_spec = Column(String(100), nullable=True, comment="GPU类型")
+    gpu_amount = Column(Integer, nullable=True, comment="GPU数量")
     system_disk_category = Column(String(50), nullable=False, comment="系统盘类型，例如 ESSD_PL0, SSD")
-    system_disk_size = Column(Integer, nullable=True, comment="内存(MB)")
+    system_disk_size = Column(Integer, nullable=True, comment="内存(GB)")
 
     # ---------- 操作系统 ----------
     image_id = Column(String(128), nullable=False, comment="系统镜像ID")
     os_type = Column(String(32), nullable=True, comment="操作系统类型")
-    os_version = Column(String(64), nullable=True, comment="操作系统版本")
+    architecture = Column(String(64), nullable=True, comment="CPU架构")
 
     # ---------- 网络 ----------
     vpc_id = Column(Integer, nullable=True, comment="VPC ID")

@@ -98,24 +98,6 @@ async def list_system_disk_categories(
     return Response.success(categories)
 
 # -----------------------------
-# List Instance Types
-# -----------------------------
-# @router.get("/instance_types")
-# async def list_instance_types(
-#     user_id: int = Query(7, description="用户id"),
-#     region_id: str = Query('cn-beijing', description="Region ID"),
-#     service: UserCertificateService = Depends(get_user_certificate_service)
-# ):
-#     # 1️⃣ 查用户凭证
-#     cer_data = service.get_user_ak(user_id)
-#     aliyun_service = AliyunService(
-#         access_key_id=cer_data.cloud_access_key_id,
-#         access_key_secret=cer_data.cloud_access_key_secret
-#     )
-#     types = await aliyun_service.list_instance_types(region_id)
-#     return Response.success(types)
-
-# -----------------------------
 # List Available Instance Types
 # -----------------------------
 @router.get("/spec_page_list")

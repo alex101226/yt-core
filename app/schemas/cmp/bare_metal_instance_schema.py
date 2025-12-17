@@ -17,16 +17,18 @@ class BareMetalInstanceBase(BaseModel):
     instance_type_id: Optional[str]
     image_id: str
     cpu: Optional[int] = 0
-    gpu: Optional[int] = 0
+    gpu_memory: Optional[int] = 0
+    gpu_amount: Optional[int] = 0
+    gpu_spec: Optional[str] = None
     system_disk_category: str
     system_disk_size: int
 
     internet_charge_type: Optional[str] # PayByBandwidth/PayByTraffic
     instance_charge_type: str  # PrePaid / PostPaid
-    period: Optional[int]
-    quantity: int
+    period: Optional[int] = 1
+    quantity: Optional[int] = 1
     internet_max_bandwidth_out: Optional[int]
-    auto_renew: Optional[bool]
+    auto_renew: Optional[bool] = False
 
     vpc_id: int
     vswitch_id: int
@@ -34,7 +36,7 @@ class BareMetalInstanceBase(BaseModel):
     ssh_proxy_port: Optional[bool] = False
 
     os_type: Optional[str] = None
-    os_version: Optional[str] = None
+    architecture: Optional[str] = None
     hostname: Optional[str] = None
 
 class BareMetalInstanceCreate(BareMetalInstanceBase):

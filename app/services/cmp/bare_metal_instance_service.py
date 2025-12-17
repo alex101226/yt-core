@@ -36,11 +36,11 @@ class BareMetalInstanceService:
     def bare_metal_instance_create(self, user_id: int, data: BareMetalInstanceCreate):
         # 先查子网
         subnet_all = self.repo.get_find_by_subnet_id(data.vswitch_id)
-        if not subnet_all:
-            raise BusinessException(
-                code=ErrorCode.DATA_NOT_FOUND,
-                message=Message.DATA_NOT_FOUND
-            )
+        # if not subnet_all:
+        #     raise BusinessException(
+        #         code=ErrorCode.DATA_NOT_FOUND,
+        #         message=Message.DATA_NOT_FOUND
+        #     )
 
         private_ips = {row.private_ip for row in subnet_all}
 
@@ -74,9 +74,31 @@ class BareMetalInstanceService:
             provider_code=data.cloud_provider_code,
             region_id=data.region_id,
             instance_id=instance.id,
+            internet_charge_type=data.internet_charge_type,
         )
 
         instance.public_ip = public_ip
+
+        # -----------------------------
+        # 2. 创建系统盘 CBS
+        # -----------------------------
+        system_disk_data = {
+            "disk_id": f"CBS-{generate(size=8)}",
+            "cloud_provider_code": data.cloud_provider_code,
+            "region_id": data.region_id,
+            "zone_id": data.zone_id,
+            "resource_group_id": data.resource_group_id,
+            "disk_type": "system",
+            "disk_category": data.system_disk_category,
+            "disk_size": data.system_disk_size,
+            "charge_type": data.instance_charge_type,
+            "period": data.period or 1,
+            "attached_instance_id": str(instance.id),
+            "status": "InUse",  # 系统盘创建后直接挂载
+            "description": f"系统盘，挂载到实例 {instance.instance_name}",
+            "attached_time": datetime.now(timezone.utc).isoformat(),
+        }
+        self.cbs_repo.cbs_create(user_id, CbsDiskCreate(**system_disk_data))
 
         #   绑定安全组
         self.resource_bind_service.bind(

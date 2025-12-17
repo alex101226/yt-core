@@ -106,19 +106,15 @@ class EipRepository:
         return self.db.get(Eip, eip_id)
 
     # 查询可用的eip
-    def get_free_eip(self, provider_code: str, region_id: str):
-        return (
-            self.db.query(Eip)
-            .filter(
+    def get_free_eip(self, provider_code: str, region_id: str, internet_charge_type: str):
+        find = self.db.query(Eip).filter(
                 Eip.cloud_provider_code == provider_code,
                 Eip.region_id == region_id,
                 Eip.status == "AVAILABLE",
-                Eip.is_released == 0,
-            )
-            .order_by(Eip.id.asc())
-            .with_for_update()  # 🔒 防并发抢 IP
-            .first()
-        )
+                Eip.internet_charge_type == internet_charge_type,
+                Eip.is_released == 0
+            ).order_by(Eip.id.asc()).with_for_update().first()
+        return find
 
 
 

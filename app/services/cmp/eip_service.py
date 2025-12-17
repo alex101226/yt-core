@@ -85,8 +85,8 @@ class EIPService:
 
 
     # 绑定eip
-    def allocate_eip(self, provider_code: str, region_id: str, instance_id: int) -> str:
-        eip = self.repo.get_free_eip(provider_code, region_id)
+    def allocate_eip(self, provider_code: str, region_id: str, instance_id: int, internet_charge_type: str) -> str:
+        eip = self.repo.get_free_eip(provider_code, region_id, internet_charge_type)
 
         if not eip:
             raise BusinessException(
