@@ -1,14 +1,10 @@
-from datetime import datetime, timezone
 from typing import Optional
 
-from sqlalchemy import and_
 from sqlalchemy.orm import Session
 
 from app.core.logger import logger
 
 from app.models.cmp.bare_metal_instance import BareMetalInstance
-from app.repositories.cmp.server_instance_repo import ServerInstanceRepo
-
 
 class BareMetalInstanceRepo:
     def __init__(self, db: Session):

@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Depends, Request, Query
-from typing import Optional, List
-from enum import Enum
+from typing import Optional
 from sqlalchemy.orm import Session
 
 from app.common.response import Response

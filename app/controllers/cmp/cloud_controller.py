@@ -160,7 +160,9 @@ async def list_available_instance_types(
     page_items = filtered[start:end]
 
     if not page_items:
-        return {"total": total, "page": page, "page_size": page_size, "items": []}
+        result = {"total": total, "page": page, "page_size": page_size, "items": []}
+        return Response.success(result)
+        # return {"total": total, "page": page, "page_size": page_size, "items": []}
 
     # 6) 并发查询价格（只查当前页的 items，避免 N 次全量调用）
     instance_type_ids_page = [it["instance_type_id"] for it in page_items]
