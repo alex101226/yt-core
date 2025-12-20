@@ -296,28 +296,16 @@ class BillRepository:
         flow_no: Optional[str] = None,
         third_trade_no: Optional[str] = None,
     ):
-        """
-        月度流水统计分页查询
-        """
-        # 生成时间区间
-        start_at = datetime.strptime(f"{start_month}-01", "%Y-%m-%d")
-        end_at_month = datetime.strptime(f"{end_month}-01", "%Y-%m-%d")
-        if end_at_month.month == 12:
-            end_at = datetime(end_at_month.year + 1, 1, 1) - timedelta(seconds=1)
-        else:
-            end_at = datetime(end_at_month.year, end_at_month.month + 1, 1) - timedelta(seconds=1)
-
         query = self.db.query(
-            func.date_format(FundsFlow.created_at, "%Y-%m").label("month"),
+            FundsFlow.billing_period.label("month"),
             FundsFlow.direction,
             FundsFlow.flow_type,
             FundsFlow.channel,
             FundsFlow.fund_type,
             func.sum(FundsFlow.amount).label("total_amount"),
-            func.group_concat(FundsFlow.billing_period.distinct()).label("billing_periods"),
         ).filter(
             FundsFlow.user_id == user_id,
-            FundsFlow.created_at.between(start_at, end_at)
+            FundsFlow.billing_period.between(start_month, end_month)
         )
 
         # 可选条件
@@ -332,8 +320,14 @@ class BillRepository:
         if third_trade_no:
             query = query.filter(FundsFlow.third_trade_no.like(f"%{third_trade_no}%"))
 
-        query = query.group_by("month", FundsFlow.direction, FundsFlow.flow_type, FundsFlow.channel,
-                               FundsFlow.fund_type)
+        # 分组
+        query = query.group_by(
+            FundsFlow.billing_period,
+            FundsFlow.direction,
+            FundsFlow.flow_type,
+            FundsFlow.channel,
+            FundsFlow.fund_type
+        )
 
         # 分页
         total = query.count()  # 分组后的总条数
@@ -348,7 +342,6 @@ class BillRepository:
                 "channel": row.channel,
                 "fund_type": row.fund_type,
                 "total_amount": row.total_amount,
-                "billing_periods": row.billing_periods,
             }
             for row in items
         ]
