@@ -10,7 +10,7 @@ from app.common.messages import Message
 from app.core.logger import logger
 
 from app.repositories.cmp.account_repo import AccountRepository
-from app.schemas.cmp.account_schema import AccountRecharge, AccountCreate
+from app.schemas.cmp.account_schema import AccountRecharge, AccountCreate, FundsFlowCreate
 
 class AccountService:
     def __init__(self, db: Session):
@@ -32,53 +32,84 @@ class AccountService:
             raise BusinessException(code=ErrorCode.FAILED, message="创建失败")
         return True
 
+    # 创建流水  datetime.now(timezone.utc).timestamp() * 1000
+    def fund_data_create(self, data: FundsFlowCreate):
+        funds_flow_db = self.repo.write_billing_flow(**data.model_dump())
+        if not funds_flow_db:
+            raise BusinessException(code=ErrorCode.FAILED, message=Message.FAILED)
+        return funds_flow_db
+
     # 充值
     def account_recharge(self, user_id, data: AccountCreate):
-        # 查看用户是否存在账户,这里有用户的余额信息
-        user_balance = self.repo.account_recharge_find(user_id)
-        if not user_balance:
-            raise BusinessException(code=ErrorCode.USER_NOT_FOUND, message=Message.USER_NOT_FOUND)
+        try:
+            with self.db.begin():
+                # 查看用户是否存在账户,这里有用户的余额信息
+                user_balance = self.repo.account_recharge_find(user_id)
+                if not user_balance:
+                    raise BusinessException(code=ErrorCode.USER_NOT_FOUND, message=Message.USER_NOT_FOUND)
 
-        amount = Decimal(str(data.amount))
-        diff_balance = (user_balance.balance + amount).quantize(
-            Decimal("0.00"),
-            rounding=ROUND_HALF_UP
-        )
-        # 账户余额信息
-        account = {
-            "user_id": user_id,
-            "balance": diff_balance
-        }
-        account_db = self.repo.account_recharge(account)
+                amount = Decimal(str(data.amount))
+                diff_balance = (user_balance.balance + amount).quantize(
+                    Decimal("0.00"),
+                    rounding=ROUND_HALF_UP
+                )
+                # 账户余额信息
+                account_data = {
+                    "user_id": user_id,
+                    "balance": diff_balance
+                }
+                account_db = self.repo.account_recharge(account_data)
 
-        recharge = {
-            "user_id": user_id,
-            "amount": +amount,
-            "pay_channel": data.pay_channel or "ALIPAY",
-            "status": "SUCCESS",
-            "channel_trade_no": f"cmp-charge-{generate(size=6)}",
-            "third_trade_no": f"{data.pay_channel}-charge-{generate(size=6)}",
-        }
-        recharge_db = self.repo.write_charge(recharge)
+                # 创建充值订单
+                recharge_data = {
+                    "user_id": user_id,
+                    "account_id": account_db.id,
+                    "amount": +amount,
+                    "pay_channel": data.pay_channel or "ALIPAY",
+                    "status": "SUCCESS",
+                    "channel_trade_no": f"cmp-charge-{generate(size=6)}",
+                    "third_trade_no": f"{data.pay_channel}-charge-{generate(size=6)}",
+                    "paid_at": datetime.now(timezone.utc).isoformat(),
+                }
+                recharge_db = self.repo.write_charge(recharge_data)
 
-        billing_flow = {
-            "user_id": user_id,
-            "flow_type": "RECHARGE",
-            "amount": data.amount,
-            "balance_after": account_db.balance,
-            "ref_type": data.pay_channel,
-            "ref_id": recharge_db.id,
-        }
-        billing_flow_db = self.repo.write_billing_flow(billing_flow)
-        if not billing_flow_db:
-            raise BusinessException(code=ErrorCode.FAILED, message=Message.FAILED)
-
-        self.db.commit()
-        return True
+                # 创建流水  datetime.now(timezone.utc).timestamp() * 1000
+                funds_flow_data = {
+                    "user_id": user_id,
+                    "account_id": account_db.id,
+                    "flow_no": f"{datetime.now(timezone.utc).timestamp() * 1000}{recharge_db.id % 1000:03d}",
+                    "direction": "IN",
+                    "flow_type": "RECHARGE",
+                    "fund_type": "BALANCE",
+                    "amount": data.amount,
+                    "balance_after": account_db.balance,
+                    "ref_type": "RECHARGE_ORDER",
+                    "ref_id": recharge_db.id,
+                    "billing_period": datetime.now().strftime("%Y-%m"),
+                    "channel": "ALIPAY",
+                    "third_trade_no": recharge_db.third_trade_no,
+                    "description": "ALIPAY 充值平台账户",
+                    "created_by": user_id,
+                }
+                # funds_flow_db = self.repo.write_billing_flow(funds_flow_data)
+                funds_flow_db = self.fund_data_create(FundsFlowCreate(**funds_flow_data))
+                if not funds_flow_db:
+                    raise BusinessException(code=ErrorCode.FAILED, message=Message.FAILED)
+            return True
+        except BusinessException as e:
+            self.db.rollback()
+            raise
 
     # 查询用户是否开通了账户
     def account_exists(self, user_id: int):
         result = self.repo.account_exists(user_id)
+        if not result:
+            return False
+        return result
+
+    # 加事务所的查询
+    def account_recharge_exists(self, user_id: int):
+        result = self.account_exists(user_id)
         if not result:
             return False
         return result
@@ -103,35 +134,26 @@ class AccountService:
 
     # 统一扣费入口
     def pay(
-        self, *, user_id: int, amount: Decimal, flow_type: str, ref_type: str, ref_id: int
-    ):
-        # 1. 锁账户
-        account = self.repo.account_recharge_find(user_id)
-        if not account:
-            raise BusinessException(code=ErrorCode.DATA_NOT_FOUND, message="账户不存在")
-
-        amount = Decimal(str(amount))
+        self, account_balance: Decimal, data: dict):
+        amount = Decimal(str(data['amount']))
         # 2. 计算余额    Decimal(str(eip.price))
-        new_balance = (account.balance - amount).quantize(
+        new_balance = (account_balance - amount).quantize(
             Decimal("0.00"),
             rounding=ROUND_HALF_UP
         )
 
         # 3. 更新账户余额
-        account.balance = new_balance
+        # account.balance = new_balance
+        self.repo.account_balance_update(new_balance, data['user_id'])
 
-        # 4. 写资金流水  流水类型：RECHARGE/PAY_ORDER/REFUND等
-        bill_flow = self.repo.write_billing_flow({
-            "user_id": user_id,
-            "flow_type": flow_type,  # PAY_ORDER
-            "amount": -amount,  # 负数
+        # 创建流水  datetime.now(timezone.utc).timestamp() * 1000
+        funds_flow_data = {
+            **data,
             "balance_after": new_balance,
-            "ref_type": ref_type,  # PRODUCT_ORDER
-            "ref_id": ref_id
-        })
-        # if not bill_flow:
-        #     raise BusinessException(code=ErrorCode.FAILED, message="流水创建失败")
-        return bill_flow
+        }
+        logger.info(f'查看传递来的信息 {funds_flow_data}')
+        fund_result = self.fund_data_create(FundsFlowCreate(**funds_flow_data))
+        return fund_result
 
     # 其他资源（ECS / 磁盘）——立即扣费
     def pay_immediately(self, user_id: int, amount: Decimal, product_info: dict):

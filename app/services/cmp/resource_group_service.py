@@ -83,7 +83,6 @@ class ResourceGroupService:
             **data.model_dump(),
             "resource_name": resource_find.rg_name
         }
-
         return self.repo.resource_bind_create(payload)
 
     # 删除绑定

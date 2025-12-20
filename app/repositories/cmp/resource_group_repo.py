@@ -59,8 +59,9 @@ class ResourceGroupRepository:
     def resource_bind_create(self, data: dict) -> ResourceGroupBinding:
         obj = ResourceGroupBinding(**data)
         self.db.add(obj)
-        self.db.commit()
-        self.db.refresh(obj)
+        self.db.flush()
+        # self.db.commit()
+        # self.db.refresh(obj)
         return obj
 
     # 删除绑定资源

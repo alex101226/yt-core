@@ -39,7 +39,7 @@ from .cluster_node import ClusterNode
 # 用户账户，充值-账单等
 from .account import Account
 from .recharge_order import RechargeOrder
-from .billing_flow import BillingFlow
+from .funds_flow import FundsFlow
 
 from .product_order import ProductOrder
-from .billing_detail import BillingDetail
+from .product_order_detail import ProductOrderDetail

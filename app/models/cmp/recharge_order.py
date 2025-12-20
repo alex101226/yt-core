@@ -23,6 +23,7 @@ class RechargeOrder(CmpBase):
 
     id = Column(BigInteger, primary_key=True, autoincrement=True, comment="充值订单ID")
     user_id = Column(Integer, nullable=False, comment="关联用户ID")
+    account_id = Column(Integer, nullable=False, comment="资金账户ID")
 
     amount = Column(Numeric(18, 2), nullable=False, comment="充值金额")
 

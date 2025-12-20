@@ -16,6 +16,7 @@ from app.services.cmp.resource_group_service import ResourceGroupService
 from app.schemas.cmp.resource_group_schema import ResourceGroupBindingCreate
 
 from app.services.cmp.account_service import AccountService
+from app.schemas.cmp.account_schema import FundsFlowCreate
 
 class EIPService:
     def __init__(self, db: Session):
@@ -26,44 +27,43 @@ class EIPService:
 
     # 创建eip
     def create_eip(self, user_id: int, data: EIPCreate):
-        payload = {
-            **data.model_dump(),
-            "status": "AVAILABLE",
-            "created_by": user_id,
-            "internet_charge_type": "PayByTraffic",
-            "public_ip": create_public_ip(data.region_id),
-            "eip_id": f"vpc-{generate(size=12)}"
-        }
-        result = self.repo.create_eip(payload)
-        if not result:
-            raise BusinessException(code=ErrorCode.FAILED, message="eip创建失败")
+        try:
+            with self.db.begin():
+                payload = {
+                    **data.model_dump(),
+                    "status": "AVAILABLE",
+                    "created_by": user_id,
+                    "internet_charge_type": "PayByTraffic",
+                    "public_ip": create_public_ip(data.region_id),
+                    "eip_id": f"vpc-{generate(size=12)}"
+                }
+                result = self.repo.create_eip(payload)
+                if not result:
+                    raise BusinessException(code=ErrorCode.FAILED, message="eip创建失败")
 
-        # ⚠️ 按量计费：这里只校验账户是否存在
-        account = self.account_service.repo.account_exists(user_id)
-        if not account:
-            raise BusinessException(code=ErrorCode.FAILED, message="请先开通账户")
+                # ⚠️ 按量计费：这里只校验账户是否存在
+                account = self.account_service.account_recharge_exists(user_id)
+                if not account:
+                    raise BusinessException(code=ErrorCode.FAILED, message="请先开通账户")
 
-        self.resource_bind_service.bind(
-            ResourceGroupBindingCreate(
-                cloud_provider_code=data.cloud_provider_code,
-                user_id=user_id,
-                resource_group_id=data.resource_group_id,
-                resource_type="eip",
-                resource_id=str(result.id),
-            )
-        )
-        # 3️⃣ 提交事务
-        self.db.commit()
-        self.db.refresh(result)
-        return result
+                resource_data = ResourceGroupBindingCreate(
+                    cloud_provider_code=data.cloud_provider_code,
+                    user_id=user_id,
+                    resource_group_id=data.resource_group_id,
+                    resource_type="eip",
+                    resource_id=str(result.id),
+                )
+                self.resource_bind_service.bind(resource_data)
+
+                time = datetime.now(timezone.utc)
+                self.settle_eip_hourly(account, user_id, result, time, time)
+            return result
+        except BusinessException as exception:
+            self.db.rollback()
+            raise exception
 
     # EIP 按量结算
-    def settle_eip_hourly(self, eip_id: int, start_at, end_at):
-        eip = self.repo.get_eip_by_id(eip_id)
-        # logger.info(f'先触发调用这个节藕嘛 {eip.eip_name}')
-        if not eip:
-            raise BusinessException(code=ErrorCode.FAILED, message="eip不存在")
-
+    def settle_eip_hourly(self, account, user_id: int, eip, start_at, end_at):
         last_order = self.account_service.get_last_product_order(eip.eip_id)
         if not last_order:
             order_type = "CREATE"
@@ -76,51 +76,57 @@ class EIPService:
         order = self.account_service.product_create({
             "order_no": f"EIP-{generate(size=10)}",
             "instance_id": eip.eip_id,
-            "cloud_vendor": "阿里云",
+            "cloud_provider_code": eip.cloud_provider_code,
             "product_id": 0,
             "product_name": "弹性公网EIP",
-            "item_name": f'{eip.eip_name}按量付费',
+            "business_id": 0,
+            "business_name": f'{eip.eip_name}按量付费',
             "order_type": order_type,
             "pay_status": "PENDING",
             "consume_type": "VOLUME_BASED",
             "amount_payable": eip.price,
-            "use_balance": eip.price,
-            "use_coupon": False,   # ✅ 改成布尔值
-            "use_voucher": False,  # ✅ 改成布尔值
+            "use_credit": False,
+            "use_voucher": False,
             "settlement_type": "PLATFORM",
-            "account_id": eip.created_by,
+            "account_id": account.id,
+            "created_by": eip.created_by,
         })
 
         # 创建订单明细
         bill_order = self.account_service.bill_details_create({
-            "instance_id": eip.eip_id,
             "billing_period": start_at.strftime("%Y-%m"),
-            "product_name": order.product_name,
-            "item_name": order.item_name,
-            "consume_type": "VOLUME_BASED",
-            "cloud_vendor": order.cloud_vendor,
-            "settlement_type": "PLATFORM",
             "region": eip.region_id,
             "billing_item_name": "EIP公网宽带",
             "unit_price": eip.price,
             "unit": "HOUR",
             "duration": 1,
-            "payable_amount": eip.price,
-            "discount_amount": 0,
             "coupon_amount": 0,
-            "low_commission_amount": 0,
-            "owe_amount": 0
+            "credit_amount": 0,
+            "balance_amount": eip.price,
+            "voucher_amount": 0,
+            "owe_amount": 0,
+            "order_id": order.id
         })
 
         try:
-            # 2. 扣费 RECHARGE/PAY_ORDER/REFUND等  关联业务类型：充值订单(RECHARGE)、消费订单(PAY_ORDER)、优惠券(COUPON)等
-            self.account_service.pay(
-                user_id=eip.created_by,
-                amount=eip.price,
-                flow_type="PAY_ORDER",
-                ref_type="PAY_ORDER",
-                ref_id=order.id
-            )
+            # 2. 扣费
+            funds_flow_data = {
+                "user_id": user_id,
+                "account_id": account.id,
+                "flow_no": f"{datetime.now(timezone.utc).timestamp() * 1000}{order.id % 1000:03d}",
+                "direction": "OUT",
+                "flow_type": "PAY_ORDER",
+                "fund_type": "BALANCE",
+                "amount": eip.price,
+                "ref_type": "BILLING_DETAIL",
+                "ref_id": order.id,
+                "billing_period": datetime.now().strftime("%Y-%m"),
+                "channel": "USER_ACCOUNT",
+                "third_trade_no": order.order_no,
+                "description": f"{bill_order.billing_item_name}扣费",
+                "created_by": user_id,
+            }
+            self.account_service.pay(account.balance, funds_flow_data)
             order.pay_status = "SUCCESS"
             order.paid_at = datetime.now(timezone.utc)
         except BusinessException:

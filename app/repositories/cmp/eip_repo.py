@@ -15,8 +15,6 @@ class EipRepository:
     def create_eip(self, data: dict):
         obj = Eip(**data)
         self.db.add(obj)
-        # self.db.commit()
-        # self.db.refresh(obj)
         self.db.flush()
         return obj
 
