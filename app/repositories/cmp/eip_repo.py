@@ -15,9 +15,10 @@ class EipRepository:
     def create_eip(self, data: dict):
         obj = Eip(**data)
         self.db.add(obj)
-        self.db.commit()
-        self.db.refresh(obj)
-        return obj.id
+        # self.db.commit()
+        # self.db.refresh(obj)
+        self.db.flush()
+        return obj
 
     #   分页列表： 云厂商，云凭证，区域，可用区，按量付费，带宽上限，名称，资源组。
     def eip_page_list(
@@ -115,6 +116,12 @@ class EipRepository:
                 Eip.is_released == 0
             ).order_by(Eip.id.asc()).with_for_update().first()
         return find
+
+    # 查找所有的eip
+    def list_all_volume_based_eip(self):
+        # eip_db = self.db.query(Eip).all()
+        eip_db = self.db.query(Eip).filter(Eip.bind_instance_id.isnot(None), Eip.status == 'BOUND').all()
+        return eip_db
 
 
 

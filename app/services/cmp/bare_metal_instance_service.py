@@ -15,7 +15,7 @@ from app.schemas.cmp.resource_group_schema import ResourceGroupBindingCreate
 
 from app.services.cmp.eip_service import EIPService
 
-from app.repositories.cmp.cbs_repo import CbsDiskRepository
+from app.services.cmp.cbs_service import CbsService
 from app.schemas.cmp.cbs_disk_schema import CbsDiskCreate
 
 from app.repositories.cmp.bare_metal_instance_repo import BareMetalInstanceRepo
@@ -27,7 +27,7 @@ class BareMetalInstanceService:
     def __init__(self, db: Session):
         self.db = db
         self.repo = BareMetalInstanceRepo(db)
-        self.cbs_repo = CbsDiskRepository(db)
+        self.cbs_service = CbsService(db)
         self.resource_bind_service = ResourceGroupService(db)
         self.eip_service = EIPService(db)
 
@@ -36,12 +36,6 @@ class BareMetalInstanceService:
     def bare_metal_instance_create(self, user_id: int, data: BareMetalInstanceCreate):
         # 先查子网
         subnet_all = self.repo.get_find_by_subnet_id(data.vswitch_id)
-        # if not subnet_all:
-        #     raise BusinessException(
-        #         code=ErrorCode.DATA_NOT_FOUND,
-        #         message=Message.DATA_NOT_FOUND
-        #     )
-
         private_ips = {row.private_ip for row in subnet_all}
 
         # ⭐ 2) 处理私网 IP（如果没有传 private_ip）
@@ -67,6 +61,7 @@ class BareMetalInstanceService:
         payload.pop("password", None)
 
         instance = self.repo.bare_metal_create(payload)
+
         if not instance:
             return False
         # 5. 是否需要公网 IP
@@ -83,24 +78,26 @@ class BareMetalInstanceService:
         # 2. 创建系统盘 CBS
         # -----------------------------
         system_disk_data = {
-            "disk_id": f"CBS-{generate(size=8)}",
             "cloud_provider_code": data.cloud_provider_code,
             "region_id": data.region_id,
             "zone_id": data.zone_id,
             "resource_group_id": data.resource_group_id,
-            "disk_type": "system",
-            "disk_category": data.system_disk_category,
-            "disk_size": data.system_disk_size,
-            "charge_type": data.instance_charge_type,
-            "period": data.period or 1,
-            "attached_instance_id": str(instance.id),
-            "status": "InUse",  # 系统盘创建后直接挂载
+            "disk_type": "system",  # 磁盘类型：system 系统盘 / data 数据盘。
+            "disk_category": data.system_disk_category,  # 磁盘种类，例如：cloud、cloud_ssd、cloud_essd_pl0 等
+            "disk_size": data.system_disk_size,  # 磁盘大小
+            "charge_type": data.instance_charge_type,  # 计费方式：PrePaid 包年包月 / PostPaid 按量付费
+            "period": data.period or 1,  # 包年月的月份
+            "auto_renew": False,
+            "attached_instance_id": str(instance.id),  # 挂载的实例 ID（ecs/lh/lb）
+            "attached_device": data.instance_name,  # 挂载点名称，如 /dev/vdb
+            "attached_time": datetime.now(timezone.utc).isoformat(),  # 挂载时间
+            # "status": "InUse",  # 系统盘创建后直接挂载
             "description": f"系统盘，挂载到实例 {instance.instance_name}",
-            "attached_time": datetime.now(timezone.utc).isoformat(),
+            "tags": []
         }
-        self.cbs_repo.cbs_create(user_id, CbsDiskCreate(**system_disk_data))
+        self.cbs_service.cbs_create_s(user_id, CbsDiskCreate(**system_disk_data))
 
-        #   绑定安全组
+        #   绑定资源组
         self.resource_bind_service.bind(
             ResourceGroupBindingCreate(
                 cloud_provider_code=data.cloud_provider_code,
@@ -113,7 +110,7 @@ class BareMetalInstanceService:
 
         # 6. 提交
         self.db.commit()
-
+        self.db.refresh(instance)
         return True
 
 

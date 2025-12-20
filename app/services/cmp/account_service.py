@@ -53,7 +53,7 @@ class AccountService:
 
         recharge = {
             "user_id": user_id,
-            "amount": amount,
+            "amount": +amount,
             "pay_channel": data.pay_channel or "ALIPAY",
             "status": "SUCCESS",
             "channel_trade_no": f"cmp-charge-{generate(size=6)}",
@@ -82,3 +82,72 @@ class AccountService:
         if not result:
             return False
         return result
+
+    # 创建商品订单
+    def product_create(self, data: dict):
+        product_order = self.repo.product_create(data)
+        if not product_order:
+            raise BusinessException(code=ErrorCode.FAILED, message="订单创建失败")
+        return product_order
+
+    # 创建账单明细
+    def bill_details_create(self, data: dict):
+        billing_detail = self.repo.bill_details_create(data)
+        if not billing_detail:
+            raise BusinessException(code=ErrorCode.FAILED, message="账单明细创建失败")
+        return billing_detail
+
+    # 查找订单是否存在
+    def get_last_product_order(self, instance_id: str):
+        return self.repo.get_last_product_order(instance_id)
+
+    # 统一扣费入口
+    def pay(
+        self, *, user_id: int, amount: Decimal, flow_type: str, ref_type: str, ref_id: int
+    ):
+        # 1. 锁账户
+        account = self.repo.account_recharge_find(user_id)
+        if not account:
+            raise BusinessException(code=ErrorCode.DATA_NOT_FOUND, message="账户不存在")
+
+        amount = Decimal(str(amount))
+        # 2. 计算余额    Decimal(str(eip.price))
+        new_balance = (account.balance - amount).quantize(
+            Decimal("0.00"),
+            rounding=ROUND_HALF_UP
+        )
+
+        # 3. 更新账户余额
+        account.balance = new_balance
+
+        # 4. 写资金流水  流水类型：RECHARGE/PAY_ORDER/REFUND等
+        bill_flow = self.repo.write_billing_flow({
+            "user_id": user_id,
+            "flow_type": flow_type,  # PAY_ORDER
+            "amount": -amount,  # 负数
+            "balance_after": new_balance,
+            "ref_type": ref_type,  # PRODUCT_ORDER
+            "ref_id": ref_id
+        })
+        # if not bill_flow:
+        #     raise BusinessException(code=ErrorCode.FAILED, message="流水创建失败")
+        return bill_flow
+
+    # 其他资源（ECS / 磁盘）——立即扣费
+    def pay_immediately(self, user_id: int, amount: Decimal, product_info: dict):
+        # 1. 创建商品订单
+        order = self.repo.product_create({
+            **product_info,
+            "pay_status": "SUCCESS"
+        })
+
+        # 2. 扣费
+        self.account_service.pay(
+            user_id=user_id,
+            amount=amount,
+            flow_type="PAY_ORDER",
+            ref_type="PRODUCT_ORDER",
+            ref_id=order.id
+        )
+
+        return order

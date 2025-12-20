@@ -44,7 +44,8 @@ async def lifespan(app: FastAPI):
     # 启动前逻辑
     logger.info("🚀 Application starting up...")
     from app.tasks.server_instance_status_checker import start_scheduler, stop_scheduler
-
+    from app.tasks.eip_settle_hour_task import eip_settle_hour_task
+    # eip_settle_hour_task()
     # start_scheduler()
     try:
         yield

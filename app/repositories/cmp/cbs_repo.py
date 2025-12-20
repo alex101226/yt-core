@@ -14,11 +14,8 @@ class CbsDiskRepository:
     def __init__(self, db: Session):
         self.db = db
 
-    def cbs_create(self, user_id: int, data: CbsDiskCreate) -> bool:
-        payload = data.model_dump()
-        payload['user_id'] = user_id
-        payload['status'] = payload['status'] if payload.get('status') else 'Available'
-        disk = CbsDisk(**payload)
+    def cbs_create(self, data: dict) -> bool:
+        disk = CbsDisk(**data)
         self.db.add(disk)
         self.db.commit()
         self.db.refresh(disk)

@@ -1,5 +1,6 @@
 from typing import List, Optional
 from sqlalchemy.orm import Session
+from nanoid import generate
 
 from app.repositories.cmp.cbs_repo import CbsDiskRepository
 from app.schemas.cmp.cbs_disk_schema import CbsDiskBase, CbsDiskCreate, CbsDiskOut, CbsDiskPage
@@ -16,8 +17,16 @@ class CbsService:
 
 
     #   创建硬盘
-    def cbs_create(self, user_id: int, data: CbsDiskCreate):
-        result = self.repo.cbs_create(user_id, data)
+    def cbs_create_s(self, user_id: int, data: CbsDiskCreate):
+        payload = {
+            **data.model_dump(),
+            "user_id": user_id,
+            "disk_id": f"CBS-{generate(size=12)}",
+            "encrypted": False,
+            # "status": data.attached_instance_id if data.status == "InUse" else "Available",
+            "status": "InUse" if data.attached_instance_id else "Available"
+        }
+        result = self.repo.cbs_create(payload)
         return result
 
     # 返回分页列表
