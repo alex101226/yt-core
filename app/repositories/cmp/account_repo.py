@@ -48,7 +48,7 @@ class AccountRepository:
         self.db.commit()
         return billing_flow
 
-    # 查询用户是否开通了账户   .with_for_update()
+    # 查询用户是否开通了账户
     def account_exists(self, user_id: int):
         return self.db.query(Account).filter(Account.user_id == user_id).first()
 

@@ -1,5 +1,6 @@
 from typing import List, Optional
 from sqlalchemy.orm import Session
+from datetime import datetime, timezone
 from nanoid import generate
 
 from app.core.logger import logger
@@ -77,14 +78,14 @@ class EIPService:
             "instance_id": eip.eip_id,
             "cloud_vendor": "阿里云",
             "product_id": 0,
-            "product_name": "EIP",
-            "item_name": eip.eip_name,
+            "product_name": "弹性公网EIP",
+            "item_name": f'{eip.eip_name}按量付费',
             "order_type": order_type,
             "pay_status": "PENDING",
             "consume_type": "VOLUME_BASED",
             "amount_payable": eip.price,
             "use_balance": eip.price,
-             "use_coupon": False,   # ✅ 改成布尔值
+            "use_coupon": False,   # ✅ 改成布尔值
             "use_voucher": False,  # ✅ 改成布尔值
             "settlement_type": "PLATFORM",
             "account_id": eip.created_by,
@@ -121,6 +122,7 @@ class EIPService:
                 ref_id=order.id
             )
             order.pay_status = "SUCCESS"
+            order.paid_at = datetime.now(timezone.utc)
         except BusinessException:
             logger.info(f'这里是扣款失败了')
             order.pay_status = "FAILED"

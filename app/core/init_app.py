@@ -36,6 +36,7 @@ fs_mount_router,
 container_image_router,
 cluster_router,
 account_router,
+bill_router,
 # image_router,
 )
 
@@ -76,6 +77,7 @@ def create_app() -> FastAPI:
         auth_router,
         user_router,
         account_router,
+        bill_router,
         user_certificate_router,
         resource_group_router,
         cloud_router,
