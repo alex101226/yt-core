@@ -61,14 +61,15 @@ class BillService:
         page: int = 1,
         page_size: int = 20,
         billing_id: int = None,
-        billing_period: str = None,
+        start_month: str = None,  # "YYYY-MM"
+        end_month: str = None,  # "YYYY-MM"
         consume_type: str = None,
         billing_type: str = None,
         cloud_provider_code: str = None,
         billing_status: str = None,  # '已结算' / '未结算'
     ):
         items, total = self.repo.get_billing_flows(
-            user_id, page, page_size, billing_id, billing_period,
+            user_id, page, page_size, billing_id, start_month, end_month,
             consume_type, billing_type, cloud_provider_code, billing_status
         )
         return {
@@ -91,13 +92,13 @@ class BillService:
         direction: Optional[str] = None,
         flow_type: Optional[str] = None,
         channel: Optional[str] = None,
-        fund_type: Optional[str] = None,
+        # fund_type: Optional[str] = None,
         start_at: Optional[datetime] = None,
         end_at: Optional[datetime] = None,
     ):
         items, total = self.repo.fund_detail_page_lis(
             user_id, page, page_size, flow_no, third_trade_no, direction, flow_type,
-            channel, fund_type, start_at, end_at
+            channel, start_at, end_at
         )
         return {
             "total": total,
@@ -119,11 +120,11 @@ class BillService:
         flow_type: Optional[str] = None,
         channel: Optional[str] = None,
         flow_no: Optional[str] = None,
-        third_trade_no: Optional[str] = None,
+        # third_trade_no: Optional[str] = None,
     ):
         items, total = self.repo.monthly_fund_summary(
             user_id, page, page_size, start_month, end_month, direction, flow_type,
-            channel, flow_no, third_trade_no
+            channel, flow_no
         )
         return {
             "total": total,

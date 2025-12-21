@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, BigInteger, Float, Integer, DateTime, Enum
+from sqlalchemy import Column, String, BigInteger, Float, Integer, DateTime, Enum, Boolean
 from datetime import datetime, timezone
 
 from app.core.config import settings

@@ -1,8 +1,15 @@
+import enum
+
 from sqlalchemy import Column, String, BigInteger, Float, Integer, DateTime, Enum, Boolean
 from datetime import datetime, timezone
 
 from app.core.config import settings
 from app.core.database import CmpBase
+
+# ===== 计费模式 =====
+class ChargeMode(str, enum.Enum):
+    PREPAID = "PREPAID"     # 预付费
+    POSTPAID = "POSTPAID"   # 后付费
 
 class ProductOrder(CmpBase):
     __tablename__ = f"{settings.CMP_TABLE_PREFIX}product_order"
@@ -16,13 +23,16 @@ class ProductOrder(CmpBase):
     business_id = Column(String(64), nullable=False, comment="商品id，现在还没有，后面加")
     business_name = Column(String(64), nullable=False, comment="商品名称，如带宽、CBS存储")
     order_type = Column(String(32), nullable=False, comment="订单类型：CREATE=新购/RENEW=续费/UPGRADE=升级/扩容订单")
-    pay_status = Column(String(32), nullable=False, comment="支付状态：PENDING/SUCCESS/FAILED")
+    pay_status = Column(String(32), nullable=False, comment="支付状态：PENDING=支付中/SUCCESS=支付成功/FAILED=支付失败")
     consume_type = Column(String(32), nullable=False, comment="消费类型：VOLUME_BASED=按量计费/PACKAGE_MONTHLY=包年月计费")
     amount_payable = Column(Float, nullable=False, comment="应付金额")
     use_credit = Column(Boolean, default=False, comment="使用低佣金")
     use_voucher = Column(Float, default=False, comment="使用代金券")
     settlement_type = Column(String(32), nullable=False, comment="结算类型：PLATFORM=平台结算")
     cloud_provider_code = Column(String(32), nullable=True, comment="云厂商")
+
+    charge_mode = Column(Enum(ChargeMode), nullable=True, comment="收费模式：PREPAID=预付费，POSTPAID=后付费")  # ⭐关键
+    auto_renew = Column(Boolean, default=False, comment="是否到期自动续费(仅包年包月)")
 
     created_by = Column(Integer, nullable=True, comment="用户id")
     account_id = Column(Integer, nullable=True, comment="余额账户ID")

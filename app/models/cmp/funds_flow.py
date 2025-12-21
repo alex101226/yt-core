@@ -15,7 +15,7 @@ class Direction(str, enum.Enum):
 class FlowType(str, enum.Enum):
     RECHARGE = "RECHARGE"     # 充值流水
     PAY_ORDER = "PAY_ORDER"   # 消费支付流水（购买商品/服务）
-    REFUND = "REFUND"         # 退款流水（退订或冲正）
+    REFUND = "REFUND"         # 退款（退订或冲正）
 
 # ===== 资金形式 =====
 class FundType(str, enum.Enum):
@@ -25,10 +25,10 @@ class FundType(str, enum.Enum):
 
 # ===== 关联业务类型 =====
 class RefType(str, enum.Enum):
-    RECHARGE_ORDER = "RECHARGE_ORDER"   # 充值订单
-    PRODUCT_ORDER = "PRODUCT_ORDER"     # 商品订单（预付费场景）
-    BILLING_DETAIL = "BILLING_DETAIL"   # 账单明细（后付费 / 按量计费）
-    REFUND_ORDER = "REFUND_ORDER"       # 退款订单（退订/冲正）
+    RECHARGE_ORDER = "RECHARGE_ORDER"   # 充值单
+    PRODUCT_ORDER = "PRODUCT_ORDER"     # 商品订单（一次交易）
+    BILLING_DETAIL = "BILLING_DETAIL"   # 账单单据
+    REFUND_ORDER = "REFUND_ORDER"       # 退款单
 
 # ===== 渠道 =====
 class Channel(str, enum.Enum):

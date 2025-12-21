@@ -6,7 +6,6 @@ from sqlalchemy.orm import Session
 
 from app.core.logger import logger
 
-from app.models.cmp.recharge_order import RechargeOrder
 from app.models.cmp.funds_flow import FundsFlow
 from app.models.cmp.product_order import ProductOrder
 from app.models.cmp.product_order_detail import ProductOrderDetail
@@ -54,7 +53,6 @@ class BillRepository:
         items = query.order_by(ProductOrder.id.desc()).offset(offset_value).limit(page_size).all()
         return items, total
 
-
     # 账单明细  消费类型：VOLUME_BASED=按量计费/PACKAGE_MONTHLY=包年月计费
     def bill_detail_page_list(
         self,
@@ -64,7 +62,7 @@ class BillRepository:
         instance_id: Optional[str] = None,
         consume_type: Optional[str] = None,
         provider_code: Optional[str] = None,
-        billing_period: Optional[datetime] = None,
+        billing_period: Optional[str] = None,
     ):
         query = self.db.query(
             ProductOrderDetail.id,
@@ -81,7 +79,6 @@ class BillRepository:
             ProductOrderDetail.balance_amount,
             ProductOrderDetail.owe_amount,
             ProductOrderDetail.created_at,
-
             ProductOrder.order_no,
             ProductOrder.instance_id,
             ProductOrder.product_id,
@@ -105,9 +102,9 @@ class BillRepository:
         if consume_type:
             filters.append(ProductOrderDetail.consume_type == consume_type)
         if billing_period:
-            billing_period_str = billing_period.strftime("%Y-%m")
+            # billing_period_str = billing_period.strftime("%Y-%m")
             filters.append(
-                ProductOrderDetail.billing_period == billing_period_str
+                ProductOrderDetail.billing_period == billing_period
             )
 
         if filters:
@@ -120,18 +117,19 @@ class BillRepository:
         return items, total
 
 
-    # 账单流水  关联业务类型：充值订单(RECHARGE)、消费订单(PAY_ORDER)、优惠券(COUPON)等， 流水类型：RECHARGE/PAY_ORDER/REFUND等
+    # 账单流水
     def get_billing_flows(
-            self,
-            user_id: int,
-            page: int = 1,
-            page_size: int = 20,
-            billing_id: int = None,
-            billing_period: datetime = None,
-            consume_type: str = None,
-            billing_type: str = None,
-            cloud_provider_code: str = None,
-            billing_status: str = None,  # '已结算' / '未结算'
+        self,
+        user_id: int,
+        page: int = 1,
+        page_size: int = 20,
+        billing_id: int = None,
+        start_month: str = None,  # "YYYY-MM"
+        end_month: str = None,  # "YYYY-MM"
+        consume_type: str = None,
+        billing_type: str = None,
+        cloud_provider_code: str = None,
+        billing_status: str = None,  # '已结算' / '未结算'
     ):
         offset = (page - 1) * page_size
 
@@ -144,6 +142,7 @@ class BillRepository:
                 ProductOrder.amount_payable,
                 ProductOrder.settlement_type,
                 ProductOrder.cloud_provider_code,
+                ProductOrder.charge_mode,
                 ProductOrderDetail.billing_period,
                 ProductOrderDetail.coupon_amount,
                 ProductOrderDetail.unit_price,
@@ -167,10 +166,10 @@ class BillRepository:
         # 可选查询条件
         if billing_id:
             filters.append(ProductOrderDetail.flow_no == billing_id)
-        if billing_period:
-            billing_period_str = billing_period.strftime("%Y-%m")
+        if start_month and end_month:
+            # billing_period_str = billing_period.strftime("%Y-%m")
             filters.append(
-                FundsFlow.billing_period == billing_period_str
+                ProductOrderDetail.billing_period.between(start_month, end_month)
             )
         if consume_type:
             filters.append(ProductOrder.consume_type == consume_type)
@@ -197,6 +196,7 @@ class BillRepository:
                 "flow_no": row.flow_no,
                 "consume_time": row.consume_time,
                 "ref_type": row.ref_type,
+                "charge_mode": row.charge_mode,
                 "product_name": row.product_name,
                 "business_name": row.business_name,
                 "consume_type": row.consume_type,
@@ -229,7 +229,7 @@ class BillRepository:
         direction: Optional[str] = None,
         flow_type: Optional[str] = None,
         channel: Optional[str] = None,
-        fund_type: Optional[str] = None,
+        # fund_type: Optional[str] = None,
         start_at: Optional[datetime] = None,
         end_at: Optional[datetime] = None,
     ):
@@ -248,8 +248,8 @@ class BillRepository:
         if channel:
             filters.append(FundsFlow.channel==channel)
 
-        if fund_type:
-            filters.append(FundsFlow.fund_type == fund_type)
+        # if fund_type:
+        #     filters.append(FundsFlow.fund_type == fund_type)
 
         if start_at and end_at:
             filters.append(
@@ -294,7 +294,7 @@ class BillRepository:
         flow_type: Optional[str] = None,
         channel: Optional[str] = None,
         flow_no: Optional[str] = None,
-        third_trade_no: Optional[str] = None,
+        # third_trade_no: Optional[str] = None,
     ):
         query = self.db.query(
             FundsFlow.billing_period.label("month"),
@@ -317,8 +317,8 @@ class BillRepository:
             query = query.filter(FundsFlow.channel == channel)
         if flow_no:
             query = query.filter(FundsFlow.flow_no.like(f"%{flow_no}%"))
-        if third_trade_no:
-            query = query.filter(FundsFlow.third_trade_no.like(f"%{third_trade_no}%"))
+        # if third_trade_no:
+        #     query = query.filter(FundsFlow.third_trade_no.like(f"%{third_trade_no}%"))
 
         # 分组
         query = query.group_by(

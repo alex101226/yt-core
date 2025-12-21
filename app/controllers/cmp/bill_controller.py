@@ -43,7 +43,7 @@ def order_detail_page_list(
     instance_id: Optional[str] = Query(None, description="每页条数"),
     consume_type: Optional[str] = Query(None, description="消费类型"),
     provider_code: Optional[str] = Query(None, description="云厂商"),
-    billing_period: Optional[datetime] = Query(datetime.now(), description="账期"),
+    billing_period: Optional[str] = Query(None, description="账期"),
     service: BillService = Depends(get_bill_service)
 ):
     user_id = request.state.user.get('user_id')
@@ -60,7 +60,8 @@ def bill_order_page_list(
     page: int = Query(..., description="分页"),
     page_size: int = Query(..., description="每页条数"),
     billing_id: Optional[str] = Query(None, description="账单id"),
-    billing_period: Optional[str] = Query(None, description="账期"),
+    start_month: str = Query(..., description="开始月份"),
+    end_month: str = Query(..., description="结束月份"),
     consume_type: Optional[str] = Query(None, description="消费类型"),
     billing_type: Optional[str] = Query(None, description="账单类型"),
     provider_code: Optional[str] = Query(None, description="云厂商"),
@@ -69,7 +70,7 @@ def bill_order_page_list(
 ):
     user_id = request.state.user.get('user_id')
     result = service.billing_flows_page_list(
-        user_id, page, page_size, billing_id, billing_period, consume_type, billing_type,
+        user_id, page, page_size, billing_id, start_month, end_month, consume_type, billing_type,
         provider_code, billing_status
     )
     return Response.success(result)
@@ -86,13 +87,13 @@ def billing_flow_detail_page_list(
     direction: Optional[str] = Query(None, description="收支类型"),
     flow_type: Optional[str] = Query(None, description="交易类型"),
     channel: Optional[str] = Query(None, description="交易渠道"),
-    fund_type: Optional[str] = Query(None, description="资金形式"),
+    # fund_type: Optional[str] = Query(None, description="资金形式"),
     service: BillService = Depends(get_bill_service)
 ):
     user_id = request.state.user.get('user_id')
     result = service.billing_flow_detail_page_list(
         user_id, page, page_size, flow_no, third_trade_no, direction, flow_type,
-        channel, fund_type
+        channel
     )
     return Response.success(result)
 
@@ -109,13 +110,13 @@ def monthly_fund_summary_page_list(
     flow_type: Optional[str] = Query(None, description="交易类型"),
     channel: Optional[str] = Query(None, description="交易渠道"),
     flow_no: Optional[str] = Query(None, description="流水号"),
-    third_trade_no: Optional[str] = Query(None, description="交易单号"),
+    # third_trade_no: Optional[str] = Query(None, description="交易单号"),
     service: BillService = Depends(get_bill_service)
 ):
     user_id = request.state.user.get('user_id')
     result = service.monthly_fund_summary(
         user_id, page, page_size, start_month, end_month, direction, flow_type,
-        channel, flow_no, third_trade_no
+        channel, flow_no
     )
     return Response.success(result)
 

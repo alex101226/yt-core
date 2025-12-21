@@ -90,6 +90,7 @@ class EIPService:
             "settlement_type": "PLATFORM",
             "account_id": account.id,
             "created_by": eip.created_by,
+            "charge_mode": "POSTPAID",
         })
 
         # 创建订单明细
