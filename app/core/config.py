@@ -2,12 +2,25 @@
 import os
 
 from pathlib import Path as FilePath
-from pydantic_settings import BaseSettings
+# from dotenv import load_dotenv
+
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from functools import lru_cache
 
+BASE_DIR = FilePath(__file__).resolve().parent.parent.parent
+
+# 先读取 ENV（只用系统环境变量）
+ENV = os.getenv("ENV", "development")
+
+# 再根据 ENV 加载对应的 .env 文件
+ENV_FILE = BASE_DIR / f".env.{ENV}"
 
 class Settings(BaseSettings):
-    ENV: str = "development"
+    ENV: str = ENV
+    HOST: str
+    PORT: int
+    DEBUG: bool
+
     API_PREFIX: str = "/api"
     LOG_LEVEL: str = "info"
 
@@ -33,10 +46,15 @@ class Settings(BaseSettings):
     REDIS_PASSWORD: str = None
     REDIS_EXPIRE: int = 2592000  # 30天
 
-    class Config:
-        # env_file = "/www/wwwroot/yt-core/.env.production",
-        env_file = f".env.{os.getenv('ENV', 'development')}"
-        env_file_encoding = "utf-8"
+    # class Config:
+    #     # env_file = "/www/wwwroot/yt-core/.env.production",
+    #     env_file = f".env.{os.getenv('ENV', 'development')}"
+    #     env_file_encoding = "utf-8"
+    model_config = SettingsConfigDict(
+        env_file=str(ENV_FILE),
+        env_file_encoding="utf-8",
+        case_sensitive=True,
+    )
 
 @lru_cache()
 def get_settings() -> Settings:
