@@ -10,13 +10,13 @@ from functools import lru_cache
 BASE_DIR = FilePath(__file__).resolve().parent.parent.parent
 
 # 先读取 ENV（只用系统环境变量）
-ENV = os.getenv("ENV", "development")
+# ENV = os.getenv("ENV", "development")
 
 # 再根据 ENV 加载对应的 .env 文件
-ENV_FILE = BASE_DIR / f".env.{ENV}"
+# ENV_FILE = BASE_DIR / f".env.{ENV}"
 
 class Settings(BaseSettings):
-    ENV: str = ENV
+    ENV: str = "development"
     HOST: str
     PORT: int
     DEBUG: bool
@@ -51,7 +51,11 @@ class Settings(BaseSettings):
     #     env_file = f".env.{os.getenv('ENV', 'development')}"
     #     env_file_encoding = "utf-8"
     model_config = SettingsConfigDict(
-        env_file=str(ENV_FILE),
+        env_file=(
+            BASE_DIR / ".env.production"
+            if FilePath(BASE_DIR / ".env.production").exists()
+            else BASE_DIR / ".env.development"
+        ),
         env_file_encoding="utf-8",
         case_sensitive=True,
     )
