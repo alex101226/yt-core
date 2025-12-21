@@ -69,7 +69,7 @@ class AccountService:
                     "status": "SUCCESS",
                     "channel_trade_no": f"cmp-charge-{generate(size=6)}",
                     "third_trade_no": f"{data.pay_channel}-charge-{generate(size=6)}",
-                    "paid_at": datetime.now(timezone.utc).isoformat(),
+                    "paid_at": datetime.now(timezone.utc),
                 }
                 recharge_db = self.repo.write_charge(recharge_data)
 

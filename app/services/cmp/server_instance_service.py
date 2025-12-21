@@ -91,7 +91,7 @@ class InstanceService:
             "auto_renew": False,
             "attached_instance_id": str(instance.id),   # 挂载的实例 ID（ecs/lh/lb）
             "attached_device": data.instance_name, #   挂载点名称，如 /dev/vdb
-            "attached_time": datetime.now(timezone.utc).isoformat(),  # 挂载时间
+            "attached_time": datetime.now(timezone.utc),  # 挂载时间
             # "status": "InUse",  # 系统盘创建后直接挂载
             "description": f"系统盘，挂载到实例 {instance.instance_name}",
             "tags": []
@@ -116,7 +116,7 @@ class InstanceService:
                     "auto_renew": False,
                     "attached_instance_id": str(instance.id),   # 挂载的实例 ID（ecs/lh/lb）
                     "attached_device": data.instance_name, #   挂载点名称，如 /dev/vdb
-                    "attached_time": datetime.now(timezone.utc).isoformat(),  # 挂载时间
+                    "attached_time": datetime.now(timezone.utc),  # 挂载时间
                     # "status": "InUse",  # 系统盘创建后直接挂载
                     "description": f"系统盘，挂载到实例 {instance.instance_name}",
                     "tags": []
