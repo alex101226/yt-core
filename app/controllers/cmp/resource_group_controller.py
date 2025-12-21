@@ -56,11 +56,13 @@ def create_group(
 # 分页查询资源组
 @router.get("/group_page_list", response_model=ResourceGroupPage)
 def list_groups(
+    request: Request,
     page: int = Query(1, ge=1, description="页码（从1开始）"),
     page_size: int = Query(10, ge=1, le=100, description="每页条数"),
     service: ResourceGroupService = Depends(get_resource_group_service)
 ):
-    total, items = service.list_groups(page, page_size)
+    user_id = request.state.user.get('user_id')
+    total, items = service.list_groups(user_id, page, page_size)
     return Response.success(ResourceGroupPage(page=page, pageSize=page_size, total=total, items=items))
 
 

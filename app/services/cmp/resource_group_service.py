@@ -38,8 +38,8 @@ class ResourceGroupService:
         return obj
 
     # 资源组列表，带分页
-    def list_groups(self, page: int, page_size: int):
-        return self.repo.group_list_page(page, page_size)
+    def list_groups(self, user_id: int, page: int, page_size: int):
+        return self.repo.group_list_page(user_id, page, page_size)
 
     # 更新资源组
     def update_group(self, record_id: int, data: dict):
