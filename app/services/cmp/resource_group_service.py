@@ -23,6 +23,7 @@ class ResourceGroupService:
                 code=ErrorCode.RESOURCE_GROUP_EXISTS,
                 message=Message.RESOURCE_GROUP_EXISTS
             )
+        result = self.repo.create_group(data)
         # logger.info(f'创建返回的数据查看 {result}')
         return result
 
