@@ -33,16 +33,17 @@ class BareMetalInstanceBase(BaseModel):
     vpc_id: int # 选择的vpc的id
     vswitch_id: int # 选择的子网的id
     security_group_id: str  # 选择的安全组的id
-    ssh_proxy_port: Optional[int] = 0     #   SSH 代理端口
+    # ssh_proxy_port: Optional[int] = 0     #   SSH 代理端口
 
     os_type: Optional[str] = None    # 操作系统：接口：/cloud/images，字段：os_type
     architecture: Optional[str] = None  # cpu的架构：接口：/cloud/images，字段：architecture
     hostname: Optional[str] = None  # 主机名，输入的
+    price: Optional[int] = None
 
 class BareMetalInstanceCreate(BareMetalInstanceBase):
     password: str   # 密码
     cidr_block: Optional[str]  # 子网的网段，要计算private_ip的ip
-    enable_protection: Optional[bool] = False   # 是否开启释放保护
+    # enable_protection: Optional[bool] = False   # 是否开启释放保护
     install_gpu_driver: Optional[bool] = False  # 是否安装gpu驱动
     enable_ssh_agent: Optional[bool] = False     # 是否开启 SSH 代理
     pass

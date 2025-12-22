@@ -43,7 +43,7 @@ def get_bare_metal_page_list(
     provider_code: Optional[str] = Query(None, description="云厂商 code"),
     region_id: Optional[str] = Query(None, description="区域 id"),
     zone_id: Optional[str] = Query(None, description="可用区 id"),
-    resource_group_id: Optional[int] = Query(None, description="资源组 id"),
+    resource_group_id: Optional[str] = Query(None, description="资源组 id"),
     instance_id: Optional[str] = Query(None, description="创建的裸金属的实例id， 字段=instance_id"),
     instance_name: Optional[str] = Query(None, description="创建的裸金属的实例name，字段=instance_name"),
     instance_type_id: Optional[str] = Query(None, description="实例规格 ID，如 ecs.g6.large"),

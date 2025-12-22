@@ -34,84 +34,89 @@ class BareMetalInstanceService:
 
     # 创建裸金属
     def bare_metal_instance_create(self, user_id: int, data: BareMetalInstanceCreate):
-        # 先查子网
-        subnet_all = self.repo.get_find_by_subnet_id(data.vswitch_id)
-        private_ips = {row.private_ip for row in subnet_all}
+        try:
+            with self.db.begin():
+                # 先查子网
+                subnet_all = self.repo.get_find_by_subnet_id(data.vswitch_id)
+                private_ips = {row.private_ip for row in subnet_all}
 
-        # ⭐ 2) 处理私网 IP（如果没有传 private_ip）
-        cidr = data.cidr_block
-        private_ip = ''
-        if cidr:
-            # 获取子网已占用的 IP（TODO: 你后面可以接阿里云 API）
-            private_ip = allocate_private_ip(cidr, private_ips)
+                # ⭐ 2) 处理私网 IP（如果没有传 private_ip）
+                cidr = data.cidr_block
+                private_ip = ''
+                if cidr:
+                    # 获取子网已占用的 IP（TODO: 你后面可以接阿里云 API）
+                    private_ip = allocate_private_ip(cidr, private_ips)
 
-        # 1️⃣ 构造主表数据
-        payload = {
-            **data.model_dump(),
-            "hashed_password": hash_password(data.password),
-            "status": "RUNNING",
-            "delivery_status": "DELIVERED",
-            "last_operation": "RUNNING",
-            "instance_id": f"bare_metal-{generate(size=12)}",
-            "created_by": user_id,
-            "private_ip": private_ip,
-            "physical_machine_id": f"bare_metal-physical-{generate(size=6)}",
-        }
-        payload.pop("cidr_block", None)
-        payload.pop("password", None)
+                # 1️⃣ 构造主表数据
+                payload = {
+                    **data.model_dump(),
+                    "hashed_password": hash_password(data.password),
+                    "status": "RUNNING",
+                    "delivery_status": "DELIVERED",
+                    "last_operation": "RUNNING",
+                    "instance_id": f"bare_metal-{generate(size=12)}",
+                    "created_by": user_id,
+                    "private_ip": private_ip,
+                    "physical_machine_id": f"bare_metal-physical-{generate(size=6)}",
+                }
+                payload.pop("cidr_block", None)
+                payload.pop("password", None)
 
-        instance = self.repo.bare_metal_create(payload)
+                instance = self.repo.bare_metal_create(payload)
 
-        if not instance:
-            return False
-        # 5. 是否需要公网 IP
-        public_ip = self.eip_service.allocate_eip(
-            provider_code=data.cloud_provider_code,
-            region_id=data.region_id,
-            instance_id=instance.id,
-            internet_charge_type=data.internet_charge_type,
-        )
+                if not instance:
+                    return False
+                # 5. 是否需要公网 IP
+                public_ip = self.eip_service.allocate_eip(
+                    provider_code=data.cloud_provider_code,
+                    region_id=data.region_id,
+                    instance_id=instance.id,
+                    # internet_charge_type=data.internet_charge_type,
+                )
 
-        instance.public_ip = public_ip
+                instance.public_ip = public_ip
 
-        # -----------------------------
-        # 2. 创建系统盘 CBS
-        # -----------------------------
-        system_disk_data = {
-            "cloud_provider_code": data.cloud_provider_code,
-            "region_id": data.region_id,
-            "zone_id": data.zone_id,
-            "resource_group_id": data.resource_group_id,
-            "disk_type": "system",  # 磁盘类型：system 系统盘 / data 数据盘。
-            "disk_category": data.system_disk_category,  # 磁盘种类，例如：cloud、cloud_ssd、cloud_essd_pl0 等
-            "disk_size": data.system_disk_size,  # 磁盘大小
-            "charge_type": data.instance_charge_type,  # 计费方式：PrePaid 包年包月 / PostPaid 按量付费
-            "period": data.period or 1,  # 包年月的月份
-            "auto_renew": False,
-            "attached_instance_id": str(instance.id),  # 挂载的实例 ID（ecs/lh/lb）
-            "attached_device": data.instance_name,  # 挂载点名称，如 /dev/vdb
-            "attached_time": datetime.now(timezone.utc),  # 挂载时间
-            # "status": "InUse",  # 系统盘创建后直接挂载
-            "description": f"系统盘，挂载到实例 {instance.instance_name}",
-            "tags": []
-        }
-        self.cbs_service.cbs_create_s(user_id, CbsDiskCreate(**system_disk_data))
+                # -----------------------------
+                # 2. 创建系统盘 CBS
+                # -----------------------------
+                system_disk_data = {
+                    "cloud_provider_code": data.cloud_provider_code,
+                    "region_id": data.region_id,
+                    "zone_id": data.zone_id,
+                    "resource_group_id": data.resource_group_id,
+                    "disk_type": "system",  # 磁盘类型：system 系统盘 / data 数据盘。
+                    "disk_category": data.system_disk_category,  # 磁盘种类，例如：cloud、cloud_ssd、cloud_essd_pl0 等
+                    "disk_size": data.system_disk_size,  # 磁盘大小
+                    "charge_type": data.instance_charge_type,  # 计费方式：PrePaid 包年包月 / PostPaid 按量付费
+                    "period": data.period or 1,  # 包年月的月份
+                    "auto_renew": False,
+                    "attached_instance_id": str(instance.id),  # 挂载的实例 ID（ecs/lh/lb）
+                    "attached_device": data.instance_name,  # 挂载点名称，如 /dev/vdb
+                    "attached_time": datetime.now(timezone.utc),  # 挂载时间
+                    # "status": "InUse",  # 系统盘创建后直接挂载
+                    "description": f"系统盘，挂载到实例 {instance.instance_name}",
+                    "tags": []
+                }
+                self.cbs_service.cbs_create_s(user_id, system_disk_data)
 
-        #   绑定资源组
-        self.resource_bind_service.bind(
-            ResourceGroupBindingCreate(
-                cloud_provider_code=data.cloud_provider_code,
-                user_id=user_id,
-                resource_group_id=data.resource_group_id,
-                resource_type="bare-metal",
-                resource_id=str(instance.id),
-            )
-        )
+                #   绑定资源组
+                self.resource_bind_service.bind(
+                    ResourceGroupBindingCreate(
+                        cloud_provider_code=data.cloud_provider_code,
+                        user_id=user_id,
+                        resource_group_id=data.resource_group_id,
+                        resource_type="bare-metal",
+                        resource_id=str(instance.id),
+                    )
+                )
 
         # 6. 提交
-        self.db.commit()
-        self.db.refresh(instance)
-        return True
+        # self.db.commit()
+        # self.db.refresh(instance)
+            return True
+        except BusinessException as exception:
+            self.db.rollback()
+            raise exception
 
 
     # 分页列表
@@ -123,7 +128,7 @@ class BareMetalInstanceService:
         provider_code: Optional[str] = None,
         region_id: Optional[str] = None,
         zone_id: Optional[str] = None,
-        resource_group_id: Optional[int] = None,
+        resource_group_id: Optional[str] = None,
         instance_id: Optional[str] = None,
         instance_name: Optional[str] = None,
         instance_type_id: Optional[str] = None,

@@ -17,15 +17,14 @@ class CbsService:
 
 
     #   创建硬盘
-    def cbs_create_s(self, user_id: int, data: CbsDiskCreate):
+    def cbs_create_s(self, user_id: int, data: dict):
         payload = {
-            **data.model_dump(),
+            **data,
             "user_id": user_id,
             "disk_id": f"CBS-{generate(size=12)}",
             "encrypted": False,
-            # "status": data.attached_instance_id if data.status == "InUse" else "Available",
-            "status": "InUse" if data.attached_instance_id else "Available",
-            "attached_time": data.attached_time if data.attached_time  else None,
+            "status": "InUse" if data['attached_instance_id'] else "Available",
+            "attached_time": data['attached_time'] if data['attached_time']  else None,
         }
         result = self.repo.cbs_create(payload)
         return result

@@ -17,8 +17,9 @@ class CbsDiskRepository:
     def cbs_create(self, data: dict) -> bool:
         disk = CbsDisk(**data)
         self.db.add(disk)
-        self.db.commit()
-        self.db.refresh(disk)
+        self.db.flush()
+        # self.db.commit()
+        # self.db.refresh(disk)
         return True
 
     def get_find(self, disk_id: int):
