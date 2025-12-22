@@ -64,13 +64,13 @@ def certificates_page_list(
 #     obj = service.update_certificate(record_id, **data.model_dump(exclude_unset=True))
 #     return Response.success(obj)
 
-# @router.delete("/delete/{record_id}")
-# def delete_certificate(
-#     record_id: int = Path(..., ge=1),
-#     service: UserCertificateService = Depends(get_user_certificate_service)
-# ):
-#     service.delete_certificate(record_id)
-#     return Response.success(message="删除成功")
+@router.delete("/delete/{record_id}")
+def delete_certificate(
+    record_id: int = Path(..., ge=1),
+    service: UserCertificateService = Depends(get_user_certificate_service)
+):
+    service.delete_certificate(record_id)
+    return Response.success(message="删除成功")
 
 # @router.put("/set_default/{record_id}")
 # def set_default(
