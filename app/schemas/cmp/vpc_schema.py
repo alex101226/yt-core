@@ -34,6 +34,7 @@ class VpcOut(VpcBase):
 class VpcList(VpcOut):
     resource_group_name: Optional[str]
     sync_status: Optional[int]
+    subnet_count: Optional[int] = 0
 
 # -------------------------
 # 2️⃣ 创建用模型

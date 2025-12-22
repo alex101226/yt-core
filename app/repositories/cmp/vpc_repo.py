@@ -1,10 +1,13 @@
 from datetime import datetime, timezone
 from typing import List, Optional
 
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.core.logger import logger
+
 from app.models.cmp import ResourceGroup
+from app.models.cmp.subnet import Subnet
 from app.models.cmp.vpc import Vpc
 from app.schemas.cmp.vpc_schema import VpcOut, VpcList
 
@@ -105,11 +108,15 @@ class VpcRepository:
             Vpc.service_cidr,
             Vpc.status,
             Vpc.sync_status,
-            ResourceGroup.rg_name.label("resource_group_name")
+            ResourceGroup.rg_name.label("resource_group_name"),
+            func.count(Subnet.id).label("subnet_count"),
         ).outerjoin(
             ResourceGroup,
             ResourceGroup.id == Vpc.resource_group_id
-        )
+        ).outerjoin(
+            Subnet,
+            Subnet.vpc_id == Vpc.id,
+        ).group_by(Vpc.id)
 
         filters = [Vpc.created_by == user_id, Vpc.is_released == 0]
         if provider_code:

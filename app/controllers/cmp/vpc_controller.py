@@ -26,8 +26,8 @@ router = APIRouter(
 @router.get("/list")
 def list_vpcs(
     request: Request,
-    provider_code: str = Query(..., description="云厂商code"),
-    region_id: str = Query(..., description="区域 id"),
+    provider_code: str = Query(None, description="云厂商code"),
+    region_id: str = Query(None, description="区域 id"),
     service: VPCService = Depends(get_vpc_service)
 ):
     user_id = request.state.user.get('user_id')
