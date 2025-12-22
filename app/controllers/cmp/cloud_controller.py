@@ -7,7 +7,10 @@ from sqlalchemy.orm import Session
 from app.common.response import Response
 from app.common.dependencies import get_cmp_db
 from app.services.cloud.aliyun.aliyun_service import AliyunService
-from app.common.filter_spec import filter_spec, filter_available_instances, fetch_prices_concurrent
+from app.common.filter_spec import (
+filter_spec, filter_available_instances, fetch_prices_concurrent,
+is_bare_metal, match_instance_type
+)
 from app.core.logger import logger
 
 from app.services.cmp.user_certificate_service import UserCertificateService
@@ -113,6 +116,7 @@ async def list_available_instance_types(
     gpu_name: Optional[str] = Query(None, description="GPU规格名称 "),
     instance_spec: Optional[str] = Query(None, description="实例规格名称"),
     hide_soldout: Optional[bool] = Query(None, description="隐藏售罄的规格"),
+    model_type: Optional[str] = Query(None, description="裸金属或者云服务器"),
     service: UserCertificateService = Depends(get_user_certificate_service)
 ):
     # 1️⃣ 查用户凭证
@@ -148,6 +152,7 @@ async def list_available_instance_types(
         gpu_name=gpu_name,
         instance_spec=instance_spec,
         hide_soldout=bool(hide_soldout),
+        model_type=model_type,
     )
     # logger.info(f"filtered: {filtered}")
     # 5) 分页（注意：分页在过滤之后）
@@ -182,6 +187,7 @@ async def list_available_instance_types(
         out_items.append({
             "instance_type_id": it_id,
             "cpu_core_count": it["cpu_core_count"],
+            "instance_family": it["instance_family"],
             "memory_size": it["memory_size"],
             "gpu_amount": it["gpu_amount"],
             "gpu_spec": it["gpu_spec"],

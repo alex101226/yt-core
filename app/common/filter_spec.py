@@ -4,6 +4,18 @@ from typing import List, Dict, Any, Optional
 
 from app.core.logger import logger
 
+
+# 定义裸金属的过滤
+def is_bare_metal(instance_family: str) -> bool:
+    return instance_family.startswith("ecs.ebm")
+
+def match_instance_type(instance_family: str, type_: str) -> bool:
+    if type_ == "emb":
+        return instance_family.startswith("ecs.ebm")
+    if type_ == "cloud":
+        return not instance_family.startswith("ecs.ebm")
+    return True  # 不传 type，则全部返回
+
 # 过滤可用区规格的信息
 async def filter_spec(instance_type_ids: List[str], all_spec_list):
     if not instance_type_ids:
@@ -20,7 +32,8 @@ def filter_available_instances(
     memory_number: Optional[int],
     gpu_name: Optional[str],
     instance_spec: Optional[str],
-    hide_soldout: bool
+    hide_soldout: bool,
+    model_type: Optional[str] = None,
 ):
     """
     available_map: {instance_type_id: {"status_category": "...", ...}}
@@ -32,9 +45,18 @@ def filter_available_instances(
     soldout_categories = {"WithoutStock", "ClosedWithoutStock"}  # 根据需调整
     for it_id, avail in available_map.items():
         inst = db_map.get(it_id)
+        # logger.info(f"it_id={inst}, avail={avail}")
         if not inst:
             # DB 没有该规格（可能是新规格），跳过或记录日志
             continue
+        # ⭐ model_type（裸金属 / 云服务器）过滤
+        if not match_instance_type(inst["instance_family"], model_type):
+            continue
+
+        # ⭐ 裸金属必须有 GPU
+        if model_type == "emb":
+            if not inst.get("gpu_amount") or inst.get("gpu_amount", 0) <= 0:
+                continue
         # 隐藏售罄
         status_cat = avail.get("status_category") or ""
         if hide_soldout and status_cat not in ("WithStock",):
@@ -61,6 +83,7 @@ def filter_available_instances(
         out.append({
             "instance_type_id": it_id,
             "status_category": status_cat,
+            "instance_family": inst['instance_family'],
             "cpu_core_count": inst['cpu_core_count'],
             "memory_size": inst['memory_size'],
             "gpu_amount": inst['gpu_amount'],
