@@ -6,7 +6,6 @@ from app.core.security import hash_password, verify_password, create_access_toke
 
 from app.models.sso.user import User
 from app.models.sso.session import UserSession
-
 from app.services.sso.session_service import SessionService
 
 from app.repositories.sso.user_repo import UserRepository
@@ -16,6 +15,7 @@ from app.schemas.sso.auth_schema import LoginRequest, TokenResponse, UserRegiste
 from app.common.status_code import ErrorCode
 from app.common.messages import Message
 from app.common.exceptions import BusinessException
+from app.core.logger import logger
 
 class AuthService:
     def __init__(self, db: Session):
@@ -49,6 +49,7 @@ class AuthService:
             ip=ip,
             user_agent=user_agent
         )
+        # tokens = SessionService(self.db).create_session_for_user(user)
         self.session_repo.create(session_model)
 
         return TokenResponse(access_token=access, refresh_token=refresh, token_type="bearer")
@@ -71,24 +72,47 @@ class AuthService:
         return TokenResponse(access_token=access, refresh_token=refresh_token, token_type="bearer")
 
     def logout(self, user_id: int):
+        if not user_id:
+            return False
         # 注销直接删除会话（使 refresh 无效）
         self.session_repo.clear_user_sessions(user_id)
 
     def register(self, data: UserRegister):
         # 检查重复
-        exists = self.user_repo.get_by_username(data.username) \
-                 or self.user_repo.get_by_email_or_mobile(data.email, data.mobile)
+        exists = self.user_repo.get_by_username(data.username) or self.user_repo.get_by_email(data.email)
+
         if exists:
             raise BusinessException(code=ErrorCode.USER_ALREADY_EXISTS, message=Message.USER_ALREADY_EXISTS)
 
-        user_data = data.model_dump()
-        hashed_password = hash_password(user_data["password"])
-        user_data.pop("password")
-        user_data["hashed_password"] = hashed_password
+        payload = {
+            **data.model_dump(),
+            "hashed_password": hash_password(data.password)
+        }
+        payload.pop('password')
+
         # 创建用户
-        new_user = self.user_repo.create(User(**user_data))
+        new_user = self.user_repo.create(payload)
 
+        # 单点登录：清除历史会话
+        self.session_repo.clear_user_sessions(new_user.id)
+
+        subject = {"user_id": new_user.id, "username": new_user.username}
+
+        access = create_access_token(subject)
+        refresh = create_refresh_token(subject)
+
+        # 保存 refresh 到 DB（expires_at）
+        expires_at = datetime.now(timezone.utc) + timedelta(days=REFRESH_EXPIRE_DAYS)
+        session_model = UserSession(
+            user_id=new_user.id,
+            refresh_token=refresh,
+            expires_at=expires_at,
+        )
+        # tokens = SessionService(self.db).create_session_for_user(user)
+        self.session_repo.create(session_model)
         # 自动创建 refresh token 并返回 token
-        tokens = SessionService(self.db).create_session_for_user(new_user)
+        # tokens = SessionService(self.db).create_session_for_user(new_user)
 
-        return tokens
+        self.db.commit()
+        self.db.refresh(new_user)
+        return TokenResponse(access_token=access, refresh_token=refresh, token_type="bearer")

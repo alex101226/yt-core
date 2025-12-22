@@ -109,8 +109,8 @@ class InstanceService:
                     "zone_id": data.zone_id,
                     "resource_group_id": data.resource_group_id,
                     "disk_type": "data",  # 磁盘类型：system 系统盘 / data 数据盘。
-                    "disk_category": disk.system_disk_category, # 磁盘种类，例如：cloud、cloud_ssd、cloud_essd_pl0 等
-                    "disk_size": disk.system_disk_size, # 磁盘大小
+                    "disk_category": disk.disk_category, # 磁盘种类，例如：cloud、cloud_ssd、cloud_essd_pl0 等
+                    "disk_size": disk.disk_size, # 磁盘大小
                     "charge_type": data.instance_charge_type,   # 计费方式：PrePaid 包年包月 / PostPaid 按量付费
                     "period": data.period or 1, #   包年月的月份
                     "auto_renew": False,

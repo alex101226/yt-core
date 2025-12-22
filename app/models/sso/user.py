@@ -16,7 +16,7 @@ class User(SsoBase):
     hashed_password = Column(String(200), comment="加密后的密码")
     email = Column(String(100), nullable=True, comment="邮箱")
     nickname = Column(String(50), nullable=True, comment="昵称")
-    mobile = Column(String(20), nullable=True, comment="手机号码")
+    # mobile = Column(String(20), nullable=True, comment="手机号码")
 
     created_at = Column(
         DateTime(timezone=True),

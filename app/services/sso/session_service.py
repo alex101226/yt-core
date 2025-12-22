@@ -30,5 +30,5 @@ class SessionService:
         return {
             "access_token": access_token,
             "refresh_token": refresh_token,
-            "user": user
+            # "user": user
         }

@@ -19,6 +19,7 @@ class SessionRepository:
         """删除该用户所有会话（实现单点登录）"""
         self.db.query(UserSession).filter_by(user_id = user_id).delete()
         self.db.commit()
+        # self.db.refresh(find)
 
     def get_by_refresh_token(self, refresh_token: str):
         return self.db.query(UserSession).filter_by(refresh_token = refresh_token).first()

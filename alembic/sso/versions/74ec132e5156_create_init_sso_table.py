@@ -37,7 +37,7 @@ def upgrade() -> None:
     sa.Column('hashed_password', sa.String(length=200), nullable=True, comment='加密后的密码'),
     sa.Column('email', sa.String(length=100), nullable=True, comment='邮箱'),
     sa.Column('nickname', sa.String(length=50), nullable=True, comment='昵称'),
-    sa.Column('mobile', sa.String(length=20), nullable=True, comment='手机号码'),
+    # sa.Column('mobile', sa.String(length=20), nullable=True, comment='手机号码'),
     sa.Column('created_at', sa.DateTime(timezone=True), nullable=False, comment='创建时间 (UTC)'),
     sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False, comment='更新时间 (UTC)'),
     sa.PrimaryKeyConstraint('id'),
