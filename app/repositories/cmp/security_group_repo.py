@@ -1,19 +1,20 @@
 from typing import List, Optional, Any
 from sqlalchemy.orm import Session
 from sqlalchemy import and_
+from datetime import datetime, timezone
 
 from nanoid import generate
 
 from app.core.logger import logger
 from app.models.cmp import SecurityGroupRule
 from app.models.cmp.security_group import SecurityGroup
-from datetime import datetime, timezone
+
+from app.models.cmp.vpc import Vpc
+from app.models.cmp.resource_group import ResourceGroup
 
 from app.schemas.cmp.security_group_rule_schema import SecurityGroupRuleItem
 
-
 # from app.schemas.cmp.security_group_schema import SecurityGroupCreate
-
 
 class SecurityGroupRepository:
     def __init__(self, db: Session):
@@ -29,7 +30,30 @@ class SecurityGroupRepository:
         resource_group_id: str,
         sg_name: str):
 
-        query = self.db.query(SecurityGroup)
+        query = self.db.query(
+            SecurityGroup.id,
+            SecurityGroup.cloud_group_id,
+            SecurityGroup.sg_id,
+            SecurityGroup.sg_name,
+            SecurityGroup.description,
+            SecurityGroup.cloud_provider_code,
+            SecurityGroup.region_id,
+            SecurityGroup.vpc_id,
+            SecurityGroup.resource_group_id,
+            SecurityGroup.sync_status,
+            SecurityGroup.is_released,
+            SecurityGroup.created_at,
+            SecurityGroup.updated_at,
+            Vpc.vpc_name.label("vpc_name"),
+            ResourceGroup.rg_name.label("resource_group_name"),
+        ).outerjoin(
+            Vpc,
+            Vpc.id == SecurityGroup.vpc_id
+        ).outerjoin(
+            ResourceGroup,
+            ResourceGroup.id == SecurityGroup.resource_group_id
+        )
+
         filters = [SecurityGroup.created_by == user_id, SecurityGroup.is_released == 0]
         if provider_code:
             filters.append(SecurityGroup.cloud_provider_code == provider_code)

@@ -20,7 +20,9 @@ class SecurityGroupOut(BaseModel):
     cloud_provider_code: str
     region_id: str
     vpc_id: int
+    vpc_name: Optional[str] = None
     resource_group_id: Optional[int]
+    resource_group_name: Optional[str] = None
     sync_status: int
     is_released: bool
     created_at: datetime

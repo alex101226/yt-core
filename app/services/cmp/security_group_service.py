@@ -1,4 +1,6 @@
 from typing import List
+
+from pydantic import model_validator
 from sqlalchemy.orm import Session
 from nanoid import generate
 
@@ -35,11 +37,14 @@ class SecurityGroupService:
             user_id, page, page_size, provider_code, region_id, resource_group_id, sg_name
         )
 
+        out_item = [SecurityGroupOut.model_validate(row)
+            for row in items
+        ]
         return SecurityGroupPage(
             total=total,
             page=page,
             page_size=page_size,
-            items=[SecurityGroupOut.model_validate(s) for s in items]
+            items=out_item
         )
 
     def security_groups(self, provider_code: str, region_id: str, page: int = 1, page_size: int = 50):

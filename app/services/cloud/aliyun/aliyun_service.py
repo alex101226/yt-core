@@ -71,7 +71,7 @@ class AliyunService:
         if cache_data:
             return cache_data
 
-        data = self.client.list_available_instance_types(region_id, zone_id, instance_charge_type.value, disk_category)
+        data = self.client.list_available_instance_types(region_id, zone_id, instance_charge_type, disk_category)
         await self.cache.set_available_types(region_id, data)
         return data
 
