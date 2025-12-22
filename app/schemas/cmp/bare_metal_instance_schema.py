@@ -38,7 +38,7 @@ class BareMetalInstanceBase(BaseModel):
     os_type: Optional[str] = None    # 操作系统：接口：/cloud/images，字段：os_type
     architecture: Optional[str] = None  # cpu的架构：接口：/cloud/images，字段：architecture
     hostname: Optional[str] = None  # 主机名，输入的
-    price: Optional[int] = None
+    price: Optional[float] = 0.00
 
 class BareMetalInstanceCreate(BareMetalInstanceBase):
     password: str   # 密码

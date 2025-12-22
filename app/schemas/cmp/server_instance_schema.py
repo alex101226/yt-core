@@ -2,6 +2,7 @@
 from pydantic import BaseModel
 from typing import List, Optional
 
+
 class DiskItem(BaseModel):
     disk_category: str
     disk_size: int
@@ -45,7 +46,7 @@ class InstanceBase(BaseModel):
     os_type: Optional[str] = None   # 操作系统：接口：/cloud/images，字段：os_type
     architecture: Optional[str] = None # cpu的架构：接口：/cloud/images，字段：architecture
     hostname: Optional[str] = None  # 主机名，输入的
-    price: Optional[int] = None
+    price: Optional[float] = 0.00
 
 class InstanceCreateSchema(InstanceBase):
     cidr_block: Optional[str]  # 子网的网段，要计算private_ip的ip
