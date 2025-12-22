@@ -30,6 +30,7 @@ class ServerInstanceRepo:
 
     # 创建服务器
     def create_instance_task(self, instance_data: dict) -> CloudServerInstance:
+        instance_data.pop('price')
         instance = CloudServerInstance(**instance_data)
         self.db.add(instance)
         self.db.flush()  # 获取 instance.id
