@@ -36,13 +36,13 @@ class AliyunService:
         self,
         region_id: str,
         instance_type_id: str,
-        architecture: str = None,
+        # architecture: str = None,
     ):
         cache_data = await self.cache.get_images(region_id)
         if cache_data:
             return cache_data
 
-        data = self.client.list_images(region_id, instance_type_id, architecture)
+        data = self.client.list_images(region_id, instance_type_id)
         await self.cache.set_images(region_id, data)
         return data
 

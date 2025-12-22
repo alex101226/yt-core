@@ -1,11 +1,12 @@
 # app/clients/aliyun_client.py
 from typing import List, Optional, Any
 import re
+from sqlalchemy import Null
 
 from alibabacloud_ecs20140526.client import Client as EcsClient
 from alibabacloud_ecs20140526 import models as ecs_models
 from alibabacloud_tea_openapi.exceptions import ClientException
-from sqlalchemy import Null
+
 
 from app.common.credentials_manager import CredentialsManager
 from app.clients.base import BaseCloudClient
@@ -297,33 +298,39 @@ class AliyunClient(BaseCloudClient):
     def list_images(self,
         region_id: Optional[str] = None,
         instance_type_id: str = None,
-        architecture: str = None,
         ) -> List[dict]:
-        request = ecs_models.DescribeImagesRequest(
-            region_id=region_id,
-            instance_type=instance_type_id,
-            architecture=architecture,
-            image_owner_alias="system",
-            status="Available"
-        )
-        response = self.client.describe_images(request)
-        images = response.body.images.image or []
-        return [
-            {
-                "image_id": i.image_id,
-                "image_name": i.image_name,
-                "size": i.size,
-                "os_type": i.ostype,
-                "os_name": i.osname,
-                "architecture": i.architecture,
-                "platform": i.platform,
-                "boot_mode": i.boot_mode,
-                "creation_time": i.creation_time,
-            }
-            for i in images
-        ]
+        try:
+            request = ecs_models.DescribeImagesRequest(
+                region_id=region_id,
+                instance_type=instance_type_id,
+                # architecture=architecture,
+                image_owner_alias="system",
+                status="Available"
+            )
+            response = self.client.describe_images(request)
+            images = response.body.images.image or []
+            return [
+                {
+                    "image_id": i.image_id,
+                    "image_name": i.image_name,
+                    "size": i.size,
+                    "os_type": i.ostype,
+                    "os_name": i.osname,
+                    "architecture": i.architecture,
+                    "platform": i.platform,
+                    "boot_mode": i.boot_mode,
+                    "creation_time": i.creation_time,
+                }
+                for i in images
+            ]
+        except ClientException:
+            # 2️⃣ 兜底：其他云厂商错误
+            raise BusinessException(
+                code=ErrorCode.ALIYUN_EIP_PRICE_ERROR,
+                message="获取 ECS 镜像 失败，请稍后重试",
+            )
 
-    from typing import List, Optional
+
 
     # --------------------------
     # 系统盘种类
@@ -339,31 +346,39 @@ class AliyunClient(BaseCloudClient):
         查询某个规格可用的系统盘种类
         """
         # ECS 提供的接口是 DescribeAvailableResource 或者 DescribeDiskCategoriesRequest
-        request = ecs_models.DescribeAvailableResourceRequest(
-            region_id=region_id,
-            zone_id=zone_id,
-            instance_type=instance_type_id,
-            instance_charge_type=instance_charge_type,
-            destination_resource="SystemDisk",
-        )
+        try:
 
-        response = self.client.describe_available_resource(request)
+            request = ecs_models.DescribeAvailableResourceRequest(
+                region_id=region_id,
+                zone_id=zone_id,
+                instance_type=instance_type_id,
+                instance_charge_type=instance_charge_type,
+                destination_resource="SystemDisk",
+            )
 
-        # 提取可用区数据
-        available_zones = getattr(response.body.available_zones, "available_zone", []) or []
+            response = self.client.describe_available_resource(request)
 
-        # 由于我们只指定了 zone_id，一般只有一个元素
-        if not available_zones:
-            return []
+            # 提取可用区数据
+            available_zones = getattr(response.body.available_zones, "available_zone", []) or []
 
-        supported_resources = (
-            available_zones[0]
-            .available_resources.available_resource[0]
-            .supported_resources.supported_resource
-        )
+            # 由于我们只指定了 zone_id，一般只有一个元素
+            if not available_zones:
+                return []
 
-        # 返回磁盘种类列表（Value 字段）
-        return [res.value for res in supported_resources if res.status == "Available"]
+            supported_resources = (
+                available_zones[0]
+                .available_resources.available_resource[0]
+                .supported_resources.supported_resource
+            )
+
+            # 返回磁盘种类列表（Value 字段）
+            return [res.value for res in supported_resources if res.status == "Available"]
+        except ClientException:
+            # 2️⃣ 兜底：其他云厂商错误
+            raise BusinessException(
+                code=ErrorCode.ALIYUN_EIP_PRICE_ERROR,
+                message="获取磁盘类型失败，请稍后重试",
+            )
 
     # --------------------------
     # 实例规格（实例类型）     region_id: str, min_cpu: int = 1, min_memory: int = 1, architecture: str = "x86_64", bare_metal: bool = False
@@ -497,55 +512,62 @@ class AliyunClient(BaseCloudClient):
     #   资源类型 resource_type
     # --------------------------
     def list_available_instance_types(
-            self,
-            region_id: str = None,
-            zone_id: str = None,
-            instance_charge_type: str = None,
-            system_disk_category: str = None,
-            ):
-        request = ecs_models.DescribeAvailableResourceRequest(
-            region_id=region_id,
-            zone_id=zone_id,
-            destination_resource="InstanceType",
-            resource_type="instance",
-            instance_charge_type=instance_charge_type or "PrePaid",
-            system_disk_category=system_disk_category or "cloud_essd",
-        )
-        available_types = []
+        self,
+        region_id: str = None,
+        zone_id: str = None,
+        instance_charge_type: str = None,
+        system_disk_category: str = None,
+    ):
+        try:
+            request = ecs_models.DescribeAvailableResourceRequest(
+                region_id=region_id,
+                zone_id=zone_id,
+                destination_resource="InstanceType",
+                resource_type="instance",
+                instance_charge_type=instance_charge_type or "PrePaid",
+                system_disk_category=system_disk_category or "cloud_essd",
+            )
+            available_types = []
 
-        response = self.client.describe_available_resource(request)
-        body = response.body
-        if body:
-            available_zones = body.available_zones.available_zone or []
+            response = self.client.describe_available_resource(request)
+            body = response.body
+            if body:
+                available_zones = body.available_zones.available_zone or []
 
-            # 遍历可用区列表
-            if not isinstance(available_zones, list):
-                available_zones = [available_zones]
+                # 遍历可用区列表
+                if not isinstance(available_zones, list):
+                    available_zones = [available_zones]
 
-            for az in available_zones:
-                az_id = az.zone_id
-                resources = az.available_resources.available_resource or []
-                if not isinstance(resources, list):
-                    resources = [resources]
+                for az in available_zones:
+                    az_id = az.zone_id
+                    resources = az.available_resources.available_resource or []
+                    if not isinstance(resources, list):
+                        resources = [resources]
 
-                for resource in resources:
-                    supported_resources = resource.supported_resources.supported_resource or []
-                    if not isinstance(supported_resources, list):
-                        supported_resources = [supported_resources]
+                    for resource in resources:
+                        supported_resources = resource.supported_resources.supported_resource or []
+                        if not isinstance(supported_resources, list):
+                            supported_resources = [supported_resources]
 
-                    for inst in supported_resources:
-                        # 是否售罄 (Sold out), 库存充足(WithStock”), 库存不算充足(ClosedWithStock),当前售罄，但“将来会补货”(WithoutStock),售罄且不会补货 / 资源彻底不可用(ClosedWithoutStock)
+                        for inst in supported_resources:
+                            # 是否售罄 (Sold out), 库存充足(WithStock”), 库存不算充足(ClosedWithStock),当前售罄，但“将来会补货”(WithoutStock),售罄且不会补货 / 资源彻底不可用(ClosedWithoutStock)
 
-                        available_types.append({
-                            "instance_type_id": inst.value,
-                            "status": inst.status,
-                            "status_category": inst.status_category,
-                            "zone_id": az_id,
-                            # "max_available": getattr(inst, "max", None),
-                            # "unit": getattr(inst, "unit", None),
-                        })
+                            available_types.append({
+                                "instance_type_id": inst.value,
+                                "status": inst.status,
+                                "status_category": inst.status_category,
+                                "zone_id": az_id,
+                                # "max_available": getattr(inst, "max", None),
+                                # "unit": getattr(inst, "unit", None),
+                            })
 
-        return available_types
+            return available_types
+        except ClientException:
+            # 2️⃣ 兜底：其他云厂商错误
+            raise BusinessException(
+                code=ErrorCode.ALIYUN_EIP_PRICE_ERROR,
+                message="获取可用区资源失败，请稍后重试",
+            )
 
     # --------------------------
     # 获取 ECS 实例规格费用
@@ -560,33 +582,41 @@ class AliyunClient(BaseCloudClient):
         system_disk_category: str = None,
         period: int = 1,
     ):
-        req = ecs_models.DescribePriceRequest(
-            region_id=region_id,
-            instance_type=instance_type,
-        )
+        try:
 
-        if instance_charge_type == "PostPaid":  # 按量
-            req.price_unit = "Hour"
-        elif instance_charge_type == "PrePaid":  # 包年包月
-            req.price_unit = "Month"
-            req.period = period
-            req.period_unit = "Month"
-        elif instance_charge_type == "Spot":  # 抢占式
-            req.price_unit = "Hour"
-            req.spot_strategy = "SpotAsPriceGo"
+            req = ecs_models.DescribePriceRequest(
+                region_id=region_id,
+                instance_type=instance_type,
+            )
 
-        req.system_disk = ecs_models.DescribePriceRequestSystemDisk(
-            category=system_disk_category
-        )
+            if instance_charge_type == "PostPaid":  # 按量
+                req.price_unit = "Hour"
+            elif instance_charge_type == "PrePaid":  # 包年包月
+                req.price_unit = "Month"
+                req.period = period
+                req.period_unit = "Month"
+            elif instance_charge_type == "Spot":  # 抢占式
+                req.price_unit = "Hour"
+                req.spot_strategy = "SpotAsPriceGo"
 
-        resp = self.client.describe_price(req)
+            req.system_disk = ecs_models.DescribePriceRequestSystemDisk(
+                category=system_disk_category
+            )
 
-        detail_infos = resp.body.price_info.price.detail_infos.detail_info
+            resp = self.client.describe_price(req)
 
-        # 只取实例 + 系统盘价格
-        prices = {item.resource: item.trade_price for item in detail_infos}
-        normalized = {k.lower(): v for k, v in prices.items()}
-        return normalized
+            detail_infos = resp.body.price_info.price.detail_infos.detail_info
+
+            # 只取实例 + 系统盘价格
+            prices = {item.resource: item.trade_price for item in detail_infos}
+            normalized = {k.lower(): v for k, v in prices.items()}
+            return normalized
+        except ClientException:
+            # 2️⃣ 兜底：其他云厂商错误
+            raise BusinessException(
+                code=ErrorCode.ALIYUN_EIP_PRICE_ERROR,
+                message="获取 实例 价格失败，请稍后重试",
+            )
 
 
     #   获取服务器整体价格
@@ -599,48 +629,55 @@ class AliyunClient(BaseCloudClient):
         instance_charge_type: Optional[str],
         period: int = 1
     ):
+        try:
+            req = ecs_models.DescribePriceRequest(
+                region_id=region_id,
+                instance_type=instance_type_id,
+            )
 
-        req = ecs_models.DescribePriceRequest(
-            region_id=region_id,
-            instance_type=instance_type_id,
-        )
+            if instance_charge_type == "PostPaid":  # 按量
+                req.price_unit = "Hour"
+            elif instance_charge_type == "PrePaid":  # 包年包月
+                req.price_unit = "Month"
+                req.period = period
+                req.period_unit = "Month"
+            elif instance_charge_type == "Spot":  # 抢占式
+                req.price_unit = "Hour"
+                req.spot_strategy = "SpotAsPriceGo"
 
-        if instance_charge_type == "PostPaid":  # 按量
-            req.price_unit = "Hour"
-        elif instance_charge_type == "PrePaid":  # 包年包月
-            req.price_unit = "Month"
-            req.period = period
-            req.period_unit = "Month"
-        elif instance_charge_type == "Spot":  # 抢占式
-            req.price_unit = "Hour"
-            req.spot_strategy = "SpotAsPriceGo"
+            req.system_disk = ecs_models.DescribePriceRequestSystemDisk(
+                category=system_disk_category,
+                size=system_disk_size
+            )
 
-        req.system_disk = ecs_models.DescribePriceRequestSystemDisk(
-            category=system_disk_category,
-            size=system_disk_size
-        )
+            response = self.client.describe_price(req)
+            price_info = response.body.price_info
+            # 解析价格
+            result = {
+                "original_price": price_info.price.original_price,
+                "trade_price": price_info.price.trade_price,
+                "currency": price_info.price.currency,
+                "detail": [],
+            }
 
-        response = self.client.describe_price(req)
-        price_info = response.body.price_info
-        # 解析价格
-        result = {
-            "original_price": price_info.price.original_price,
-            "trade_price": price_info.price.trade_price,
-            "currency": price_info.price.currency,
-            "detail": [],
-        }
+            # systemDisk 的明细
+            details = price_info.price.detail_infos
+            if details and details.detail_info:
+                for d in details.detail_info:
+                    result["detail"].append({
+                        "resource": d.resource,  # systemDisk / instanceType 等
+                        "original_price": d.original_price,
+                        "trade_price": d.trade_price,
+                    })
 
-        # systemDisk 的明细
-        details = price_info.price.detail_infos
-        if details and details.detail_info:
-            for d in details.detail_info:
-                result["detail"].append({
-                    "resource": d.resource,  # systemDisk / instanceType 等
-                    "original_price": d.original_price,
-                    "trade_price": d.trade_price,
-                })
+            return result
+        except ClientException:
+            # 2️⃣ 兜底：其他云厂商错误
+            raise BusinessException(
+                code=ErrorCode.ALIYUN_EIP_PRICE_ERROR,
+                message="获取云服务价格失败，请稍后重试",
+            )
 
-        return result
 
     #   获取 EIP 带宽价格（按量计费）
     def client_eip_price(self, region_id: str, bandwidth: int, internet_charge_type: str):
@@ -656,7 +693,7 @@ class AliyunClient(BaseCloudClient):
 
             response = self.client.describe_price(req)
             price_info = response.body.price_info
-            # logger.info(f'来获取价格吧 --------------》〉》〉》〉》〉{response}')
+
             # 解析价格
             result = {
                 "original_price": price_info.price.original_price,

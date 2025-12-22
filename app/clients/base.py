@@ -30,7 +30,7 @@ class BaseCloudClient:
         self,
         region_id: Optional[str] = None,
         instance_type_id: str = None,
-        architecture: str = None) -> List[dict]:
+    ) -> List[dict]:
         raise NotImplementedError
 
     # 获取磁盘种类

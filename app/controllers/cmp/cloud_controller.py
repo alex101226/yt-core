@@ -57,9 +57,8 @@ async def list_zones(
 @router.get("/images")
 async def list_images(
     user_id: int = Query(..., description="用户id"),
-    region_id: str = Query(..., description="Region ID"),
-    instance_type_id: str = Query(..., description="Instance Type ID"),
-    architecture: str = Query(..., description="Architecture, e.g., x86_64"),
+    region_id: str = Query(..., description="区域 ID"),
+    instance_type_id: str = Query(..., description="计费方式"),
     service: UserCertificateService = Depends(get_user_certificate_service)
 ):
     # 1️⃣ 查用户凭证
@@ -68,7 +67,7 @@ async def list_images(
         access_key_id=cer_data.cloud_access_key_id,
         access_key_secret=cer_data.cloud_access_key_secret
     )
-    images = await aliyun_service.list_images(region_id, instance_type_id, architecture)
+    images = await aliyun_service.list_images(region_id, instance_type_id)
     return Response.success(images)
 
 # -----------------------------
