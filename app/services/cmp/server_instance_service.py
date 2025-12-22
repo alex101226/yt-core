@@ -121,7 +121,7 @@ class InstanceService:
                             "description": f"系统盘，挂载到实例 {instance.instance_name}",
                             "tags": []
                         }
-                        self.cbs_service.cbs_create_s(user_id, CbsDiskCreate(**disk_data))
+                        self.cbs_service.cbs_create_s(user_id, disk_data)
 
                 #   绑定安全组
                 self.resource_bind_service.bind(
