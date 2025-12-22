@@ -12,6 +12,7 @@ class BareMetalInstanceRepo:
 
     # 创建裸金属
     def bare_metal_create(self, data: dict):
+        data.pop('price')
         instance = BareMetalInstance(**data)
         self.db.add(instance)
         self.db.flush()
