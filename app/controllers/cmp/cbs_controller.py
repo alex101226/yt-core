@@ -29,12 +29,13 @@ def cbs_create(
     service: CbsService = Depends(get_cbs_disk_service)
 ):
     user_id = request.state.user.get('user_id')
-    result = service.cbs_create(user_id, data)
+    result = service.cbs_create_s(user_id, data.model_dump())
     return Response.success(result)
 
 # 分页列表
-@router.post("/cbs_page_list")
+@router.get("/cbs_page_list")
 def cbs_page_list(
+    request: Request,
     page: int = Query(..., description="第几页"),
     page_size: int = Query(..., description="页码"),
     provider_code: str = Query(None, description="云厂商 code"),
@@ -45,7 +46,8 @@ def cbs_page_list(
     # tag: Optional[List[str]] = Query(None, description="标签"),
     service: CbsService = Depends(get_cbs_disk_service)
 ):
-    result = service.cbs_page_list(page, page_size, provider_code, region_id, zone_id, resource_group_id, cbs_id)
+    user_id = request.state.user.get('user_id')
+    result = service.cbs_page_list(user_id, page, page_size, provider_code, region_id, zone_id, resource_group_id, cbs_id)
     return Response.success(result)
 
 

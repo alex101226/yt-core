@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from datetime import datetime, timezone
 from nanoid import generate
 
+from app.common.util import gen_random_name
 from app.common.exceptions import BusinessException
 from app.common.status_code import ErrorCode
 from app.common.messages import Message
@@ -17,7 +18,7 @@ from app.services.cmp.resource_group_service import ResourceGroupService
 from app.schemas.cmp.resource_group_schema import ResourceGroupBindingCreate
 
 from app.services.cmp.cbs_service import CbsService
-from app.schemas.cmp.cbs_disk_schema import CbsDiskCreate
+# from app.schemas.cmp.cbs_disk_schema import CbsDiskCreate
 
 from app.repositories.cmp.server_instance_repo import ServerInstanceRepo
 from app.schemas.cmp.server_instance_schema import (
@@ -85,6 +86,7 @@ class InstanceService:
                     "region_id": data.region_id,
                     "zone_id": data.zone_id,
                     "resource_group_id": data.resource_group_id,
+                    "disk_name": gen_random_name('cbs'),
                     "disk_type": "system",  # 磁盘类型：system 系统盘 / data 数据盘。
                     "disk_category": data.system_disk_category, # 磁盘种类，例如：cloud、cloud_ssd、cloud_essd_pl0 等
                     "disk_size": data.system_disk_size, # 磁盘大小
@@ -109,6 +111,7 @@ class InstanceService:
                             "region_id": data.region_id,
                             "zone_id": data.zone_id,
                             "resource_group_id": data.resource_group_id,
+                            "disk_name": gen_random_name('cbs'),
                             "disk_type": "data",  # 磁盘类型：system 系统盘 / data 数据盘。
                             "disk_category": disk.disk_category, # 磁盘种类，例如：cloud、cloud_ssd、cloud_essd_pl0 等
                             "disk_size": disk.disk_size, # 磁盘大小

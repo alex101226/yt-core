@@ -1,10 +1,9 @@
-import json
 from datetime import datetime, timezone
-
-from sqlalchemy import func, or_
 
 from sqlalchemy.orm import Session
 from typing import Optional, List
+
+from app.models.cmp.resource_group import ResourceGroup
 
 from app.models.cmp.cbs_disk import CbsDisk
 from app.schemas.cmp.cbs_disk_schema import CbsDiskCreate
@@ -20,13 +19,14 @@ class CbsDiskRepository:
         self.db.flush()
         # self.db.commit()
         # self.db.refresh(disk)
-        return True
+        return disk
 
     def get_find(self, disk_id: int):
         return self.db.query(CbsDisk).filter(CbsDisk.id == disk_id, CbsDisk.is_released == 0).first()
 
     def get_page_list(
         self,
+        user_id: int,
         page: int,
         page_size: int,
         provider_code: Optional[str] = None,
@@ -37,6 +37,7 @@ class CbsDiskRepository:
     ):
         query = self.db.query(
             CbsDisk.id,
+            CbsDisk.disk_name,
             CbsDisk.created_at,
             CbsDisk.updated_at,
             CbsDisk.disk_id,
@@ -62,8 +63,13 @@ class CbsDiskRepository:
             CbsDisk.last_snapshot_time,
             CbsDisk.tags,
             CbsDisk.description,
+            CbsDisk.status,
+            ResourceGroup.rg_name.label('resource_group_name'),
+        ).outerjoin(
+            ResourceGroup,
+            ResourceGroup.id == CbsDisk.resource_group_id,
         )
-        filters = []
+        filters = [CbsDisk.user_id == user_id]
         if provider_code is not None:
             filters.append(CbsDisk.cloud_provider_code == provider_code)
         if region_id is not None:

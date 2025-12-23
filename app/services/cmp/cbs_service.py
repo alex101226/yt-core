@@ -2,6 +2,7 @@ from typing import List, Optional
 from sqlalchemy.orm import Session
 from nanoid import generate
 
+from app.core.logger import logger
 from app.repositories.cmp.cbs_repo import CbsDiskRepository
 from app.schemas.cmp.cbs_disk_schema import CbsDiskBase, CbsDiskCreate, CbsDiskOut, CbsDiskPage
 
@@ -18,20 +19,25 @@ class CbsService:
 
     #   创建硬盘
     def cbs_create_s(self, user_id: int, data: dict):
+        # logger.info(f'查看 {data}')
         payload = {
             **data,
             "user_id": user_id,
             "disk_id": f"CBS-{generate(size=12)}",
             "encrypted": False,
             "status": "InUse" if data['attached_instance_id'] else "Available",
-            "attached_time": data['attached_time'] if data['attached_time']  else None,
+            "attached_time": data.get('attached_time', None),
+            "is_attached": bool(data.get('attached_instance_id')),
         }
         result = self.repo.cbs_create(payload)
+        self.db.commit()
+        self.db.refresh(result)
         return result
 
     # 返回分页列表
     def cbs_page_list(
         self,
+        user_id: int,
         page: int,
         page_size: int,
         provider_code: Optional[str] = None,
@@ -40,7 +46,7 @@ class CbsService:
         resource_group_id: Optional[int] = None,
         cbs_id: Optional[str] = None
     ) -> CbsDiskPage:
-        items, total = self.repo.get_page_list(page, page_size, provider_code, region_id, zone_id, resource_group_id, cbs_id)
+        items, total = self.repo.get_page_list(user_id, page, page_size, provider_code, region_id, zone_id, resource_group_id, cbs_id)
         item_out = [CbsDiskOut.model_validate(s) for s in items]
         return CbsDiskPage(
             total=total,

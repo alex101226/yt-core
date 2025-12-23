@@ -8,6 +8,7 @@ class CbsDiskBase(BaseModel):
     zone_id: str
     resource_group_id: int
 
+    disk_name: Optional[str] = None
     disk_type: str
     disk_category: str
     disk_size: int
@@ -30,6 +31,8 @@ class CbsDiskOut(CbsDiskBase):
     id: int
     created_at: datetime
     updated_at: datetime
+    status: Optional[str] = None
+    resource_group_name: Optional[str] = None
 
     class Config:
         from_attributes = True

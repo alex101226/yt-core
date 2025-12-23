@@ -26,6 +26,14 @@ class CbsDisk(CmpBase, IsReleasedMixin):
         comment="云厂商返回的云盘 ID"
     )
 
+    disk_name = Column(
+        String(64),
+        unique=True,
+        index=True,
+        nullable=False,
+        comment="磁盘名称"
+    )
+
     cloud_provider_code = Column(
         String(32),
         nullable=False,
@@ -96,15 +104,15 @@ class CbsDisk(CmpBase, IsReleasedMixin):
         nullable=True,
         comment="购买时长（月），仅当 PrePaid 时有效"
     )
-    expired_time = Column(
-        DateTime,
-        nullable=True,
-        comment="云盘到期时间（UTC）"
-    )
     auto_renew = Column(
         Boolean,
         default=False,
         comment="是否自动续费：1 是 / 0 否"
+    )
+    expired_time = Column(
+        DateTime(timezone=True),
+        nullable=True,
+        comment="云盘到期时间（UTC）"
     )
 
     # 状态
@@ -116,6 +124,11 @@ class CbsDisk(CmpBase, IsReleasedMixin):
     )
 
     # 挂载相关
+    is_attached = Column(
+        Boolean,
+        default=False,
+        comment="是否自动挂载"
+    )
     attached_instance_id = Column(
         String(64),
         nullable=True,
