@@ -16,10 +16,8 @@ class CbsService:
         self.db = db
         self.repo = CbsDiskRepository(db)
 
-
-    #   创建硬盘
-    def cbs_create_s(self, user_id: int, data: dict):
-        # logger.info(f'查看 {data}')
+    # 硬盘模块创建
+    def cbs_create(self, user_id: int, data: dict):
         payload = {
             **data,
             "user_id": user_id,
@@ -32,6 +30,22 @@ class CbsService:
         result = self.repo.cbs_create(payload)
         self.db.commit()
         self.db.refresh(result)
+        return True
+
+    #   自动创建cbs
+    def cbs_create_auto(self, user_id: int, data: dict):
+        # logger.info(f'查看 {data}')
+        payload = {
+            **data,
+            "user_id": user_id,
+            "disk_id": f"CBS-{generate(size=12)}",
+            "encrypted": False,
+            "status": "InUse" if data['attached_instance_id'] else "Available",
+            "attached_time": data.get('attached_time', None),
+            "is_attached": bool(data.get('attached_instance_id')),
+        }
+        result = self.repo.cbs_create(payload)
+
         return result
 
     # 返回分页列表
