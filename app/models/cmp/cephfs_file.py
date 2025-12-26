@@ -32,7 +32,6 @@ class CephfsFile(CmpBase, IsReleasedMixin):
     storage_type = Column(String(64), nullable=False, comment="存储类型：普通 / 高性能 / 冷存储等")
     capacity_gb = Column(Integer, nullable=False, comment="分配容量（GB）")
     used_size_gb = Column(Integer, default=0, comment="已使用容量（GB）")
-    # used_capacity_gb = Column(Integer, default=0, comment="已使用容量（GB）")
     price = Column(Float, nullable=True, comment="价格（可按月或按量计费）")
 
     # -------------------------------

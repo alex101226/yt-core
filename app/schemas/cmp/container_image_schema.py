@@ -26,6 +26,7 @@ class ContainerImageOut(ContainerImageSchema):
     status: Optional[str] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
+    resource_group_name: Optional[str] = None
 
     class Config:
         from_attributes = True

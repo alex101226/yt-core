@@ -5,6 +5,8 @@ from sqlalchemy.orm import Session
 from app.core.logger import logger
 from app.models.cmp.image_repository import ImageRepository
 
+from app.models.cmp.resource_group import ResourceGroup
+
 class ContainerImageRepository:
     def __init__(self, db: Session):
         self.db = db
@@ -25,7 +27,7 @@ class ContainerImageRepository:
             page_size: int,
             provider_code: Optional[str] = None,
             region_id: Optional[str] = None,
-            resource_group_id: Optional[int] = None,
+            resource_group_id: Optional[str] = None,
             repository_name: str = None
     ):
         query = self.db.query(
@@ -43,7 +45,11 @@ class ContainerImageRepository:
             ImageRepository.charge_type,
             ImageRepository.created_by,
             ImageRepository.created_at,
-            ImageRepository.updated_at
+            ImageRepository.updated_at,
+            ResourceGroup.rg_name.label('resource_group_name'),
+        ).outerjoin(
+            ResourceGroup,
+            ResourceGroup.id == ImageRepository.resource_group_id
         )
         filters = [ImageRepository.created_by == user_id]
         if provider_code:

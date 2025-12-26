@@ -54,9 +54,10 @@ def cephfs_page_list(
 def cephfs_list(
     request: Request,
     region_id: str = Query(..., description="区域的id"),
+    status: Optional[str] = Query(None, description="状态"),
     service: CephfsFileService = Depends(get_cephfs_service),
 ):
     user_id = request.state.user.get('user_id')
-    result = service.cephfs_list(user_id, region_id)
+    result = service.cephfs_list(user_id, region_id, status)
     return Response.success(result)
 

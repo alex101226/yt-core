@@ -17,7 +17,6 @@ def get_con_image_service(
 ):
     return ContainerImageService(db)
 
-
 router = APIRouter(
     prefix="/container_image",
     tags=["容器镜像服务"],
@@ -27,7 +26,7 @@ router = APIRouter(
 #   创建容器镜像
 @router.post("/con_image_create")
 def image_create(
-    data: ContainerImageCreate,
+    data: dict,
     request: Request,
     service: ContainerImageService = Depends(get_con_image_service)
 ):
@@ -43,7 +42,7 @@ def con_image_page_list(
     page_size: int = Query(..., description="页码"),
     provider_code: str = Query(None, description="云厂商 code"),
     region_id: Optional[str] = Query(None, description="区域 id"),
-    resource_group_id: Optional[int] = Query(None, description="资源组 id"),
+    resource_group_id: Optional[str] = Query(None, description="资源组 id"),
     repository_name: Optional[str] = Query(None, description="名称"),
     service: ContainerImageService = Depends(get_con_image_service),
 ):

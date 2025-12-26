@@ -46,8 +46,8 @@ class CephfsFileService:
 
 
     # 返回gpfs的列表
-    def cephfs_list(self, user_id: int, region_id: str):
-        result = self.repo.cephfs_list(user_id, region_id)
+    def cephfs_list(self, user_id: int, region_id: str, status: Optional[str] = None):
+        result = self.repo.cephfs_list(user_id, region_id, status)
         # logger.info(f'查看列表呗 {result}')
         if not result:
             raise BusinessException(

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Integer, Boolean, DateTime, Enum, DECIMAL, JSON
+from sqlalchemy import Column, String, Integer, Boolean, DateTime, Enum, DECIMAL, JSON, Float
 from datetime import datetime, timezone
 
 from app.core.database import CmpBase
@@ -19,9 +19,12 @@ class ImageRepository(CmpBase, IsReleasedMixin):
     namespace_list = Column(JSON, default=list, comment="命名空间列表")
 
     # 实例规格
-    instance_spec = Column(String(64), nullable=True, default="Basic", comment="实例规格")
+    instance_spec = Column(String(64), default="Basic", comment="实例规格")
     capacity_gb = Column(Integer, nullable=True, comment="配置的总容量（GB）")
     used_capacity_gb = Column(Integer, default=0, comment="已使用容量（GB）")
+
+    # 实例存储
+    cephfs_id = Column(Integer, nullable=False, comment="实例存储id")
 
     # 访问方式
     endpoint_type = Column(String(64), nullable=False, default="PUBLIC", comment="访问方式, 字典表item_code=ENDPOINT_TYPE")
@@ -33,7 +36,8 @@ class ImageRepository(CmpBase, IsReleasedMixin):
 
     # 计费相关
     charge_type = Column(String(32), default="PrePaid", comment="计费方式：PrePaid / PostPaid")
-    expires_at = Column(DateTime(timezone=True), nullable=True, comment="到期时间（包年包月）")
+    expires_at = Column(DateTime(timezone=True), nullable=True, comment="到期时间")
+    price = Column(DECIMAL(18,2), nullable=True, comment="单价")
 
     cloud_provider_code = Column(String(30), nullable=False, comment="云厂商code")
     region_id = Column(String(100), nullable=False, comment="区域ID")

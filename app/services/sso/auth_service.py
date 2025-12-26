@@ -1,21 +1,21 @@
 # app/services/auth_service.py
+from fastapi import Depends
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta, timezone
 from app.core.security import hash_password, verify_password, create_access_token, create_refresh_token, \
     REFRESH_EXPIRE_DAYS
 
-from app.models.sso.user import User
-from app.models.sso.session import UserSession
-from app.services.sso.session_service import SessionService
-
-from app.repositories.sso.user_repo import UserRepository
-from app.repositories.sso.session_repo import SessionRepository
-from app.schemas.sso.auth_schema import LoginRequest, TokenResponse, UserRegister
-
 from app.common.status_code import ErrorCode
 from app.common.messages import Message
 from app.common.exceptions import BusinessException
 from app.core.logger import logger
+
+from app.models.sso.session import UserSession
+
+
+from app.repositories.sso.user_repo import UserRepository
+from app.repositories.sso.session_repo import SessionRepository
+from app.schemas.sso.auth_schema import LoginRequest, TokenResponse, UserRegister
 
 class AuthService:
     def __init__(self, db: Session):
@@ -52,7 +52,12 @@ class AuthService:
         # tokens = SessionService(self.db).create_session_for_user(user)
         self.session_repo.create(session_model)
 
-        return TokenResponse(access_token=access, refresh_token=refresh, token_type="bearer")
+        return TokenResponse(
+            access_token=access,
+            refresh_token=refresh,
+            token_type="bearer",
+            user_id=user.id,
+        )
 
     def refresh(self, refresh_token: str) -> TokenResponse:
         # 找到 DB 中的会话
@@ -103,16 +108,20 @@ class AuthService:
 
         # 保存 refresh 到 DB（expires_at）
         expires_at = datetime.now(timezone.utc) + timedelta(days=REFRESH_EXPIRE_DAYS)
+
+        # 自动创建 refresh token 并返回 token
         session_model = UserSession(
             user_id=new_user.id,
             refresh_token=refresh,
             expires_at=expires_at,
         )
-        # tokens = SessionService(self.db).create_session_for_user(user)
         self.session_repo.create(session_model)
-        # 自动创建 refresh token 并返回 token
-        # tokens = SessionService(self.db).create_session_for_user(new_user)
 
         self.db.commit()
         self.db.refresh(new_user)
-        return TokenResponse(access_token=access, refresh_token=refresh, token_type="bearer")
+        return TokenResponse(
+            access_token=access,
+            refresh_token=refresh,
+            token_type="bearer",
+            user_id=new_user.id
+        )

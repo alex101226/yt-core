@@ -69,24 +69,36 @@ class CephfsFileRepository:
         items = query.order_by(CephfsFile.id.desc()).offset(offset_value).limit(page_size).all()
         return items, total
 
-
-
     # 下拉列表接口
-    def cephfs_list(self, user_id: int, region_id: str):
-        rows = self.db.query(
+    def cephfs_list(self, user_id: int, region_id: str, status: str = None):
+        query = self.db.query(
             CephfsFile.id,
             CephfsFile.fs_name,
-        ).filter(
+            CephfsFile.capacity_gb,
+            CephfsFile.price,
+            CephfsFile.status,
+        )
+        filters = [
             CephfsFile.is_released == 0,
             CephfsFile.region_id == region_id,
             CephfsFile.user_id == user_id,
-        ).order_by(CephfsFile.id.desc()).all()
+        ]
+        if status:
+            filters.append(CephfsFile.status == status)
+
+        if filters:
+            query = query.filter(*filters)
+
+        rows = query.order_by(CephfsFile.id.desc()).all()
         if not rows:
             return None
         return [
             {
                 "id": row.id,
                 "fs_name": row.fs_name,
+                "capacity_gb": row.capacity_gb,
+                "price": row.price,
+                "status": row.status,
             }
             for row in rows
         ]
