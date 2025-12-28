@@ -20,9 +20,10 @@ router = APIRouter(
 )
 
 #   cbs创建
-@router.post("/cbs_create")
+@router.post("/cluster_create")
 def cbs_create(
-    data: ClusterCreateSchema,
+    # data: ClusterCreateSchema,
+    data: dict,
     request: Request,
     service: ClusterService = Depends(get_cluster_service)
 ):

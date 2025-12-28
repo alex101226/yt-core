@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, JSON
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, JSON, DECIMAL
 
 from app.core.config import settings
 from app.core.database import CmpBase
@@ -18,24 +18,30 @@ class ClusterNodePool(CmpBase, IsReleasedMixin):
     node_pool_type = Column(String(20), default="NODE_POOL_TYPE", comment="节点池类型，字典：NODE_POOL_TYPE")
 
     node_type = Column(String(32), nullable=False, comment="节点类型：ecs/bms")
-    instance_types = Column(JSON, nullable=False, comment="可选实例规格列表(JSON 数组)")
-
+    # instance_types = Column(JSON, nullable=False, comment="可选实例规格列表(JSON 数组)")
 
     # 计费方式
     charge_type = Column(String(32), nullable=False, comment="计费方式：PostPaid/PrePaid")
     period = Column(Integer, nullable=True, comment="包年包月时长（月单位），按量付费可为空")
     auto_renew = Column(Boolean, default=False, comment="是否开启自动续费")
+    price = Column(DECIMAL(18, 2), nullable=True, comment="单价")
+
 
     desired_size = Column(Integer, nullable=False, comment="期望节点数")
-    min_size = Column(Integer, nullable=False, default=1, comment="最小节点数")
-    max_size = Column(Integer, nullable=False, default=10, comment="最大节点数")
-
     scaling_policy = Column(String(32), nullable=True, comment="扩缩容策略，字典表type_code=SCALING_POLICY")
     auto_repair = Column(Boolean, default=True, comment="异常节点自动替换")
 
+    # ---------- 规格 ----------
+    instance_type = Column(String(20), nullable=True, comment="实例规格类型，例如：如 ecs/bms/lb")
+    instance_type_id = Column(String(100), nullable=False, comment="实例规格 ID，如 ecs.g6.large")
+    cpu = Column(Integer, nullable=True, comment="CPU核数")
+    gpu_memory = Column(Integer, nullable=True, comment="GPU 显存")
+    gpu_spec = Column(String(100), nullable=True, comment="GPU类型")
+    gpu_amount = Column(Integer, nullable=True, comment="GPU数量")
+    system_disk_category = Column(String(50), nullable=False, comment="系统盘类型，例如 cloud_ssd")
+    system_disk_size = Column(Integer, nullable=False, comment="系统盘大小")
     image_id = Column(String(128), nullable=False, comment="系统镜像ID")
-    system_disk_type = Column(String(32), nullable=False, comment="系统盘类型，如 cloud_ssd")
-    system_disk_size = Column(Integer, nullable=False, comment="系统盘大小 GB")
+
 
     admin_password = Column(String(128), nullable=True, comment="节点管理员密码（加密后）")
     labels = Column(JSON, nullable=True, comment="节点池通用标签")

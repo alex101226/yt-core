@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, JSON
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, JSON, DECIMAL
 
 from app.core.config import settings
 from app.core.database import CmpBase
@@ -29,11 +29,12 @@ class K8sCluster(CmpBase, IsReleasedMixin):
     charge_type = Column(String(32), nullable=False, comment="计费方式：PostPaid/PrePaid")
     period = Column(Integer, nullable=True, comment="包年包月时长（月单位），按量付费可为空")
     auto_renew = Column(Boolean, default=False, comment="是否开启自动续费")
+    price = Column(DECIMAL(18, 2), nullable=True, comment="单价")
 
     # 集群配置
     cluster_version = Column(String(32), nullable=False, comment="K8s 版本")
     cluster_type = Column(String(32), default="managed", comment="集群类型：managed/self_managed/edge")
-    cluster_spec = Column(String(50), nullable=False, comment="集群支持的最大节点数量")
+    # cluster_spec = Column(String(50), nullable=False, comment="集群支持的最大节点数量")
 
     # 控制平面
     master_count = Column(Integer, default=1, comment="Master 节点数量")

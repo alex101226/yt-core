@@ -24,6 +24,7 @@ class VpcOut(VpcBase):
     id: int
     vpc_id: str
     status: str
+    service_cidr: Optional[str]
     created_at: datetime
     updated_at: datetime
 
