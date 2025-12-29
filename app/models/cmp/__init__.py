@@ -43,3 +43,5 @@ from .funds_flow import FundsFlow
 
 from .product_order import ProductOrder
 from .product_order_detail import ProductOrderDetail
+
+from .invoice_email import InvoiceEmail

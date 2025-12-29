@@ -10,8 +10,6 @@ from app.core.logger import logger
 from app.schemas.cmp.eip_schema import EIPSchema, EIPCreate, EIPSave
 from app.services.cmp.eip_service import EIPService
 
-from app.enums.enums import EipStatus
-
 def get_eip_service(db: Session = Depends(get_cmp_db)):
     return EIPService(db)
 
