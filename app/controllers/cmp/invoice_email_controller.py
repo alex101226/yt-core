@@ -20,7 +20,7 @@ router = APIRouter(
 )
 
 # 分页
-@router.post('/invoice_email_page_list')
+@router.get('/invoice_email_page_list')
 def invoice_email_page_list(
     request: Request,
     page: int,
@@ -31,7 +31,6 @@ def invoice_email_page_list(
     result = service.invoice_email_page_list(user_id, page, page_size)
     return Response.success(result)
 
-# eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo3LCJ1c2VybmFtZSI6InF3ZTEyMyIsImV4cCI6MTc2NzIwMTc2NiwidHlwZSI6ImFjY2VzcyJ9.WfAopsuCD7pT0aJu0xuxiLX-EOsR5xTgp78CdD2FaiQ
 @router.post('/invoice_email_create')
 def invoice_email_create(
     request: Request,
