@@ -99,7 +99,6 @@ class EipRepository:
         self.db.refresh(eip_find)
         return True
 
-
     # 根据eip的自增id
     def get_eip_by_id(self, eip_id: int) -> Optional[type[Eip]]:
         return self.db.get(Eip, eip_id)

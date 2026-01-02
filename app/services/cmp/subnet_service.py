@@ -91,3 +91,15 @@ class SubnetService:
         obj = self.subnet_repo.release(obj)
         return obj
 
+    # 子网修改
+    def update_subnet(self, subnet_id: int):
+        find = self.subnet_repo.get(str(subnet_id))
+        subnet_payload = {
+            "used_count": find.used_count + 1,
+        }
+        if find.status != "IN_USE":
+            subnet_payload["status"] = "IN_USE"
+
+        result = self.subnet_repo.update_subnet(find, subnet_payload)
+        return result
+

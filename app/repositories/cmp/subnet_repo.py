@@ -152,3 +152,11 @@ class SubnetRepository:
         items = query.offset((page - 1) * page_size).limit(page_size).all()
         # logger.info(f'看下这个列表 {items}')
         return items, total
+
+
+    # 子网修改
+    def update_subnet(self, subnet: Subnet, data: dict):
+        for key, value in data.items():
+            if hasattr(subnet, key):
+                setattr(subnet, key, value)
+        return subnet

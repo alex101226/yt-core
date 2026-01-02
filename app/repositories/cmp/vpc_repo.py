@@ -135,6 +135,13 @@ class VpcRepository:
         items = query.offset((page - 1) * page_size).limit(page_size).all()
         return total, items
 
+    # vpc绑定
+    def update_vpc(self, find: Vpc, data: dict):
+        for key, value in data.items():
+            if hasattr(find, key):
+                setattr(find, key, value)
+        return find
+
     # 释放（逻辑删除）
     def release(self, vpc: Vpc) -> bool:
         vpc.is_released = 1
@@ -145,5 +152,5 @@ class VpcRepository:
         return True
 
 
-    def get(self, vpc_id: int) -> Vpc:
-        return self.db.query(Vpc).get(vpc_id)
+    def get(self, vpc_id: int):
+        return self.db.query(Vpc).filter_by(id=vpc_id).first()

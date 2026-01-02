@@ -75,3 +75,16 @@ class VPCService:
         if vpc_release:
             return True
         return False
+
+
+    # 修改vpc
+    def update_vpc(self, vpc_id: int):
+        find = self.vpc_repo.get(vpc_id)
+        vpc_payload = {
+            "used_count": find.used_count + 1,
+        }
+        if find.status != "IN_USE":
+            vpc_payload["status"] = "IN_USE"
+
+        result = self.vpc_repo.update_vpc(find, vpc_payload)
+        return result

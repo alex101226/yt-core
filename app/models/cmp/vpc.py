@@ -14,8 +14,10 @@ class Vpc(CmpBase, IsReleasedMixin):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     created_by = Column(Integer, index=True, nullable=False, comment="属于哪个用户")
+
     # 云资源 ID（AWS: vpc-xxx, 阿里云: vpc-xxxx），自己创建的会自动生成12位随机值
     vpc_id = Column(String(50), nullable=True, comment="云厂商返回的 VPC ID")
+
     # 基本信息
     vpc_name = Column(String(100), nullable=False, comment="VPC 名称")
     description = Column(Text, nullable=True, comment="VPC 描述信息")
@@ -31,6 +33,9 @@ class Vpc(CmpBase, IsReleasedMixin):
     # 网络类型
     network_type = Column(String(20), nullable=False, comment="网络类型，例如 VPC/CLASSIC")
     service_cidr = Column(String(64), nullable=False, comment="网段")
+
+    # 被使用次数
+    used_count = Column(Integer, default=0, comment="被使用次数")
 
     status = Column(String(50), default="AVAILABLE", comment="vpc的状态，字典表type_code=VPC_STATUS")
     sync_status = Column(

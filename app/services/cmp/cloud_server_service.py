@@ -12,6 +12,8 @@ from app.core.logger import logger
 from app.common.ipaddress import allocate_private_ip
 from app.core.security import hash_password
 
+from app.services.cmp.subnet_service import SubnetService
+from app.services.cmp.vpc_service import VPCService
 from app.services.cmp.eip_service import EIPService
 
 from app.services.cmp.resource_group_service import ResourceGroupService
@@ -25,6 +27,7 @@ from app.schemas.cmp.server_instance_schema import (
 InstanceActionSchema, InstanceUpdatePassword, InstanceCreateSchema, InstanceBaseOut, InstancePage
 )
 
+
 class InstanceService:
     def __init__(self, db: Session):
         self.db = db
@@ -32,11 +35,19 @@ class InstanceService:
         self.cbs_service = CbsService(db)
         self.resource_bind_service = ResourceGroupService(db)
         self.eip_service = EIPService(db)
+        self.vpc_service = VPCService(db)
+        self.subnet_service = SubnetService(db)
 
     # 创建服务器
     def create_instance(self, user_id: int, data: InstanceCreateSchema):
         try:
             with self.db.begin():
+                #  设置vpc
+                self.vpc_service.update_vpc(data.vpc_id)
+
+                # 设置子网
+                self.subnet_service.update_subnet(data.vswitch_id)
+
                 # 先查子网
                 subnet_all = self.repo.get_find_by_subnet_id(data.vswitch_id)
                 private_ips = {row.private_ip for row in subnet_all}

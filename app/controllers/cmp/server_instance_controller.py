@@ -5,7 +5,7 @@ from enum import Enum
 from sqlalchemy.orm import Session
 
 from app.schemas.cmp.server_instance_schema import InstanceCreateSchema, InstanceActionSchema, InstanceUpdatePassword
-from app.services.cmp.server_instance_service import InstanceService
+from app.services.cmp.cloud_server_service import InstanceService
 from app.common.response import Response
 from app.common.dependencies import get_cmp_db
 from app.core.dependencies import require_user

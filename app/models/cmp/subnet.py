@@ -33,6 +33,9 @@ class Subnet(CmpBase, IsReleasedMixin):
     # 子网网段
     cidr_block = Column(String(50), nullable=False, comment="子网网段，例如 192.168.1.0/24")
 
+    # 被使用次数
+    used_count = Column(Integer, default=0, comment="被使用次数")
+
     # 子网的状态
     status = Column(String(50), default="AVAILABLE", comment="子网的状态，字典表type_code=SUBNET_STATUS")
 
