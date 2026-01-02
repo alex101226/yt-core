@@ -38,6 +38,7 @@ cluster_router,
 account_router,
 bill_router,
 invoice_email_router,
+invoice_router,
 # image_router,
 )
 
@@ -96,6 +97,7 @@ def create_app() -> FastAPI:
         container_image_router,
         cluster_router,
         invoice_email_router,
+        invoice_router,
         # image_router,
     ]
     for r in routers:

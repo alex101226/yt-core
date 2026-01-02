@@ -12,7 +12,10 @@ class InvoiceEmailRepo:
 
     # 返回分页列表
     def invoice_email_page_list(self, user_id: int, page: int, page_size: int):
-        query = self.db.query(InvoiceEmail).filter(InvoiceEmail.user_id == user_id).order_by(InvoiceEmail.id.desc())
+        query = self.db.query(InvoiceEmail).filter(
+            InvoiceEmail.user_id == user_id,
+            InvoiceEmail.is_released==0
+        ).order_by(InvoiceEmail.id.desc())
 
         total = query.count()
         items = query.offset((page - 1) * page_size).limit(page_size).all()

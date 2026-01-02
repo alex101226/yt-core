@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from app.common.response import Response
 from app.common.dependencies import get_cmp_db
 from app.core.dependencies import require_user
+from app.core.logger import logger
 
 from app.schemas.cmp.invoice_email_schema import InvoiceEmailSchema, InvoiceEmailUpdate
 from app.services.cmp.invoice_email_service import InvoiceEmailService
@@ -60,7 +61,7 @@ def invoice_email_delete(
     return Response.success(result)
 
 # 设置默认邮件
-@router.put('/invoice_email_default')
+@router.put('/invoice_email_default/{email_id}')
 def invoice_email_default(
     request: Request,
     email_id: int,

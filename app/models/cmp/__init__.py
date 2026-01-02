@@ -45,3 +45,4 @@ from .product_order import ProductOrder
 from .product_order_detail import ProductOrderDetail
 
 from .invoice_email import InvoiceEmail
+from .invoice import Invoice
