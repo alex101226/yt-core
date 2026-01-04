@@ -41,12 +41,6 @@ class BareMetalInstanceService:
     def bare_metal_instance_create(self, user_id: int, data: BareMetalInstanceCreate):
         try:
             with self.db.begin():
-                #  设置vpc
-                self.vpc_service.update_vpc(data.vpc_id)
-
-                # 设置子网
-                self.subnet_service.update_subnet(data.vswitch_id)
-
                 # 先查子网
                 subnet_all = self.repo.get_find_by_subnet_id(data.vswitch_id)
                 private_ips = {row.private_ip for row in subnet_all}
@@ -77,6 +71,13 @@ class BareMetalInstanceService:
 
                 if not instance:
                     return False
+
+                #  设置vpc
+                self.vpc_service.update_vpc(data.vpc_id)
+
+                # 设置子网
+                self.subnet_service.update_subnet(data.vswitch_id)
+
                 # 5. 是否需要公网 IP
                 public_ip = self.eip_service.allocate_eip(
                     provider_code=data.cloud_provider_code,
@@ -129,7 +130,6 @@ class BareMetalInstanceService:
         except BusinessException as exception:
             self.db.rollback()
             raise exception
-
 
     # 分页列表
     def bare_metal_page_list(

@@ -55,8 +55,8 @@ class EIPService:
                 )
                 self.resource_bind_service.bind(resource_data)
 
-                time = datetime.now(timezone.utc)
-                self.settle_eip_hourly(account, user_id, result, time, time)
+                # time = datetime.now(timezone.utc)
+                # self.settle_eip_hourly(account, user_id, result, time, time)
             return result
         except BusinessException as exception:
             self.db.rollback()
@@ -74,66 +74,74 @@ class EIPService:
 
         # 1. 创建商品订单 支付状态：PENDING/SUCCESS/FAILED
         order = self.account_service.product_create({
-            "order_no": f"EIP-{generate(size=10)}",
             "instance_id": eip.eip_id,
+            "region": eip.region_id,
+            "amount_payable": eip.price,
+            "created_by": eip.created_by,
+            "order_no": f"EIP-{generate(size=10)}",
             "cloud_provider_code": eip.cloud_provider_code,
             "product_id": 0,
             "product_name": "弹性公网EIP",
             "business_id": 0,
             "business_name": f'{eip.eip_name}按量付费',
             "order_type": order_type,
-            "pay_status": "PENDING",
-            "consume_type": "VOLUME_BASED",
-            "amount_payable": eip.price,
+            "consume_type": "VOLUME_BASED", # 消费类型：VOLUME_BASED=按量计费/PACKAGE_MONTHLY=包年月计费
             "use_credit": False,
             "use_voucher": False,
             "settlement_type": "PLATFORM",
             "account_id": account.id,
-            "created_by": eip.created_by,
             "charge_mode": "POSTPAID",
-        })
 
-        # 创建订单明细
-        bill_order = self.account_service.bill_details_create({
             "billing_period": start_at.strftime("%Y-%m"),
-            "region": eip.region_id,
             "billing_item_name": "EIP公网宽带",
-            "unit_price": eip.price,
-            "unit": "HOUR",
             "duration": 1,
             "coupon_amount": 0,
             "credit_amount": 0,
-            "balance_amount": eip.price,
             "voucher_amount": 0,
             "owe_amount": 0,
-            "order_id": order.id
         })
 
-        try:
-            # 2. 扣费
-            funds_flow_data = {
-                "user_id": user_id,
-                "account_id": account.id,
-                "flow_no": f"{datetime.now(timezone.utc).timestamp() * 1000}{order.id % 1000:03d}",
-                "direction": "OUT",
-                "flow_type": "PAY_ORDER",
-                "fund_type": "BALANCE",
-                "amount": eip.price,
-                "ref_type": "BILLING_DETAIL",
-                "ref_id": order.id,
-                "billing_period": datetime.now().strftime("%Y-%m"),
-                "channel": "USER_ACCOUNT",
-                "third_trade_no": order.order_no,
-                "description": f"{bill_order.billing_item_name}扣费",
-                "created_by": user_id,
-            }
-            self.account_service.pay(account.balance, funds_flow_data)
-            order.pay_status = "SUCCESS"
-            order.paid_at = datetime.now(timezone.utc)
-        except BusinessException:
-            logger.info(f'这里是扣款失败了')
-            order.pay_status = "FAILED"
-            bill_order.owe_amount = eip.price
+        # 创建订单明细
+        # bill_order = self.account_service.bill_details_create({
+        #     "billing_period": start_at.strftime("%Y-%m"),
+        #     "region": eip.region_id,
+        #     "billing_item_name": "EIP公网宽带",
+        #     "unit_price": eip.price,
+        #     "unit": "HOUR",
+        #     "duration": 1,
+        #     "coupon_amount": 0,
+        #     "credit_amount": 0,
+        #     "balance_amount": eip.price,
+        #     "voucher_amount": 0,
+        #     "owe_amount": 0,
+        #     "order_id": order.id
+        # })
+
+        # try:
+        #     # 2. 扣费
+        #     funds_flow_data = {
+        #         "user_id": user_id,
+        #         "account_id": account.id,
+        #         "flow_no": f"{datetime.now(timezone.utc).timestamp() * 1000}{order.id % 1000:03d}",
+        #         "direction": "OUT",
+        #         "flow_type": "PAY_ORDER",
+        #         "fund_type": "BALANCE",
+        #         "amount": eip.price,
+        #         "ref_type": "BILLING_DETAIL",
+        #         "ref_id": order.id,
+        #         "billing_period": datetime.now().strftime("%Y-%m"),
+        #         "channel": "USER_ACCOUNT",
+        #         "third_trade_no": order.order_no,
+        #         "description": f"{order.billing_item_name}扣费",
+        #         "created_by": user_id,
+        #     }
+        #     self.account_service.pay(account.balance, funds_flow_data)
+        #     order.pay_status = "SUCCESS"
+        #     order.paid_at = datetime.now(timezone.utc)
+        # except BusinessException:
+        #     logger.info(f'这里是扣款失败了')
+        #     order.pay_status = "FAILED"
+        #     order.owe_amount = eip.price
 
     # eip分页列表
     def get_eip_page_list(
@@ -158,7 +166,6 @@ class EIPService:
             page_size=page_size,
             items = item_out
         )
-
 
     # 查询所有的eip
     def list_all_volume_based_eip(self):

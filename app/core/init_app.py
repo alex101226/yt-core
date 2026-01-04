@@ -39,6 +39,7 @@ account_router,
 bill_router,
 invoice_email_router,
 invoice_router,
+cloud_vendor_router,
 # image_router,
 )
 
@@ -76,6 +77,7 @@ def create_app() -> FastAPI:
     # include routers
     routers = [
         dict_router,
+        cloud_vendor_router,
         auth_router,
         user_router,
         account_router,

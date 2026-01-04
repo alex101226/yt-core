@@ -1,5 +1,5 @@
 # app/services/auth_service.py
-from fastapi import Depends
+from fastapi import Response
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta, timezone
 from app.core.security import hash_password, verify_password, create_access_token, create_refresh_token, \
@@ -17,13 +17,31 @@ from app.repositories.sso.user_repo import UserRepository
 from app.repositories.sso.session_repo import SessionRepository
 from app.schemas.sso.auth_schema import LoginRequest, TokenResponse, UserRegister
 
+# 设置cookie
+def set_cookie_done(res: Response, key: str, value: str):
+    payload = {
+        "key": key,
+        "value": value,
+        "httponly": True,
+        "secure": False,
+        "samesite": "Lax",
+        "path": "/",
+        "domain": "122.51.216.157",
+    }
+    res.set_cookie(**payload)
+
+# 清除cookie
+def clear_auth_cookie(response: Response):
+    response.delete_cookie("access_token", path="/", domain="122.51.216.157")
+    # response.delete_cookie("refresh_token", path="/", domain="你的域名")
+
 class AuthService:
     def __init__(self, db: Session):
         self.db = db
         self.user_repo = UserRepository(db)
         self.session_repo = SessionRepository(db)
 
-    def login(self, data: LoginRequest, ip: str = None, user_agent: str = None) -> TokenResponse:
+    def login(self, data: LoginRequest, response: Response, ip = None, user_agent = None) -> TokenResponse:
         user = self.user_repo.get_by_username(data.username)
 
         if not user:
@@ -52,6 +70,11 @@ class AuthService:
         # tokens = SessionService(self.db).create_session_for_user(user)
         self.session_repo.create(session_model)
 
+        # ----------------------------
+        # 核心变化：写 Cookie
+        # ----------------------------
+        set_cookie_done(response,"access_token", access)
+
         return TokenResponse(
             access_token=access,
             refresh_token=refresh,
@@ -59,30 +82,34 @@ class AuthService:
             user_id=user.id,
         )
 
-    def refresh(self, refresh_token: str) -> TokenResponse:
+    def refresh(self, refresh_token: str, response: Response) -> TokenResponse:
         # 找到 DB 中的会话
         session = self.session_repo.get_by_refresh_token(refresh_token)
         if not session:
             raise BusinessException(code=ErrorCode.LOGIN_FAILED, message=Message.PASSWORD_INCORRECT)
 
             # 2. 检查 refresh_token 是否过期
-        if session.expires_at < datetime.utcnow():
+        if session.expires_at < datetime.now(timezone.utc):
             self.session_repo.delete(session.id)
             raise BusinessException(code=ErrorCode.LOGIN_FAILED, message="refresh token 已过期，请重新登录")
 
             # 3. 生成新的 access_token（refresh 不变）
         subject = {"user_id": session.user_id}
         access = create_access_token(subject)
-
+        set_cookie_done(response, "access_token", access)
         return TokenResponse(access_token=access, refresh_token=refresh_token, token_type="bearer")
 
-    def logout(self, user_id: int):
+    def logout(self, user_id: int, response: Response):
         if not user_id:
             return False
-        # 注销直接删除会话（使 refresh 无效）
         self.session_repo.clear_user_sessions(user_id)
 
-    def register(self, data: UserRegister):
+        # 清除用户的cookie
+        clear_auth_cookie(response)
+
+        return True
+
+    def register(self, data: UserRegister, response: Response) -> TokenResponse:
         # 检查重复
         exists = self.user_repo.get_by_username(data.username) or self.user_repo.get_by_email(data.email)
 
@@ -116,6 +143,8 @@ class AuthService:
             expires_at=expires_at,
         )
         self.session_repo.create(session_model)
+
+        set_cookie_done(response, "access_token", access)
 
         self.db.commit()
         self.db.refresh(new_user)

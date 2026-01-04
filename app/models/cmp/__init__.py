@@ -1,6 +1,7 @@
 from .dict_item import DictItem
 from .user_certificate import UserCertificate
 from .resource_group import ResourceGroup
+from .cloud_vendor import CloudVendor
 from .vpc import Vpc
 from .subnet import Subnet
 from .security_group import SecurityGroup
@@ -9,7 +10,7 @@ from .security_group_rule import SecurityGroupRule
 # 一下都是创建服务器和它的任务表
 from .cloud_server_instance import CloudServerInstance
 from .disk_provision_task import DiskProvisionTask
-from .billing_provision_task import BillingProvisionTask
+from .billing_instance import BillingInstance
 from .network_provision_task import NetworkProvisionTask
 from .sync_resource_task import SyncResourceTask
 from .instance_status_check_task import InstanceStatusCheckTask

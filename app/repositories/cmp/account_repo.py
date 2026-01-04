@@ -66,11 +66,11 @@ class AccountRepository:
 
     # 生成商品订单
     def product_create(self, data: dict):
-        product = ProductOrder(**data)
-        self.db.add(product)
+
+        self.db.add(data)
         self.db.flush()
         # self.db.commit()
-        return product
+        return data
 
     # 生成账单明细
     def bill_details_create(self, data: dict):

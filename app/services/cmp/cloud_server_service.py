@@ -42,12 +42,6 @@ class InstanceService:
     def create_instance(self, user_id: int, data: InstanceCreateSchema):
         try:
             with self.db.begin():
-                #  设置vpc
-                self.vpc_service.update_vpc(data.vpc_id)
-
-                # 设置子网
-                self.subnet_service.update_subnet(data.vswitch_id)
-
                 # 先查子网
                 subnet_all = self.repo.get_find_by_subnet_id(data.vswitch_id)
                 private_ips = {row.private_ip for row in subnet_all}
@@ -78,6 +72,12 @@ class InstanceService:
                 instance = self.repo.create_instance_task(payload)
                 if not instance:
                     return False
+
+                #  设置vpc
+                self.vpc_service.update_vpc(data.vpc_id)
+
+                # 设置子网
+                self.subnet_service.update_subnet(data.vswitch_id)
 
                 # 5. 是否需要公网 IP
                 public_ip = self.eip_service.allocate_eip(
@@ -137,7 +137,7 @@ class InstanceService:
                         }
                         self.cbs_service.cbs_create_auto(user_id, disk_data)
 
-                #   绑定安全组
+                #   绑定资源组
                 self.resource_bind_service.bind(
                     ResourceGroupBindingCreate(
                         cloud_provider_code=data.cloud_provider_code,

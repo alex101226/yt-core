@@ -12,11 +12,20 @@ from app.core.security import decode_token
 
 bearer_scheme = HTTPBearer(auto_error=False)
 
-def get_bearer_token(request: Request):
+# 统一取 token
+def get_token_from_request(request: Request) -> Optional[str]:
+    # 1. 优先从 Cookie 取
+    token = request.cookies.get("access_token")
+    if token:
+        return token
+
+    # 2. 兜底从 Authorization 取（兼容旧逻辑）
     auth = request.headers.get("Authorization")
-    if not auth or not auth.startswith("Bearer "):
-        return None
-    return auth[7:]
+    if auth and auth.startswith("Bearer "):
+        return auth[7:]
+
+    return None
+
 
 """
 内部复用函数：尝试解码 access token。
@@ -24,7 +33,7 @@ def get_bearer_token(request: Request):
 - token 不存在返回 None
 - token 无效或不是 access 类型抛 BusinessException
 """
-def _decode_access_token_or_none(token: Optional[str]) -> Optional[Dict]:
+def decode_access_token(token: Optional[str]) -> Optional[Dict]:
     if not token:
         return None
 
@@ -46,35 +55,17 @@ def _decode_access_token_or_none(token: Optional[str]) -> Optional[Dict]:
 
     return payload
 
-"""
-可选依赖：没有 token 返回 None；有 token 返回 payload（并在无效时抛 BusinessException）。
-适用场景：登录可选的接口（浏览、投票等）。
-"""
-def get_current_user_optional(
-    credentials: HTTPAuthorizationCredentials = Security(bearer_scheme)
-):
-    token = credentials.credentials if credentials else None
-    return _decode_access_token_or_none(token)
-
-"""
-强制依赖：必须有 token（否则抛 BusinessException），并返回 payload。
-适用场景：必须登录才可访问的接口（/me、/logout、修改资料等）。
-"""
-def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Security(bearer_scheme)
-) -> Dict:
-    token = credentials.credentials if credentials else None
-    payload = _decode_access_token_or_none(token)
+def get_current_user(request: Request) -> Dict:
+    token = get_token_from_request(request)
+    payload = decode_access_token(token)
 
     if payload is None:
-        # 明确区分未提供 token（未登录）与无效 token（decode 已抛异常）
         raise BusinessException(
-            code=ErrorCode.PERMISSION_DENIED if hasattr(ErrorCode, "PERMISSION_DENIED") else ErrorCode.UNAUTHORIZED,
+            code=ErrorCode.UNAUTHORIZED,
             message=Message.UNAUTHORIZED
         )
 
     return payload
-
 
 def require_user(request: Request, user = Depends(get_current_user)):
     if not user:

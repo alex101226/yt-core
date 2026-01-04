@@ -116,10 +116,51 @@ class AccountService:
 
     # 创建商品订单
     def product_create(self, data: dict):
-        product_order = self.repo.product_create(data)
-        if not product_order:
+        product_payload = {
+            **data,
+            "pay_status": "PENDING",
+            "order_no": f"EIP-{generate(size=10)}",
+            "instance_id": data['instance_id'],
+            "cloud_provider_code": data['cloud_provider_code'],
+            "product_id": data['product_id'],
+            "product_name": data['product_name'],
+            "business_id": data['business_id'],
+            "business_name": data['business_name'],
+            "order_type": data['order_type'],
+            "consume_type": data['consume_type'],  # 消费类型：VOLUME_BASED=按量计费/PACKAGE_MONTHLY=包年月计费
+            "amount_payable": data['amount_payable'],
+            "use_credit": data['use_credit'],
+            "use_voucher": data['use_voucher'],
+            "settlement_type": data['settlement_type'],
+            "account_id": data['account_id'],
+            "created_by":  data['created_by'],
+            "charge_mode": data['charge_mode'],
+        }
+        # 创建订单
+        product_result = self.repo.product_create(product_payload)
+        if not product_result:
             raise BusinessException(code=ErrorCode.FAILED, message="订单创建失败")
-        return product_order
+
+        bill_payload = {
+            "billing_period": data['billing_period'],
+            "region": data['region'],
+            "billing_item_name": data['billing_item_name'],
+            "unit_price": data['price'],
+            "unit": "HOUR",
+            "duration": data['duration'],
+            "coupon_amount": data['coupon_amount'],
+            "credit_amount": data['credit_amount'],
+            "balance_amount": data['price'],
+            "voucher_amount": data['voucher_amount'],
+            "owe_amount": data['owe_amount'],
+            "order_id": product_result.id
+        }
+        # 创建订单明细
+        bill_result = self.bill_details_create(bill_payload)
+        return {
+            **product_result,
+            **bill_result,
+        }
 
     # 创建账单明细
     def bill_details_create(self, data: dict):
