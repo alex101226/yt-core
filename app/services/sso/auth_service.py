@@ -54,11 +54,6 @@ class AuthService:
         # tokens = SessionService(self.db).create_session_for_user(user)
         self.session_repo.create(session_model)
 
-        # ----------------------------
-        # 核心变化：写 Cookie
-        # ----------------------------
-        # set_cookie_done(response,"access_token", access, data.domain)
-
         return TokenResponse(
             access_token=access,
             refresh_token=refresh,
