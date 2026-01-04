@@ -61,9 +61,9 @@ def _convert_payload(data: Any):
 
 class Response:
     @staticmethod
-    def success(data: Any = None, message: str = Message.SUCCESS):
+    def success(data: Any = None, message: str = Message.SUCCESS, cookies: dict = None):
         payload = _convert_payload(data)
-        return JSONResponse(
+        response = JSONResponse(
             status_code=200,
             content={
                 "code": ErrorCode.SUCCESS,
@@ -71,6 +71,19 @@ class Response:
                 "data": payload,
             },
         )
+        # 设置 Cookie
+        if cookies:
+            for k, v in cookies.items():
+                response.set_cookie(
+                    key=k,
+                    value=v,
+                    httponly=True,
+                    secure=False,
+                    samesite="Lax",
+                    path="/",
+                )
+
+        return response
 
     @staticmethod
     def fail(message: str = Message.FAILED, code: int = ErrorCode.FAILED):

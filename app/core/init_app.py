@@ -64,10 +64,11 @@ def create_app() -> FastAPI:
         openapi_url="/openapi.json",
         lifespan=lifespan
     )
-
+    origins = ["http://127.0.0.1:3004", "http://127.0.0.1:3005"]
     # ✅ 跨域配置
     app.add_middleware(
         CORSMiddleware,
+        # allow_origins=origins,
         allow_origins=["*"],  # 允许所有来源前端调用（开发阶段可先用 *）
         allow_credentials=True,
         allow_methods=["*"],  # 允许所有请求方法：GET/POST/PUT/DELETE

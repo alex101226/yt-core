@@ -19,6 +19,6 @@ router = APIRouter(
 @router.get("/user_info", response_model=UserOut)
 def me(request: Request, service: UserService = Depends(get_user_service)):
     user_id = request.state.user.get('user_id')
-    logger.info(f'获取用户id {user_id}')
+    # logger.info(f'获取用户id {user_id}')
     user = service.user_info(user_id)
     return Response.success(user)

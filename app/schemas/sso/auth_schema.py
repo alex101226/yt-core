@@ -3,6 +3,7 @@ from pydantic import BaseModel, EmailStr, Field
 class LoginRequest(BaseModel):
     username: str
     password: str
+    domain: str
 
 class TokenResponse(BaseModel):
     access_token: str
@@ -31,11 +32,14 @@ class UserRegister(BaseModel):
     password: str = Field(..., min_length=6, max_length=100)
     email: EmailStr
     nickname: str
+    domain: str
     # mobile: str = Field( ..., pattern=r"^1[3-9]\d{9}$", description="中国大陆手机号")
 
 class RefreshTokenIn(BaseModel):
+    domain: str
     refresh_token: str
 
 
 class LogoutRequest(BaseModel):
+    domain: str
     user_id: int = 0
