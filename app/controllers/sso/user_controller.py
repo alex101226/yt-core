@@ -1,14 +1,18 @@
 from fastapi import APIRouter, Depends, Request, Query
+from sqlalchemy.orm import Session
 
 from app.core.dependencies import require_user
 
 from app.common.response import Response
 from app.core.logger import logger
 
+from app.services.sso.user_service import UserService
+from app.common.dependencies import get_sso_db
+
 from app.schemas.sso.auth_schema import UserOut
 
-from app.services.sso.dependencies import get_user_service
-from app.services.sso.user_service import UserService
+def get_user_service( db: Session = Depends(get_sso_db)):
+  return UserService(db)
 
 router = APIRouter(
     prefix="/user",
@@ -19,7 +23,6 @@ router = APIRouter(
 @router.get("/user_info", response_model=UserOut)
 def me(request: Request, service: UserService = Depends(get_user_service)):
     user_id = request.state.user.get('user_id')
-    # logger.info(f'获取用户id {user_id}')
     user = service.user_info(user_id)
     return Response.success(user)
 
@@ -34,4 +37,13 @@ def user_page_list(
     service: UserService = Depends(get_user_service)
 ):
     result = service.user_page_list(page, page_size, nickname, username)
+    return Response.success(result)
+
+# 删除用户
+@router.delete("/delete")
+def user_delete(
+    user_id: int,
+    service: UserService = Depends(get_user_service)
+):
+    result = service.user_delete(user_id)
     return Response.success(result)

@@ -1,8 +1,11 @@
 from typing import Optional
 
 from pydantic import EmailStr
-from sqlalchemy import or_, select
-from sqlalchemy.orm import Session, load_only
+from sqlalchemy.orm import Session
+
+from app.common.exceptions import BusinessException
+from app.common.status_code import ErrorCode
+from app.common.messages import Message
 
 from app.core.logger import logger
 from app.models.sso.user import User
@@ -59,3 +62,14 @@ class UserRepository:
         items = query.offset(offset_value).limit(page_size).all()
 
         return items, total
+
+    # 删除账户
+    def user_delete(self, user_id: int):
+        find = self.get_by_id(user_id)
+
+        if not find:
+            return None
+
+        self.db.delete(find)
+        self.db.commit()
+        return True

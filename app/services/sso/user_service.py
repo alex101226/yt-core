@@ -32,3 +32,10 @@ class UserService:
             total = total,
             items = [UserOutSchema.model_validate(item) for item in items],
         )
+
+    # 删除用户
+    def user_delete(self, user_id: int) -> dict:
+        result = self.user_repo.user_delete(user_id)
+        if not result:
+            raise BusinessException(code=ErrorCode.USER_NOT_FOUND, message=Message.USER_NOT_FOUND)
+        return result
