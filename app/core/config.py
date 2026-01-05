@@ -40,7 +40,7 @@ class Settings(BaseSettings):
     REDIS_PASSWORD: str = None
     REDIS_EXPIRE: int = 2592000  # 30天
 
-    class Config:
+    # class Config:
         # env_file = "/www/wwwroot/yt-core/.env.production",
         # env_file = f".env.{os.getenv('ENV', 'development')}"
         # env_file_encoding = "utf-8"
