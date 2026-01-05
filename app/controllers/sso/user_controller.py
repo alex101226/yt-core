@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Request, Query
 
 from app.core.dependencies import require_user
 
@@ -22,3 +22,16 @@ def me(request: Request, service: UserService = Depends(get_user_service)):
     # logger.info(f'获取用户id {user_id}')
     user = service.user_info(user_id)
     return Response.success(user)
+
+
+# 用户列表
+@router.get("/user_page_list")
+def user_page_list(
+    page: int = Query(..., description="当前页码"),
+    page_size: int = Query(..., description="一页多少条数据"),
+    nickname: str = Query(None, description="昵称"),
+    username: str = Query(None, description="用户账号"),
+    service: UserService = Depends(get_user_service)
+):
+    result = service.user_page_list(page, page_size, nickname, username)
+    return Response.success(result)

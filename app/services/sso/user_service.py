@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 
 from app.repositories.sso.user_repo import UserRepository
-# from app.schemas.sso.auth_schema import UserRegister
+from app.schemas.sso.auth_schema import UserOutSchema, UserPageSchema
 
 from app.common.exceptions import BusinessException
 from app.common.status_code import ErrorCode
@@ -22,3 +22,13 @@ class UserService:
             "username": user.username,
             "nickname": user.nickname,
         }
+
+    # 用户列表
+    def user_page_list(self, page: int, page_size: int, nickname: str, username: str):
+        items, total = self.user_repo.user_page_list(page, page_size, nickname, username)
+        return UserPageSchema(
+            page = page,
+            page_size = page_size,
+            total = total,
+            items = [UserOutSchema.model_validate(item) for item in items],
+        )

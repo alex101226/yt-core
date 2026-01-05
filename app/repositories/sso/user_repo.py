@@ -35,3 +35,27 @@ class UserRepository:
         self.db.add(register_db)
         # self.db.flush()
         return register_db
+
+    # 获取用户列表
+    def user_page_list(self, page: int, page_size: int, nickname: str, username: str):
+        query = self.db.query(
+            User.id,
+            User.nickname,
+            User.username,
+            User.email
+        ).order_by(User.id.desc())
+
+        filters = []
+        if nickname:
+            filters.append(User.nickname.like(f"%{nickname}%"))
+        if username:
+            filters.append(User.username.like("%" + username + "%"))
+
+        if filters:
+            query = query.filter(*filters)
+
+        total = query.count()
+        offset_value = (page - 1) * page_size
+        items = query.offset(offset_value).limit(page_size).all()
+
+        return items, total

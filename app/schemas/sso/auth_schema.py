@@ -1,3 +1,5 @@
+from typing import List
+
 from pydantic import BaseModel, EmailStr, Field
 
 class LoginRequest(BaseModel):
@@ -43,3 +45,18 @@ class RefreshTokenIn(BaseModel):
 class LogoutRequest(BaseModel):
     domain: str
     user_id: int = 0
+
+
+class UserOutSchema(BaseModel):
+    id: int
+    username: str
+    email: str
+    nickname: str
+    class Config:
+        from_attributes = True
+
+class UserPageSchema(BaseModel):
+    page: int
+    page_size: int
+    total: int
+    items: List[UserOutSchema]
