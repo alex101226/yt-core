@@ -42,17 +42,17 @@ class Settings(BaseSettings):
 
     class Config:
         # env_file = "/www/wwwroot/yt-core/.env.production",
-        env_file = f".env.{os.getenv('ENV', 'development')}"
-        env_file_encoding = "utf-8"
-    # model_config = SettingsConfigDict(
-    #     env_file=(
-    #         BASE_DIR / ".env.production"
-    #         if FilePath(BASE_DIR / ".env.production").exists()
-    #         else BASE_DIR / ".env.development"
-    #     ),
-    #     env_file_encoding="utf-8",
-    #     case_sensitive=True,
-    # )
+        # env_file = f".env.{os.getenv('ENV', 'development')}"
+        # env_file_encoding = "utf-8"
+    model_config = SettingsConfigDict(
+        env_file=(
+            BASE_DIR / ".env.production"
+            if FilePath(BASE_DIR / ".env.production").exists()
+            else BASE_DIR / ".env.development"
+        ),
+        env_file_encoding="utf-8",
+        case_sensitive=True,
+    )
 
 @lru_cache()
 def get_settings() -> Settings:
