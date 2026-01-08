@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from app.core.config import settings
 from app.core.database import CmpBase
 
-class ProductOrderDetail(CmpBase):
+class OrderDetail(CmpBase):
     __tablename__ = f"{settings.CMP_TABLE_PREFIX}product_order_detail"
     __table_args__ = {"comment": "商品订单明细表"}
 

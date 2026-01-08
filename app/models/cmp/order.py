@@ -6,12 +6,9 @@ from datetime import datetime, timezone
 from app.core.config import settings
 from app.core.database import CmpBase
 
-# ===== 计费模式 =====
-class ChargeMode(str, enum.Enum):
-    PREPAID = "PREPAID"     # 预付费
-    POSTPAID = "POSTPAID"   # 后付费
+from app.constants.enums import BillingMethod
 
-class ProductOrder(CmpBase):
+class Order(CmpBase):
     __tablename__ = f"{settings.CMP_TABLE_PREFIX}product_order"
     __table_args__ = {"comment": "商品订单表"}
 
@@ -31,7 +28,7 @@ class ProductOrder(CmpBase):
     settlement_type = Column(String(32), nullable=False, comment="结算类型：PLATFORM=平台结算")
     cloud_provider_code = Column(String(32), nullable=True, comment="云厂商")
 
-    charge_mode = Column(Enum(ChargeMode), nullable=True, comment="收费模式：PREPAID=预付费，POSTPAID=后付费")  # ⭐关键
+    charge_mode = Column(Enum(BillingMethod), nullable=True, comment="收费模式：PrePaid=预付费，PostPaid=后付费")  # ⭐关键
     auto_renew = Column(Boolean, default=False, comment="是否到期自动续费(仅包年包月)")
 
     created_by = Column(Integer, nullable=True, comment="用户id")

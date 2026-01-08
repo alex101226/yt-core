@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from typing import Optional, List
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from decimal import Decimal, ROUND_HALF_UP
 from nanoid import generate
 
@@ -9,6 +9,10 @@ from app.common.status_code import ErrorCode
 from app.common.messages import Message
 from app.core.logger import logger
 
+from app.services.cmp.order_service import OrderService
+
+from app.models.cmp.billing_instance import BillingMethod, BillingInstance, ResourceType, BillingCycle, BillingStatus
+
 from app.repositories.cmp.bill_repo import BillRepository
 from app.schemas.cmp.bill_schema import ProductOrderOut, ProductOrderPage, BillDetailOut, BillDetailPage
 
@@ -16,6 +20,7 @@ class BillService:
     def __init__(self, db: Session):
         self.db = db
         self.repo = BillRepository(db)
+        self.order_service = OrderService(db)
 
     # 商品订单
     def product_order_page_list(
@@ -132,3 +137,63 @@ class BillService:
             "page_size": page_size,
             "items": items,
         }
+
+
+    # 创建计费任务
+    def create(
+        self, *,
+        user_id: int,
+        account_id: int,
+        resource_type: str,
+        instance,
+        unit_price: float):
+        now = datetime.now(timezone.utc)
+        # 单价金额
+        amount = Decimal(str(unit_price))
+        # 计费方式
+        charge_type = instance.instance_charge_type  # PrePaid / PostPaid
+
+        # 计费单位
+        billing_cycle = "HOUR" if charge_type == "PostPaid" else "MONTH"
+
+        # 1️⃣ 创建计费实例
+        billing_instance = BillingInstance(
+            resource_type=resource_type,    # 收费服务type
+            resource_id=instance.id, # 实例服务的id
+            billing_method=charge_type,
+            billing_cycle=billing_cycle,    # 计费周期：HOUR / MONTH。要根据计费单位修改单位，先记下来
+            unit_price=amount,  # 单价（元/小时 或 元/月）
+            billing_start_time=now, # 开始计费时间
+            last_billing_time=None, # 上一次成功结算到的时间
+            auto_renew=bool(instance.auto_renew),    # 是否自动续费（仅 PREPAID）
+            status=BillingStatus.ACTIVE,    #   计费状态
+        )
+        # 创建计费任务
+        billing_db = self.repo.bill_create(billing_instance)
+
+        self._first_charge(user_id, account_id, billing_db, instance)
+
+        return billing_db
+
+    # 创建订单，扣费任务，资金流水
+    def _first_charge(self, user_id: int, account_id: int, billing: BillingInstance, instance):
+        now = datetime.now(timezone.utc)
+        # 1 小时
+        amount = billing.unit_price * instance.period
+
+        # 创建订单
+        self.order_service.create_and_pay_order(
+            user_id=user_id,
+            account_id=account_id,
+            billing=billing,
+            amount=amount,
+            order_type="CREATE",
+            instance=instance,
+        )
+
+        # 更新计费时间
+        self.repo.bill_update(
+            billing_id = billing.id,
+            last_time=now,
+            next_time=now + timedelta(hours=1)
+        )

@@ -9,8 +9,6 @@ from app.services.cmp.dict_service import DictService
 
 from app.schemas.cmp.dict_schema import DictItemCreate, DictItemUpdate, DictItemOut, DictItemListOut
 
-from app.enums.enums import DictType
-
 
 # 云厂商，区域，可用区 云凭证，VPC，IP子网，安全组，计费方式，购买数量，规格列表，镜像及磁盘（要安装GPU驱动嘛，要查驱动？）
 def get_dict_service(

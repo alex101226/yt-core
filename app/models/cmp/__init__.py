@@ -42,8 +42,8 @@ from .account import Account
 from .recharge_order import RechargeOrder
 from .funds_flow import FundsFlow
 
-from .product_order import ProductOrder
-from .product_order_detail import ProductOrderDetail
+from .order import Order
+from .order_detail import OrderDetail
 
 from .invoice_email import InvoiceEmail
 from .invoice import Invoice

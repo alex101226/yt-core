@@ -10,8 +10,6 @@ from app.common.dependencies import get_cmp_db
 from app.core.dependencies import require_user
 from app.common.response import Response
 
-from app.enums.enums import DiskType, DiskCategory, ChargeType, DiskStatus
-
 def get_cbs_disk_service(db: Session = Depends(get_cmp_db)):
     return CbsService(db)
 

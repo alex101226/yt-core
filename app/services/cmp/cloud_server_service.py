@@ -11,6 +11,10 @@ from app.core.logger import logger
 
 from app.common.ipaddress import allocate_private_ip
 from app.core.security import hash_password
+from app.models.cmp import BillingInstance
+
+from app.services.cmp.bill_service import BillService
+from app.services.cmp.account_service import AccountService
 
 from app.services.cmp.subnet_service import SubnetService
 from app.services.cmp.vpc_service import VPCService
@@ -37,6 +41,8 @@ class InstanceService:
         self.eip_service = EIPService(db)
         self.vpc_service = VPCService(db)
         self.subnet_service = SubnetService(db)
+        self.account_service = AccountService(db)
+        self.bill_service = BillService(db)
 
     # 创建服务器
     def create_instance(self, user_id: int, data: InstanceCreateSchema):
@@ -72,6 +78,21 @@ class InstanceService:
                 instance = self.repo.create_instance_task(payload)
                 if not instance:
                     return False
+
+                # 查看账户
+                account = self.account_service.account_exists(user_id)
+                if not account:
+                    raise BusinessException(code=ErrorCode.DATA_NOT_FOUND, message=Message.DATA_NOT_FOUND)
+
+                # 创建成功，生成周期性任务
+                self.bill_service.create(
+                    user_id=user_id,
+                    account_id=account.id,
+                    resource_type="SERVER",
+                    instance=instance,
+                    unit_price=data.price,  # 👈 创建时提交的价格
+                )
+
 
                 #  设置vpc
                 self.vpc_service.update_vpc(data.vpc_id)
@@ -157,9 +178,6 @@ class InstanceService:
                 #     status="PENDING"
                 # )
 
-                # 3️⃣ 提交事务
-                # self.repo.commit()
-                # self.repo.refresh(instance)
             return True
         except BusinessException as exception:
             self.db.rollback()

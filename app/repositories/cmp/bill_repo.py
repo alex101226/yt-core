@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional, Tuple, List, Dict
 
 from sqlalchemy import func
@@ -6,9 +6,10 @@ from sqlalchemy.orm import Session
 
 from app.core.logger import logger
 
+from app.models.cmp.billing_instance import BillingInstance
 from app.models.cmp.funds_flow import FundsFlow
-from app.models.cmp.product_order import ProductOrder
-from app.models.cmp.product_order_detail import ProductOrderDetail
+from app.models.cmp.order import Order
+from app.models.cmp.order_detail import OrderDetail
 
 class BillRepository:
     def __init__(self, db: Session):
@@ -26,23 +27,23 @@ class BillRepository:
         end_at: Optional[datetime] = None,
     ):
         query = self.db.query(
-            ProductOrder.id, ProductOrder.order_no, ProductOrder.product_name, ProductOrder.product_id,
-            ProductOrder.business_id, ProductOrder.business_name, ProductOrder.order_type,
-            ProductOrder.pay_status, ProductOrder.consume_type, ProductOrder.amount_payable,
-            ProductOrder.use_credit, ProductOrder.use_voucher, ProductOrder.settlement_type,
-            ProductOrder.cloud_provider_code, ProductOrder.created_at, ProductOrder.paid_at,
-            ProductOrder.instance_id, ProductOrder.account_id, ProductOrder.created_by
+            Order.id, Order.order_no, Order.product_name, Order.product_id,
+            Order.business_id, Order.business_name, Order.order_type,
+            Order.pay_status, Order.consume_type, Order.amount_payable,
+            Order.use_credit, Order.use_voucher, Order.settlement_type,
+            Order.cloud_provider_code, Order.created_at, Order.paid_at,
+            Order.instance_id, Order.account_id, Order.created_by
         )
-        filters = [ProductOrder.created_by == user_id]
+        filters = [Order.created_by == user_id]
 
         if order:
-            filters.append(ProductOrder.order_no.like(f'%{order}%'))
+            filters.append(Order.order_no.like(f'%{order}%'))
         if instance_id:
-            filters.append(ProductOrder.instance_id.like(f'%{instance_id}%'))
+            filters.append(Order.instance_id.like(f'%{instance_id}%'))
 
         if start_at and end_at:
             filters.append(
-                ProductOrder.created_at.between(start_at, end_at)
+                Order.created_at.between(start_at, end_at)
             )
 
         if filters:
@@ -50,7 +51,7 @@ class BillRepository:
 
         total = query.count()
         offset_value = (page - 1) * page_size
-        items = query.order_by(ProductOrder.id.desc()).offset(offset_value).limit(page_size).all()
+        items = query.order_by(Order.id.desc()).offset(offset_value).limit(page_size).all()
         return items, total
 
     # 账单明细  消费类型：VOLUME_BASED=按量计费/PACKAGE_MONTHLY=包年月计费
@@ -65,46 +66,46 @@ class BillRepository:
         billing_period: Optional[str] = None,
     ):
         query = self.db.query(
-            ProductOrderDetail.id,
-            ProductOrderDetail.order_id,
-            ProductOrderDetail.billing_period,
-            ProductOrderDetail.region,
-            ProductOrderDetail.billing_item_name,
-            ProductOrderDetail.unit_price,
-            ProductOrderDetail.unit,
-            ProductOrderDetail.duration,
-            ProductOrderDetail.coupon_amount,
-            ProductOrderDetail.credit_amount,
-            ProductOrderDetail.voucher_amount,
-            ProductOrderDetail.balance_amount,
-            ProductOrderDetail.owe_amount,
-            ProductOrderDetail.created_at,
-            ProductOrder.order_no,
-            ProductOrder.instance_id,
-            ProductOrder.product_id,
-            ProductOrder.product_name,
-            ProductOrder.business_id,
-            ProductOrder.business_name,
-            ProductOrder.consume_type,
-            ProductOrder.amount_payable,
-            ProductOrder.settlement_type,
-            ProductOrder.created_by,
-            ProductOrder.account_id,
-            ProductOrder.cloud_provider_code,
-        ).outerjoin(ProductOrder, ProductOrder.id == ProductOrderDetail.order_id)
+            OrderDetail.id,
+            OrderDetail.order_id,
+            OrderDetail.billing_period,
+            OrderDetail.region,
+            OrderDetail.billing_item_name,
+            OrderDetail.unit_price,
+            OrderDetail.unit,
+            OrderDetail.duration,
+            OrderDetail.coupon_amount,
+            OrderDetail.credit_amount,
+            OrderDetail.voucher_amount,
+            OrderDetail.balance_amount,
+            OrderDetail.owe_amount,
+            OrderDetail.created_at,
+            Order.order_no,
+            Order.instance_id,
+            Order.product_id,
+            Order.product_name,
+            Order.business_id,
+            Order.business_name,
+            Order.consume_type,
+            Order.amount_payable,
+            Order.settlement_type,
+            Order.created_by,
+            Order.account_id,
+            Order.cloud_provider_code,
+        ).outerjoin(Order, Order.id == OrderDetail.order_id)
 
-        filters = [ProductOrder.created_by == user_id]
+        filters = [Order.created_by == user_id]
 
         if instance_id:
-            filters.append(ProductOrderDetail.instance_id.like(f'%{instance_id}%'))
+            filters.append(OrderDetail.instance_id.like(f'%{instance_id}%'))
         if provider_code:
-            filters.append(ProductOrderDetail.cloud_vendor == provider_code)
+            filters.append(OrderDetail.cloud_vendor == provider_code)
         if consume_type:
-            filters.append(ProductOrderDetail.consume_type == consume_type)
+            filters.append(OrderDetail.consume_type == consume_type)
         if billing_period:
             # billing_period_str = billing_period.strftime("%Y-%m")
             filters.append(
-                ProductOrderDetail.billing_period == billing_period
+                OrderDetail.billing_period == billing_period
             )
 
         if filters:
@@ -112,7 +113,7 @@ class BillRepository:
 
         total = query.count()
         offset_value = (page - 1) * page_size
-        items = query.order_by(ProductOrderDetail.id.desc()).offset(offset_value).limit(page_size).all()
+        items = query.order_by(OrderDetail.id.desc()).offset(offset_value).limit(page_size).all()
         # logger.info(f'查看这个信息 {items}')
         return items, total
 
@@ -135,53 +136,53 @@ class BillRepository:
 
         query = (
             self.db.query(
-                ProductOrder.product_name,
-                ProductOrder.business_name,
-                ProductOrder.consume_type,  # 消费类型：VOLUME_BASED=按量计费/PACKAGE_MONTHLY=包年月计费
-                ProductOrder.pay_status,
-                ProductOrder.amount_payable,
-                ProductOrder.settlement_type,
-                ProductOrder.cloud_provider_code,
-                ProductOrder.charge_mode,
-                ProductOrderDetail.billing_period,
-                ProductOrderDetail.coupon_amount,
-                ProductOrderDetail.unit_price,
-                ProductOrderDetail.balance_amount,
-                ProductOrderDetail.credit_amount,
-                ProductOrderDetail.voucher_amount,
-                ProductOrderDetail.owe_amount,
+                Order.product_name,
+                Order.business_name,
+                Order.consume_type,  # 消费类型：VOLUME_BASED=按量计费/PACKAGE_MONTHLY=包年月计费
+                Order.pay_status,
+                Order.amount_payable,
+                Order.settlement_type,
+                Order.cloud_provider_code,
+                Order.charge_mode,
+                OrderDetail.billing_period,
+                OrderDetail.coupon_amount,
+                OrderDetail.unit_price,
+                OrderDetail.balance_amount,
+                OrderDetail.credit_amount,
+                OrderDetail.voucher_amount,
+                OrderDetail.owe_amount,
                 FundsFlow.id,
                 FundsFlow.flow_no,
                 FundsFlow.created_at.label("consume_time"),
                 FundsFlow.ref_type,  # 订单类型：充值订单, 预付费场景,后付费 / 按量计费,退订/冲正
             )
-            .join(ProductOrder, ProductOrder.id == ProductOrderDetail.order_id)
+            .join(Order, Order.id == OrderDetail.order_id)
             .outerjoin(
                 FundsFlow,
                 (FundsFlow.ref_type == "BILLING_DETAIL") &
-                (FundsFlow.ref_id == ProductOrderDetail.id)
+                (FundsFlow.ref_id == OrderDetail.id)
             )
         )
-        filters = [ProductOrder.created_by == user_id]
+        filters = [Order.created_by == user_id]
         # 可选查询条件
         if billing_id:
-            filters.append(ProductOrderDetail.flow_no == billing_id)
+            filters.append(OrderDetail.flow_no == billing_id)
         if start_month and end_month:
             # billing_period_str = billing_period.strftime("%Y-%m")
             filters.append(
-                ProductOrderDetail.billing_period.between(start_month, end_month)
+                OrderDetail.billing_period.between(start_month, end_month)
             )
         if consume_type:
-            filters.append(ProductOrder.consume_type == consume_type)
+            filters.append(Order.consume_type == consume_type)
         if billing_type:
             filters.append(FundsFlow.ref_type == billing_type)
         if cloud_provider_code:
-            filters.append(ProductOrder.cloud_provider_code == cloud_provider_code)
+            filters.append(Order.cloud_provider_code == cloud_provider_code)
         if billing_status:
             if billing_status == "已结算":
-                filters.append(ProductOrder.pay_status == "SUCCESS")
+                filters.append(Order.pay_status == "SUCCESS")
             elif billing_status == "未结算":
-                filters.append(ProductOrder.pay_status != "SUCCESS")
+                filters.append(Order.pay_status != "SUCCESS")
 
         if filters:
             query = query.filter(*filters)
@@ -346,3 +347,26 @@ class BillRepository:
             for row in items
         ]
         return out_items, total
+
+
+    # 周期计费任务创建
+    def bill_create(self, instance: BillingInstance):
+        self.db.add(instance)
+        self.db.flush()
+        self.db.refresh(instance)  # ✅ 确保 instance.id 可用
+        return instance
+
+    # 周期计费任务修改
+    def bill_update(self, billing_id: int, *, last_time: Optional[datetime], next_time: Optional[datetime]):
+        find = self.bill_by_id_find(billing_id)
+        if not find:
+          return None
+        find.last_time = last_time
+        find.next_time = next_time
+        # self.db.commit()
+        self.db.flush()
+        return find
+
+    # 查询单条的计费任务
+    def bill_by_id_find(self, bill_id: int):
+        return self.db.query(BillingInstance).filter(BillingInstance.id == bill_id).first()

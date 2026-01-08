@@ -1,39 +1,12 @@
 # app/models/cmp/billing_instance.py
-import enum
-
-from sqlalchemy import Column, DateTime, BigInteger, DECIMAL, Boolean, UniqueConstraint, Index, Enum, String
+from sqlalchemy import Column, DateTime, BigInteger, DECIMAL, Boolean, UniqueConstraint, Index, Enum, String, Integer
 from datetime import datetime, timezone
 from app.core.database import CmpBase
 from app.core.config import settings
 
-class ResourceType(enum.Enum):
-    SERVER = "SERVER"   # 服务器
-    DISK = "DISK"   # 磁盘
-    EIP = "EIP" # eip公网
-    BAREMETAL = "BAREMETAL" # 裸金属
-    CLUSTER = "CLUSTER" # 集群
-    CUSTOM_IMAGE = "CUSTOM_IMAGE"   # 自定义镜像
-    LOAD_INSTANCE = "LOAD_INSTANCE" # 负载均衡
-    GPFS = "GPFS"   # gpfs存储
-    OSS = "OSS" # OSS存储
-    CEPHFS = "CEPHFS" # cephfs存储
-    CONTAINER_IMAGE = "CONTAINER_IMAGE"  # 容器镜像
-
-
-class BillingMethod(enum.Enum):
-    POSTPAID = "POSTPAID"   # 按量
-    PREPAID = "PREPAID"     # 包年包月
-
-
-class BillingCycle(enum.Enum):
-    HOUR = "HOUR"
-    MONTH = "MONTH"
-
-
-class BillingStatus(enum.Enum):
-    ACTIVE = "ACTIVE"        # 正常计费
-    SUSPENDED = "SUSPENDED"  # 欠费/暂停
-    RELEASED = "RELEASED"    # 已释放
+from app.constants.enums import (
+BillingCycle, BillingStatus, ResourceType, BillingMethod
+)
 
 class BillingInstance(CmpBase):
     """
@@ -71,12 +44,17 @@ class BillingInstance(CmpBase):
     billing_method = Column(
         Enum(BillingMethod),
         nullable=False,
-        comment="计费方式：POSTPAID / PREPAID"
+        comment="计费方式：PostPaid / PrePaid"
     )
     billing_cycle = Column(
         Enum(BillingCycle),
         nullable=False,
         comment="计费周期：HOUR / MONTH"
+    )
+    billing_period_count = Column(
+        Integer,
+        default=1,
+        comment="计费周期数量"
     )
 
     unit_price = Column(
