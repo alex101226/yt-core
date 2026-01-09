@@ -15,9 +15,10 @@ class GPFSRepository:
     def gpfs_create(self, data: dict) -> bool:
         item = GPFSFile(**data)
         self.db.add(item)
-        self.db.commit()
-        self.db.refresh(item)
-        return True
+        self.db.flush()
+        # self.db.commit()
+        # self.db.refresh(item)
+        return item
 
     # 返回gpfs的列表
     def gpfs_page_list(

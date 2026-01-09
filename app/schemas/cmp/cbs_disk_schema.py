@@ -25,6 +25,7 @@ class CbsDiskBase(BaseModel):
     description: Optional[str] = None
 
 class CbsDiskCreate(CbsDiskBase):
+    price: Optional[float] = None
     pass
 
 class CbsDiskOut(CbsDiskBase):

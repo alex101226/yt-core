@@ -14,6 +14,7 @@ class Order(CmpBase):
 
     id = Column(BigInteger, primary_key=True, autoincrement=True, comment="订单主键ID")
     order_no = Column(String(64), unique=True, nullable=False, comment="订单号")
+    bill_id = Column(BigInteger, nullable=False, comment="计费任务id")
     instance_id = Column(String(64), nullable=True, comment="实例ID（创建的云资源ID）")
     product_id = Column(Integer, nullable=True, comment="产品id, 现在还没有，后面加")
     product_name = Column(String(64), nullable=False, comment="产品名称，如云服务器、裸金属等")

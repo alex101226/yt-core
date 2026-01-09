@@ -19,6 +19,7 @@ class GPFSSchema(BaseModel):
     description: Optional[str]
 
 class GPFSCreate(GPFSSchema):
+    price: float = 0
     pass
 
 class GPFSOut(GPFSSchema):

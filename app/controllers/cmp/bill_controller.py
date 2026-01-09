@@ -8,7 +8,12 @@ from app.common.response import Response
 from app.common.dependencies import get_cmp_db
 from app.core.dependencies import require_user
 
+from app.services.cmp.order_service import OrderService
+
 from app.services.cmp.bill_service import BillService
+
+def get_order_service(db: Session = Depends(get_cmp_db)):
+    return OrderService(db)
 
 def get_bill_service(
    db: Session = Depends(get_cmp_db),
@@ -27,7 +32,7 @@ def product_order_page_list(
     instance_id: Optional[str] = Query(None, description="实例id"),
     start_at: Optional[datetime] = Query(None, description="订单的创建时间开始时间"),
     end_at: Optional[datetime] = Query(None, description="订单的创建时间结束时间"),
-    service: BillService = Depends(get_bill_service)
+    service: OrderService = Depends(get_order_service)
 ):
     user_id = request.state.user.get('user_id')
     result = service.product_order_page_list(user_id, page, page_size, order, instance_id, start_at, end_at)
@@ -44,7 +49,7 @@ def order_detail_page_list(
     consume_type: Optional[str] = Query(None, description="消费类型"),
     provider_code: Optional[str] = Query(None, description="云厂商"),
     billing_period: Optional[str] = Query(None, description="账期"),
-    service: BillService = Depends(get_bill_service)
+    service: OrderService = Depends(get_order_service)
 ):
     user_id = request.state.user.get('user_id')
     result = service.order_detail_page_list(

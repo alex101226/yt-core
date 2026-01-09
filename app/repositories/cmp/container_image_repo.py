@@ -15,9 +15,10 @@ class ContainerImageRepository:
     def image_create(self, data: dict) -> bool:
         item = ImageRepository(**data)
         self.db.add(item)
-        self.db.commit()
-        self.db.refresh(item)
-        return True
+        self.db.flush()
+        # self.db.commit()
+        # self.db.refresh(item)
+        return item
 
     # 列表
     def con_image_page_list(
@@ -67,5 +68,4 @@ class ContainerImageRepository:
         total = query.count()
         offset_value = (page - 1) * page_size
         items = query.order_by(ImageRepository.id.desc()).offset(offset_value).limit(page_size).all()
-        logger.info(f'这是 {items}')
         return items, total

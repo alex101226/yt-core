@@ -24,6 +24,34 @@ BILLING_META_MAP = {
         product_name="裸金属服务器",
         business_name="裸金属计算资源",
     ),
+    ResourceType.CLUSTER: BillingMeta(
+        product_name="集群",
+        business_name="集群资源",
+    ),
+    ResourceType.CUSTOM_IMAGE: BillingMeta(
+        product_name="自定义镜像",
+        business_name="自定义镜像资源",
+    ),
+    ResourceType.LOAD_INSTANCE: BillingMeta(
+        product_name="负载均衡",
+        business_name="负载均衡",
+    ),
+    ResourceType.GPFS: BillingMeta(
+        product_name="GPFS文件存储",
+        business_name="GPFS文件存储资源",
+    ),
+    ResourceType.CEPHFS: BillingMeta(
+        product_name="CEPHFS文件存储",
+        business_name="CEPHFS文件存储资源",
+    ),
+    ResourceType.OSS: BillingMeta(
+        product_name="OSS对象存储",
+        business_name="OSS对象存储资源",
+    ),
+    ResourceType.CONTAINER_IMAGE: BillingMeta(
+        product_name="容器镜像",
+        business_name="容器镜像资源",
+    ),
 }
 
 

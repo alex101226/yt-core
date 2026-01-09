@@ -14,6 +14,7 @@ from app.common.messages import Message
 from app.core.logger import logger
 
 from app.constants.billing_meta import BILLING_META_MAP, BILLING_METHOD_META
+from app.schemas.cmp.bill_schema import ProductOrderOut, ProductOrderPage, BillDetailPage, BillDetailOut
 
 from app.services.cmp.account_service import AccountService
 from app.repositories.cmp.bill_repo import BillRepository
@@ -32,64 +33,44 @@ class OrderService:
         self.bill_repo = BillRepository(db)
         self.account_service = AccountService(db)
 
-    # 生成订单
-    def create_order(self, *, data: dict):
+    # 商品订单
+    def product_order_page_list(
+        self,
+        user_id: int,
+        page: int,
+        page_size: int,
+        order: Optional[str] = None,
+        instance_id: Optional[str] = None,
+        start_at: Optional[datetime] = None,
+        end_at: Optional[datetime] = None, ):
+        items, total = self.order_repo.product_order_page_list(
+            user_id, page, page_size, order, instance_id,
+            start_at, end_at
+        )
+        out_items = [ProductOrderOut.model_validate(i) for i in items]
+        return ProductOrderPage(total=total, page=page, page_size=page_size, items=out_items)
 
-        timestamp = datetime.now(timezone.utc).timestamp() * 1000
-
-        product_payload = {
-            **data,
-            "pay_status": "PENDING",
-            "order_no": f"ORDER-{timestamp}",
-            "instance_id": data['instance_id'],
-            "cloud_provider_code": data['cloud_provider_code'],
-            "product_id": data['product_id'],
-            "product_name": data['product_name'],
-            "business_id": data['business_id'],
-            "business_name": data['business_name'],
-            "order_type": data['order_type'],
-            "consume_type": data['consume_type'],  # 消费类型：VOLUME_BASED=按量计费/PACKAGE_MONTHLY=包年月计费
-            "amount_payable": data['amount_payable'],
-            "use_credit": data['use_credit'],
-            "use_voucher": data['use_voucher'],
-            "settlement_type": data['settlement_type'],
-            "account_id": data['account_id'],
-            "created_by": data['created_by'],
-            "charge_mode": data['charge_mode'],
-        }
-
-        # 创建订单
-        product_result = self.order_repo.create(product_payload)
-        if not product_result:
-            raise BusinessException(code=ErrorCode.FAILED, message="订单创建失败")
-
-        bill_payload = {
-            "billing_period": data['billing_period'],
-            "region": data['region'],
-            "billing_item_name": data['billing_item_name'],
-            "unit_price": data['price'],
-            "unit": "HOUR",
-            "duration": data['duration'],
-            "coupon_amount": data['coupon_amount'],
-            "credit_amount": data['credit_amount'],
-            "balance_amount": data['price'],
-            "voucher_amount": data['voucher_amount'],
-            "owe_amount": data['owe_amount'],
-            "order_id": product_result.id
-        }
-        # 创建订单明细
-        bill_result = self.create_order_detail(bill_payload)
-        return {
-            **product_result,
-            **bill_result,
-        }
-
-    # 创建订单明细
-    def create_order_detail(self, data: dict):
-        billing_detail = self.detail_repo.create(data)
-        if not billing_detail:
-            raise BusinessException(code=ErrorCode.FAILED, message="账单明细创建失败")
-        return billing_detail
+     # 订单明细
+    def order_detail_page_list(
+            self,
+            user_id: int,
+            page: int,
+            page_size: int,
+            instance_id: Optional[str] = None,
+            consume_type: Optional[str] = None,
+            provider_code: Optional[str] = None,
+            billing_period: Optional[datetime] = None,
+    ):
+        items, total = self.detail_repo.bill_detail_page_list(
+            user_id, page, page_size, instance_id, consume_type, provider_code,
+            billing_period
+        )
+        return BillDetailPage(
+            total=total,
+            page=page,
+            page_size=page_size,
+            items=[BillDetailOut.model_validate(item) for item in items],
+        )
 
     # 扣费，创建资金流水
     def create_and_pay_order(
@@ -97,6 +78,7 @@ class OrderService:
         *,
         user_id: int,
         account_id: int,
+        instance_id: str,
         billing: BillingInstance,
         amount: Decimal,
         order_type: str,
@@ -109,12 +91,14 @@ class OrderService:
 
         method_meta = BILLING_METHOD_META[BillingMethod(billing.billing_method)]
 
+        cloud_provider_code = getattr(instance, "cloud_provider_code", None) or getattr(instance, "provider_code", None)
         order = Order(
             order_no=f"{billing.resource_type.value}-{timestamp}",
-            instance_id=billing.resource_id,
+            bill_id= billing.id,
+            instance_id=instance_id,
+            cloud_provider_code=cloud_provider_code,
             product_id=0,
             business_id=0,
-            cloud_provider_code=instance.cloud_provider_code,
             product_name=meta.product_name,
             business_name=f"{meta.business_name}-{method_meta.text}",
             order_type=order_type,
@@ -123,7 +107,7 @@ class OrderService:
             pay_status="PENDING",
             settlement_type="PLATFORM",
             charge_mode=billing.billing_method,
-            auto_renew=instance.auto_renew,
+            auto_renew=billing.auto_renew,
             account_id=account_id,
             created_at=now,
             created_by=user_id,
@@ -139,7 +123,7 @@ class OrderService:
             balance_amount=amount,
             owe_amount=0,
             created_at=now,
-            duration=instance.period,
+            duration=billing.billing_period_count,
             region=instance.region_id
         )
         self.detail_repo.create(detail)

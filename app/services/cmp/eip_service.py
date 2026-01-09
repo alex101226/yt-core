@@ -9,14 +9,17 @@ from app.common.messages import Message
 from app.common.exceptions import BusinessException
 from app.common.ipaddress import create_public_ip
 
+from app.services.cmp.bill_service import BillService
+from app.services.cmp.account_service import AccountService
+from app.schemas.cmp.account_schema import FundsFlowCreate
+
 from app.schemas.cmp.eip_schema import EIPSchema, EIPCreate, EIPOut, EIPPage, EIPSave
 from app.repositories.cmp.eip_repo import EipRepository
 
 from app.services.cmp.resource_group_service import ResourceGroupService
 from app.schemas.cmp.resource_group_schema import ResourceGroupBindingCreate
 
-from app.services.cmp.account_service import AccountService
-from app.schemas.cmp.account_schema import FundsFlowCreate
+
 
 class EIPService:
     def __init__(self, db: Session):
@@ -24,6 +27,33 @@ class EIPService:
         self.repo = EipRepository(db)
         self.resource_bind_service = ResourceGroupService(self.db)
         self.account_service = AccountService(self.db)
+        self.bill_service = BillService(db)
+
+    # 生成计费任务
+    def create_initial_bill(
+            self,
+            user_id: int,
+            charge_type: str,
+            instance_id: str,
+            unit_price: float,
+            instance,
+    ):
+        account = self.account_service.account_exists(user_id)
+        if not account:
+            raise BusinessException(
+                code=ErrorCode.DATA_NOT_FOUND,
+                message=Message.DATA_NOT_FOUND
+            )
+
+        self.bill_service.create(
+            user_id=user_id,
+            account_id=account.id,
+            resource_type="EIP",
+            charge_type=charge_type,
+            instance_id=instance_id,
+            instance=instance,
+            unit_price=unit_price,
+        )
 
     # 创建eip
     def create_eip(self, user_id: int, data: EIPCreate):
@@ -46,6 +76,9 @@ class EIPService:
                 if not account:
                     raise BusinessException(code=ErrorCode.FAILED, message="请先开通账户")
 
+                self.create_initial_bill(
+                    user_id, "PostPaid", result.eip_id, payload['price'], result,
+                )
                 resource_data = ResourceGroupBindingCreate(
                     cloud_provider_code=data.cloud_provider_code,
                     user_id=user_id,

@@ -11,6 +11,9 @@ from app.core.logger import logger
 from app.common.ipaddress import allocate_private_ip
 from app.core.security import hash_password
 
+from app.services.cmp.bill_service import BillService
+from app.services.cmp.account_service import AccountService
+
 from app.services.cmp.resource_group_service import ResourceGroupService
 from app.schemas.cmp.resource_group_schema import ResourceGroupBindingCreate
 
@@ -35,6 +38,8 @@ class BareMetalInstanceService:
         self.eip_service = EIPService(db)
         self.vpc_service = VPCService(db)
         self.subnet_service = SubnetService(db)
+        self.account_service = AccountService(db)
+        self.bill_service = BillService(db)
 
 
     # 创建裸金属
@@ -71,6 +76,22 @@ class BareMetalInstanceService:
 
                 if not instance:
                     return False
+
+                # 查看账户
+                account = self.account_service.account_exists(user_id)
+                if not account:
+                    raise BusinessException(code=ErrorCode.DATA_NOT_FOUND, message=Message.DATA_NOT_FOUND)
+
+                # 创建成功，生成周期性任务
+                self.bill_service.create(
+                    user_id=user_id,
+                    account_id=account.id,
+                    resource_type="BAREMETAL",
+                    charge_type=instance.instance_charge_type,
+                    instance_id=instance.instance_id,
+                    instance=instance,
+                    unit_price=data.price,  # 👈 创建时提交的价格
+                )
 
                 #  设置vpc
                 self.vpc_service.update_vpc(data.vpc_id)
@@ -110,7 +131,8 @@ class BareMetalInstanceService:
                     "description": f"系统盘，挂载到实例 {instance.instance_name}",
                     "tags": []
                 }
-                self.cbs_service.cbs_create_auto(user_id, system_disk_data)
+                self.cbs_service.cbs_create_auto(user_id, system_disk_data, instance.instance_charge_type, 2.5)
+                # self.cbs_service.cbs_create_auto(user_id, system_disk_data)
 
                 #   绑定资源组
                 self.resource_bind_service.bind(

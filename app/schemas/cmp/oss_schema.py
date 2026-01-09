@@ -18,6 +18,7 @@ class OssBase(BaseModel):
 
 
 class OssCreate(OssBase):
+    price: float = 0
     pass
 
 class OssOut(OssBase):
@@ -29,6 +30,7 @@ class OssOut(OssBase):
     user_id: int = 0
     created_at: datetime = None
     updated_at: datetime = None
+    resource_group_name: str = None
 
     class Config:
         from_attributes = True

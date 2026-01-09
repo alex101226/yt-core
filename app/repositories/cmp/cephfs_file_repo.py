@@ -15,9 +15,10 @@ class CephfsFileRepository:
     def cephfs_file_create(self, data: dict):
         item = CephfsFile(**data)
         self.db.add(item)
-        self.db.commit()
-        self.db.refresh(item)
-        return True
+        self.db.flush()
+        # self.db.commit()
+        # self.db.refresh(item)
+        return item
 
     # 返回cephfs的列表
     def cephfs_page_list(

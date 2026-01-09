@@ -89,6 +89,8 @@ class InstanceService:
                     user_id=user_id,
                     account_id=account.id,
                     resource_type="SERVER",
+                    charge_type=instance.instance_charge_type,
+                    instance_id=instance.instance_id,
                     instance=instance,
                     unit_price=data.price,  # 👈 创建时提交的价格
                 )
@@ -118,7 +120,7 @@ class InstanceService:
                     "region_id": data.region_id,
                     "zone_id": data.zone_id,
                     "resource_group_id": data.resource_group_id,
-                    "disk_name": gen_random_name('cbs'),
+                    "disk_name": gen_random_name('cbs-system'),
                     "disk_type": "system",  # 磁盘类型：system 系统盘 / data 数据盘。
                     "disk_category": data.system_disk_category, # 磁盘种类，例如：cloud、cloud_ssd、cloud_essd_pl0 等
                     "disk_size": data.system_disk_size, # 磁盘大小
@@ -131,7 +133,7 @@ class InstanceService:
                     "description": f"系统盘，挂载到实例 {instance.instance_name}",
                     "tags": []
                 }
-                self.cbs_service.cbs_create_auto(user_id, system_disk_data)
+                self.cbs_service.cbs_create_auto(user_id, system_disk_data, instance.instance_charge_type, 2.5)
 
                 # -----------------------------
                 # 3. 创建数据盘 CBS
@@ -143,7 +145,7 @@ class InstanceService:
                             "region_id": data.region_id,
                             "zone_id": data.zone_id,
                             "resource_group_id": data.resource_group_id,
-                            "disk_name": gen_random_name('cbs'),
+                            "disk_name": gen_random_name('cbs-data'),
                             "disk_type": "data",  # 磁盘类型：system 系统盘 / data 数据盘。
                             "disk_category": disk.disk_category, # 磁盘种类，例如：cloud、cloud_ssd、cloud_essd_pl0 等
                             "disk_size": disk.disk_size, # 磁盘大小
@@ -156,7 +158,8 @@ class InstanceService:
                             "description": f"系统盘，挂载到实例 {instance.instance_name}",
                             "tags": []
                         }
-                        self.cbs_service.cbs_create_auto(user_id, disk_data)
+                        self.cbs_service.cbs_create_auto(user_id, disk_data, disk_data['charge_type'], 2.5)
+                        # self.cbs_service.cbs_create_auto(user_id, disk_data)
 
                 #   绑定资源组
                 self.resource_bind_service.bind(

@@ -34,16 +34,18 @@ def cbs_create(
 # 分页列表
 @router.get("/oss_page_list")
 def oss_page_list(
+    request: Request,
     page: int = Query(..., description="第几页"),
     page_size: int = Query(..., description="页码"),
     provider_code: str = Query(None, description="云厂商 code"),
     region_id: Optional[str] = Query(None, description="区域 id"),
-    resource_group_id: Optional[int] = Query(None, description="资源组 id"),
+    resource_group_id: Optional[str] = Query(None, description="资源组 id"),
     bucket_name: Optional[str] = Query(None, description="oss存储痛名称"),
     permission: Optional[str] = Query(None, description="访问权限：private-read-write / public-read-write / public-read-private-write"),
     service: OssBucketService = Depends(get_oss_service),
 ):
-    result = service.oss_page_list(page, page_size, provider_code, region_id, resource_group_id, bucket_name, permission)
+    user_id = request.state.user.get('user_id')
+    result = service.oss_page_list(user_id, page, page_size, provider_code, region_id, resource_group_id, bucket_name, permission)
     return Response.success(result)
 
 

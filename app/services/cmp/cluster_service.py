@@ -1,8 +1,15 @@
 from nanoid import generate
+
+from app.common.exceptions import BusinessException
+from app.common.messages import Message
+from app.common.status_code import ErrorCode
 from app.core.logger import logger
 
 from app.core.security import hash_password
 from app.common.ipaddress import allocate_private_ip
+
+from app.services.cmp.bill_service import BillService
+from app.services.cmp.account_service import AccountService
 
 from app.repositories.cmp.cluster_repo import ClusterRepository, NodePoolRepository, NodeRepository
 from app.schemas.cmp.cluster_schema import ClusterCreateSchema, NodePoolCreateSchema, NodeCreateSchema
@@ -13,11 +20,37 @@ class ClusterService:
         self.cluster_repo = ClusterRepository(db)
         self.node_pool_repo = NodePoolRepository(db)
         self.node_repo = NodeRepository(db)
+        self.account_service = AccountService(self.db)
+        self.bill_service = BillService(db)
 
+    # 生成计费任务
+    def create_initial_bill(
+            self,
+            user_id: int,
+            charge_type: str,
+            instance_id: str,
+            unit_price: float,
+            instance,
+    ):
+        account = self.account_service.account_exists(user_id)
+        if not account:
+            raise BusinessException(
+                code=ErrorCode.DATA_NOT_FOUND,
+                message=Message.DATA_NOT_FOUND
+            )
+
+        self.bill_service.create(
+            user_id=user_id,
+            account_id=account.id,
+            resource_type="CLUSTER",
+            charge_type=charge_type,
+            instance_id=instance_id,
+            instance=instance,
+            unit_price=unit_price,
+        )
 
     # 创建集群
     def create_cluster_full(self, user_id: int, cluster_data: dict):
-        logger.info(f'查看接收到的参数 {cluster_data}')
         # -----------------------
         # 1. 创建集群
         # -----------------------
@@ -50,6 +83,10 @@ class ClusterService:
         }
         cluster = self.cluster_repo.create(cluster_payload)
 
+
+        self.create_initial_bill(
+            user_id, cluster_payload['charge_type'], cluster_id, cluster_payload['price'], cluster,
+        )
         # -----------------------
         # 2. 创建节点池
         # -----------------------

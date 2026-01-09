@@ -22,43 +22,6 @@ class BillService:
         self.repo = BillRepository(db)
         self.order_service = OrderService(db)
 
-    # 商品订单
-    def product_order_page_list(
-        self,
-        user_id: int,
-        page: int,
-        page_size: int,
-        order: Optional[str] = None,
-        instance_id: Optional[str] = None,
-        start_at: Optional[datetime] = None,
-        end_at: Optional[datetime] = None,):
-        items, total = self.repo.product_order_page_list(user_id, page, page_size, order, instance_id, start_at, end_at)
-        out_items = [ProductOrderOut.model_validate(i) for i in items]
-        return ProductOrderPage(total=total, page=page, page_size=page_size, items=out_items)
-
-
-    # 订单明细
-    def order_detail_page_list(
-        self,
-        user_id: int,
-        page: int,
-        page_size: int,
-        instance_id: Optional[str] = None,
-        consume_type: Optional[str] = None,
-        provider_code: Optional[str] = None,
-        billing_period: Optional[datetime] = None,
-    ):
-        items, total = self.repo.bill_detail_page_list(
-            user_id, page, page_size, instance_id, consume_type, provider_code,
-            billing_period
-        )
-        return BillDetailPage(
-            total=total,
-            page=page,
-            page_size=page_size,
-            items = [BillDetailOut.model_validate(item) for item in items],
-        )
-
     # 账单流水
     def billing_flows_page_list(
         self,
@@ -145,13 +108,15 @@ class BillService:
         user_id: int,
         account_id: int,
         resource_type: str,
+        charge_type: str,
+        instance_id: str,
         instance,
         unit_price: float):
         now = datetime.now(timezone.utc)
         # 单价金额
         amount = Decimal(str(unit_price))
         # 计费方式
-        charge_type = instance.instance_charge_type  # PrePaid / PostPaid
+        # charge_type = instance.instance_charge_type  # PrePaid / PostPaid
 
         # 计费单位
         billing_cycle = "HOUR" if charge_type == "PostPaid" else "MONTH"
@@ -165,26 +130,28 @@ class BillService:
             unit_price=amount,  # 单价（元/小时 或 元/月）
             billing_start_time=now, # 开始计费时间
             last_billing_time=None, # 上一次成功结算到的时间
-            auto_renew=bool(instance.auto_renew),    # 是否自动续费（仅 PREPAID）
+            auto_renew=getattr(instance, 'auto_renew', False) if instance else False,
             status=BillingStatus.ACTIVE,    #   计费状态
+            billing_period_count = getattr(instance, 'period', 1),
         )
         # 创建计费任务
         billing_db = self.repo.bill_create(billing_instance)
 
-        self._first_charge(user_id, account_id, billing_db, instance)
+        self._first_charge(user_id, account_id, instance_id, billing_db, instance)
 
         return billing_db
 
     # 创建订单，扣费任务，资金流水
-    def _first_charge(self, user_id: int, account_id: int, billing: BillingInstance, instance):
+    def _first_charge(self, user_id: int, account_id: int, instance_id: str, billing: BillingInstance, instance):
         now = datetime.now(timezone.utc)
         # 1 小时
-        amount = billing.unit_price * instance.period
+        amount = billing.unit_price * billing.billing_period_count
 
         # 创建订单
         self.order_service.create_and_pay_order(
             user_id=user_id,
             account_id=account_id,
+            instance_id=instance_id,
             billing=billing,
             amount=amount,
             order_type="CREATE",
