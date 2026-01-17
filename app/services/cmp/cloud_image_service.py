@@ -1,3 +1,5 @@
+from typing import Optional
+
 from sqlalchemy.orm import Session
 
 from app.repositories.cmp.cloud_image_repo import CloudImageRepo
@@ -8,7 +10,7 @@ class CloudImageService:
     def __init__(self, db: Session):
         self.db = db
         self.repo = CloudImageRepo(db)
-
+    # 创建云镜像
     def create_image(self, user_id: int, image_data: CloudImageCreate):
 
         payload = {
@@ -17,3 +19,56 @@ class CloudImageService:
             "image_id": image_data.image_name,
         }
         return self.repo.create(payload)
+
+    def list_page_images(
+        self,
+        user_id: int,
+        page: int,
+        page_size: int,
+        cloud_provider_code: Optional[str] = None,
+        region_id: Optional[str] = None,
+        resource_group_id: Optional[int] = None,
+        image_name: Optional[str] = None,
+    ):
+
+        items, total = self.repo.get_page_list(
+            user_id=user_id,
+            page=page,
+            page_size=page_size,
+            cloud_provider_code=cloud_provider_code,
+            region_id=region_id,
+            resource_group_id=resource_group_id,
+            image_name=image_name,
+        )
+
+        items_dict = []
+        for img, rg_name in items:
+            items_dict.append({
+                "id": img.id,
+                "image_id": img.image_id,
+                "image_name": img.image_name,
+                "os_type": img.os_type,
+                "os_name": img.os_name,
+                "cloud_provider_code": img.cloud_provider_code,
+                "region_id": img.region_id,
+                "resource_group_id": img.resource_group_id,
+                "resource_group_name": rg_name,
+                "architecture": img.architecture,
+                "boot_mode": img.boot_mode,
+                "size": img.size,
+                "description": img.description,
+                "status": img.status,
+                "user_id": img.user_id,
+                "charge_type": img.charge_type,
+                "period": img.period,
+                "auto_renew": img.auto_renew,
+                "created_at": img.created_at,
+                "updated_at": img.updated_at,
+            })
+
+        return {
+            "items": items_dict,
+            "total": total,
+            "page": page,
+            "page_size": page_size,
+        }

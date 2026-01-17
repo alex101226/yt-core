@@ -2,7 +2,7 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Request, Query
 from pydantic import BaseModel
 
 from app.common.response import Response
@@ -29,3 +29,31 @@ async def create_cloud_image(
     user_id = request.state.user.get('user_id')
     result = service.create_image(user_id, data)
     return Response.success(result)
+
+
+
+@router.get("/page_list")
+def list_cloud_images(
+    request: Request,
+    page: int = Query(..., ge=1, description="页码，必传"),
+    page_size: int = Query(..., ge=1, description="每页数量，必传"),
+    cloud_provider_code: Optional[str] = Query(None, description="可选，云厂商代码"),
+    region_id: Optional[str] = Query(None, description="可选，区域ID"),
+    resource_group_id: Optional[int] = Query(None, description="可选，资源组ID"),
+    image_name: Optional[str] = Query(None, description="可选，镜像名称"),
+    service: CloudImageService = Depends(get_image_service)
+):
+    user_id = request.state.user.get('user_id')
+    result = service.list_page_images(
+        user_id=user_id,
+        page=page,
+        page_size=page_size,
+        cloud_provider_code=cloud_provider_code,
+        region_id=region_id,
+        resource_group_id=resource_group_id,
+        image_name=image_name,
+    )
+    return Response.success(result)
+
+
+
