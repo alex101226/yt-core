@@ -32,25 +32,23 @@ class BillingStatus(enum.Enum):
     RELEASED = "RELEASED"    # 已释放
 
 
-# ------------------------
 # 发票状态枚举
-# ------------------------
 class InvoiceItemStatus(enum.Enum):
     UNISSUED = "unissued"   # 未开票
     ISSUED = "issued"       # 已开票
 
-# ------------------------
 # 发票记录类型枚举
-# ------------------------
 class InvoiceRecordType(enum.Enum):
     GENERAL = "general"      # 增值税普通发票
     SPECIAL = "special"      # 增值税专用发票
 
-# ------------------------
 # 发票记录状态枚举
-# ------------------------
 class InvoiceRecordStatus(enum.Enum):
     ISSUED = "issued"        # 已开票
     CANCELLED = "cancelled"  # 作废
 
-
+# 云服务器自定义系统镜像状态
+class CloudImageStatus(enum.Enum):
+    AVAILABLE = "available" # 可用
+    DISABLED = "disabled"   # 禁用
+    DELETED = "deleted"     # 删除

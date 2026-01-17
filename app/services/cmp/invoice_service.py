@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from app.common.exceptions import BusinessException
 from app.common.status_code import ErrorCode
 from app.common.messages import Message
+from app.core.logger import logger
 
 from app.repositories.cmp.invoice_repo import InvoiceRepo
 
@@ -37,8 +38,10 @@ class InvoiceService:
                 "company_address": '',
                 "company_phone": '',
                 "taxpayer_id": '',
+                "id": 0,
             }
         return {
+            "id": result.id,
             "invoice_title": result.invoice_title,
             "title_type": result.title_type,
             "invoice_type": result.invoice_type,

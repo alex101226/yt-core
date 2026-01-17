@@ -1,7 +1,6 @@
 # models/account.py
-from sqlalchemy import Column, BigInteger, Numeric, DateTime, ForeignKey, Integer
+from sqlalchemy import Column, BigInteger, Numeric, DateTime, Integer
 from datetime import datetime, timezone
-from sqlalchemy.orm import relationship
 from app.core.config import settings
 from app.core.database import CmpBase
 

@@ -4,9 +4,7 @@ from sqlalchemy import and_
 from sqlalchemy.orm import Session
 
 from app.core.logger import logger
-from app.models.cmp import InstanceStatusCheckTask
 from app.models.cmp.cloud_server_instance import CloudServerInstance
-from app.models.cmp.disk_provision_task import DiskProvisionTask
 
 class ServerInstanceRepo:
     def __init__(self, db: Session):
@@ -35,21 +33,6 @@ class ServerInstanceRepo:
         self.db.add(instance)
         self.db.flush()  # 获取 instance.id
         return instance
-
-    # 创建数据盘
-    def create_disk_tasks(self, instance_id: int, disks: list):
-        disk_objs = []
-        for d in disks:
-            disk_task = DiskProvisionTask(
-                main_task_id=instance_id,
-                disk_category=d["disk_category"],
-                disk_size=d["disk_size"],
-                encrypted=d.get("encrypted", False),
-                status="SUCCESS"
-            )
-            self.db.add(disk_task)
-            disk_objs.append(disk_task)
-        return disk_objs
 
     # 返回服务器分页列表
     def list_page(
@@ -140,17 +123,17 @@ class ServerInstanceRepo:
 
 
     # 创建轮训任务
-    def create_status_check_task(self, main_task_id: int, instance_id: str, check_count=0, max_check=10, status="PENDING"):
-        task = InstanceStatusCheckTask(
-            main_task_id=main_task_id,
-            instance_id=instance_id,
-            check_count=check_count,
-            max_check=max_check,
-            status=status
-        )
-        self.db.add(task)
-        self.db.flush()
-        return task
+    # def create_status_check_task(self, main_task_id: int, instance_id: str, check_count=0, max_check=10, status="PENDING"):
+    #     task = InstanceStatusCheckTask(
+    #         main_task_id=main_task_id,
+    #         instance_id=instance_id,
+    #         check_count=check_count,
+    #         max_check=max_check,
+    #         status=status
+    #     )
+    #     self.db.add(task)
+    #     self.db.flush()
+    #     return task
 
 
     # 修改密码

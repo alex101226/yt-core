@@ -7,18 +7,15 @@ from .subnet import Subnet
 from .security_group import SecurityGroup
 from .security_group_rule import SecurityGroupRule
 
-# 一下都是创建服务器和它的任务表
-from .cloud_server_instance import CloudServerInstance
-from .disk_provision_task import DiskProvisionTask
-from .billing_instance import BillingInstance
-from .network_provision_task import NetworkProvisionTask
-from .sync_resource_task import SyncResourceTask
-from .instance_status_check_task import InstanceStatusCheckTask
-from .instance_provision_task import InstanceProvisionTask
-
 # 裸金属
 from .bare_metal_instance import BareMetalInstance
 
+# 以下都是创建服务器和它的任务表
+from .cloud_server_instance import CloudServerInstance
+from .billing_instance import BillingInstance
+
+# 云服务自定义系统镜像
+from .cloud_image import CloudImage
 # eip表
 from .eip import Eip
 

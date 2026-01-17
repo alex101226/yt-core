@@ -41,7 +41,7 @@ invoice_email_router,
 invoice_router,
 cloud_vendor_router,
 invoice_item_router,
-# image_router,
+cloud_image_router,
 )
 
 @asynccontextmanager
@@ -106,7 +106,7 @@ def create_app() -> FastAPI:
         invoice_email_router,
         invoice_router,
         invoice_item_router,
-        # image_router,
+        cloud_image_router,
     ]
     for r in routers:
         app.include_router(r, prefix=settings.API_PREFIX)
