@@ -123,7 +123,7 @@ class BareMetalInstanceService:
                     "disk_size": data.system_disk_size,  # 磁盘大小
                     "charge_type": data.instance_charge_type,  # 计费方式：PrePaid 包年包月 / PostPaid 按量付费
                     "period": data.period or 1,  # 包年月的月份
-                    "auto_renew": False,
+                    "auto_renew": data.auto_renew,
                     "attached_instance_id": str(instance.id),  # 挂载的实例 ID（ecs/lh/lb）
                     "attached_device": data.instance_name,  # 挂载点名称，如 /dev/vdb
                     "attached_time": datetime.now(timezone.utc),  # 挂载时间

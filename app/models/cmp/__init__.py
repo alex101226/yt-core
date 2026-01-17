@@ -47,3 +47,5 @@ from .order_detail import OrderDetail
 
 from .invoice_email import InvoiceEmail
 from .invoice import Invoice
+from .invoice_item import InvoiceItem
+from .invoice_record import InvoiceRecord

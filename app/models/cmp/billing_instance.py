@@ -75,6 +75,11 @@ class BillingInstance(CmpBase):
         nullable=True,
         comment="上一次成功结算到的时间"
     )
+    next_bill_time = Column(
+        DateTime(timezone=True),
+        nullable=True,
+        comment="下次扣费时间"
+    )
 
     # 仅 PREPAID 使用
     billing_end_time = Column(
@@ -92,9 +97,13 @@ class BillingInstance(CmpBase):
     status = Column(
         Enum(BillingStatus),
         nullable=False,
-        default=BillingStatus.ACTIVE,
+        default=BillingStatus.CREATED,
         comment="计费状态"
     )
+
+    # 冗余字段
+    cloud_provider_code = Column(String(50), nullable=False, comment="云厂商")
+    region_id=Column(String(50), nullable=False, comment="区域")
 
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), comment="创建时间（UTC）")
     updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), comment="更新时间（UTC）")

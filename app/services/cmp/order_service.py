@@ -1,7 +1,7 @@
 from os import times
 
 from sqlalchemy.orm import Session
-from typing import Optional, List
+from typing import Optional
 from datetime import datetime, timezone, timedelta
 from decimal import Decimal, ROUND_HALF_UP
 from nanoid import generate
@@ -15,10 +15,11 @@ from app.core.logger import logger
 
 from app.constants.billing_meta import BILLING_META_MAP, BILLING_METHOD_META
 from app.schemas.cmp.bill_schema import ProductOrderOut, ProductOrderPage, BillDetailPage, BillDetailOut
+from app.schemas.cmp.invoice_schema import InvoiceItemCreateSchema
 
+from app.services.cmp.invoice_item_service import InvoiceItemService
 from app.services.cmp.account_service import AccountService
-from app.repositories.cmp.bill_repo import BillRepository
-from app.models.cmp import BillingInstance
+from app.models.cmp.billing_instance import BillingInstance
 
 from app.repositories.cmp.order_repo import OrderRepo, OrderDetailRepo
 
@@ -30,8 +31,8 @@ class OrderService:
         self.db = db
         self.order_repo = OrderRepo(db)
         self.detail_repo = OrderDetailRepo(db)
-        self.bill_repo = BillRepository(db)
         self.account_service = AccountService(db)
+        self.invoice_item_service = InvoiceItemService(db)
 
     # 商品订单
     def product_order_page_list(
@@ -82,7 +83,8 @@ class OrderService:
         billing: BillingInstance,
         amount: Decimal,
         order_type: str,
-        instance,
+        cloud_provider_code=str,
+        region_id=str,
     ):
         now = datetime.now(timezone.utc)
         timestamp = datetime.now(timezone.utc).timestamp() * 1000
@@ -91,7 +93,7 @@ class OrderService:
 
         method_meta = BILLING_METHOD_META[BillingMethod(billing.billing_method)]
 
-        cloud_provider_code = getattr(instance, "cloud_provider_code", None) or getattr(instance, "provider_code", None)
+        # cloud_provider_code = getattr(instance, "cloud_provider_code", None) or getattr(instance, "provider_code", None)
         order = Order(
             order_no=f"{billing.resource_type.value}-{timestamp}",
             bill_id= billing.id,
@@ -124,9 +126,9 @@ class OrderService:
             owe_amount=0,
             created_at=now,
             duration=billing.billing_period_count,
-            region=instance.region_id
+            region=region_id
         )
-        self.detail_repo.create(detail)
+        detail_db = self.detail_repo.create(detail)
 
         #   扣费，写入资金流水
         funds_flow_data = {
@@ -145,10 +147,29 @@ class OrderService:
             "description": f"{meta.product_name}扣费",
             "created_by": user_id
         }
-        self.account_service.pay(funds_flow_data)
+        fund_pay = self.account_service.pay(funds_flow_data)
 
         order.pay_status = "SUCCESS"
         order.paid_at = now
 
+        # 写发票
+        invoice_product_name = f"{method_meta.text}-{detail_db.billing_period}-{order_db.product_name}"
+
+        invoice = InvoiceItemCreateSchema(
+            user_id=order_db.created_by,
+            billing_period=detail_db.billing_period,
+            billing_period_start= billing.last_billing_time or billing.billing_start_time,
+            billing_period_end=billing.billing_end_time,
+            cloud_provider_code=billing.cloud_provider_code,
+            cloud_provider_name="阿里云",
+            order_type=order_db.order_type,
+            product_display_name=invoice_product_name,
+            origin_order_no=order_db.order_no,
+            instance_id=order_db.instance_id,
+            paid_amount=order_db.amount_payable,
+            invoice_amount=order_db.amount_payable,
+            paid_at=order_db.paid_at
+        )
+        self.invoice_item_service.create_invoice_item(invoice)
         # self.db.commit()
 

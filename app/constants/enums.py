@@ -26,9 +26,31 @@ class BillingCycle(enum.Enum):
 
 # 计费状态
 class BillingStatus(enum.Enum):
+    CREATED = "CREATED"  # 已创建，未完成首单
     ACTIVE = "ACTIVE"        # 正常计费
     SUSPENDED = "SUSPENDED"  # 欠费/暂停
     RELEASED = "RELEASED"    # 已释放
 
+
+# ------------------------
+# 发票状态枚举
+# ------------------------
+class InvoiceItemStatus(enum.Enum):
+    UNISSUED = "unissued"   # 未开票
+    ISSUED = "issued"       # 已开票
+
+# ------------------------
+# 发票记录类型枚举
+# ------------------------
+class InvoiceRecordType(enum.Enum):
+    GENERAL = "general"      # 增值税普通发票
+    SPECIAL = "special"      # 增值税专用发票
+
+# ------------------------
+# 发票记录状态枚举
+# ------------------------
+class InvoiceRecordStatus(enum.Enum):
+    ISSUED = "issued"        # 已开票
+    CANCELLED = "cancelled"  # 作废
 
 

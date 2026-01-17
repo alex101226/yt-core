@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 from typing import Optional, List
 from datetime import datetime, timezone, timedelta
+from dateutil.relativedelta import relativedelta
 from decimal import Decimal, ROUND_HALF_UP
 from nanoid import generate
 
@@ -15,6 +16,23 @@ from app.models.cmp.billing_instance import BillingMethod, BillingInstance, Reso
 
 from app.repositories.cmp.bill_repo import BillRepository
 from app.schemas.cmp.bill_schema import ProductOrderOut, ProductOrderPage, BillDetailOut, BillDetailPage
+
+# 计算下次的时间
+def calc_next_billing_time(
+    *,
+    now: datetime,
+    billing_cycle: str,
+    period_count: int
+) -> datetime:
+    if billing_cycle == "HOUR":
+        next_billing_due = now + timedelta(weeks=1)
+        # return now + timedelta(hours=period_count)
+        return next_billing_due
+
+    if billing_cycle == "MONTH":
+        return now + relativedelta(months=period_count)
+
+    raise ValueError(f"Unsupported billing_cycle: {billing_cycle}")
 
 class BillService:
     def __init__(self, db: Session):
@@ -113,6 +131,7 @@ class BillService:
         instance,
         unit_price: float):
         now = datetime.now(timezone.utc)
+        period_months = getattr(instance, "period", 1)
         # 单价金额
         amount = Decimal(str(unit_price))
         # 计费方式
@@ -120,6 +139,15 @@ class BillService:
 
         # 计费单位
         billing_cycle = "HOUR" if charge_type == "PostPaid" else "MONTH"
+
+        # 云厂商
+        cloud_provider_code = getattr(instance, "cloud_provider_code", None) or getattr(instance, "provider_code", None)
+
+        # 结束计费时间
+        if charge_type == "PrePaid":
+            billing_end_time = now + relativedelta(months=+period_months)
+        else:
+            billing_end_time = None  # PostPaid 不需要
 
         # 1️⃣ 创建计费实例
         billing_instance = BillingInstance(
@@ -129,20 +157,24 @@ class BillService:
             billing_cycle=billing_cycle,    # 计费周期：HOUR / MONTH。要根据计费单位修改单位，先记下来
             unit_price=amount,  # 单价（元/小时 或 元/月）
             billing_start_time=now, # 开始计费时间
+            billing_end_time= billing_end_time,   # 结束扣费时间
             last_billing_time=None, # 上一次成功结算到的时间
             auto_renew=getattr(instance, 'auto_renew', False) if instance else False,
-            status=BillingStatus.ACTIVE,    #   计费状态
-            billing_period_count = getattr(instance, 'period', 1),
+            status=BillingStatus.CREATED,    #   已创建
+            billing_period_count = period_months,
+            cloud_provider_code=cloud_provider_code,
+            region_id=getattr(instance, 'region_id'),
         )
         # 创建计费任务
         billing_db = self.repo.bill_create(billing_instance)
 
-        self._first_charge(user_id, account_id, instance_id, billing_db, instance)
+        self._first_charge(user_id, account_id, instance_id, billing_db)
 
         return billing_db
 
+
     # 创建订单，扣费任务，资金流水
-    def _first_charge(self, user_id: int, account_id: int, instance_id: str, billing: BillingInstance, instance):
+    def _first_charge(self, user_id: int, account_id: int, instance_id: str, billing: BillingInstance):
         now = datetime.now(timezone.utc)
         # 1 小时
         amount = billing.unit_price * billing.billing_period_count
@@ -155,12 +187,19 @@ class BillService:
             billing=billing,
             amount=amount,
             order_type="CREATE",
-            instance=instance,
+            cloud_provider_code=billing.cloud_provider_code,
+            region_id=billing.region_id,
+        )
+        next_time = calc_next_billing_time(
+            now=now,
+            billing_cycle=billing.billing_cycle.value,
+            period_count=billing.billing_period_count
         )
 
         # 更新计费时间
         self.repo.bill_update(
             billing_id = billing.id,
             last_time=now,
-            next_time=now + timedelta(hours=1)
+            next_time=next_time,
+            status=BillingStatus.ACTIVE,
         )

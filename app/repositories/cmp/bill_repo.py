@@ -4,6 +4,7 @@ from typing import Optional, Tuple, List, Dict
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
+from app.constants.enums import BillingStatus
 from app.core.logger import logger
 
 from app.models.cmp.billing_instance import BillingInstance
@@ -254,12 +255,13 @@ class BillRepository:
         return instance
 
     # 周期计费任务修改
-    def bill_update(self, billing_id: int, *, last_time: Optional[datetime], next_time: Optional[datetime]):
+    def bill_update(self, billing_id: int, *, last_time: Optional[datetime], next_time: Optional[datetime], status):
         find = self.bill_by_id_find(billing_id)
         if not find:
           return None
-        find.last_time = last_time
-        find.next_time = next_time
+        find.last_billing_time = last_time
+        find.next_bill_time = next_time
+        find.status=status
         # self.db.commit()
         self.db.flush()
         return find
@@ -267,3 +269,15 @@ class BillRepository:
     # 查询单条的计费任务
     def bill_by_id_find(self, bill_id: int):
         return self.db.query(BillingInstance).filter(BillingInstance.id == bill_id).first()
+
+
+    def find_due_billings(self, now: datetime):
+        return (
+            self.db.query(BillingInstance)
+            .filter(
+                BillingInstance.status == BillingStatus.ACTIVE,
+                BillingInstance.next_bill_time <= now
+            )
+            .with_for_update()  # 防并发重复扣费
+            .all()
+        )
