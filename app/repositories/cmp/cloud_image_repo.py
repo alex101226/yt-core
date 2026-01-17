@@ -6,17 +6,18 @@ from app.models.cmp import ResourceGroup
 from app.models.cmp.cloud_image import CloudImage
 
 class CloudImageRepo:
-    def __init__(self, session: Session):
-        self.session = session
+    def __init__(self, db: Session):
+        self.db = db
 
     def create(self, data: dict) -> CloudImage:
         """
         创建云镜像记录
         """
         cloud_image = CloudImage(**data)
-        self.session.add(cloud_image)
-        self.session.commit()
-        self.session.refresh(cloud_image)
+        self.db.add(cloud_image)
+        self.db.flush()
+        # self.session.commit()
+        # self.session.refresh(cloud_image)
         return cloud_image
 
     #   查询云镜像分页列表
@@ -30,7 +31,7 @@ class CloudImageRepo:
         resource_group_id: Optional[int] = None,
         image_name: Optional[str] = None,
     ):
-        query = self.session.query(
+        query = self.db.query(
             CloudImage,
             ResourceGroup.rg_name.label("resource_group_name")
         ).outerjoin(

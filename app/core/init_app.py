@@ -42,23 +42,19 @@ invoice_router,
 cloud_vendor_router,
 invoice_item_router,
 cloud_image_router,
+stat_router,
 )
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # 启动前逻辑
     logger.info("🚀 Application starting up...")
-    # from app.tasks.server_instance_status_checker import start_scheduler, stop_scheduler
-    # from app.tasks.eip_settle_hour_task import eip_settle_hour_task
-    # eip_settle_hour_task()
-    # start_scheduler()
     from app.tasks.settle_billing_task import bill_start_scheduler, bill_stop_scheduler
     bill_start_scheduler()
     try:
         yield
     finally:
         bill_stop_scheduler()
-        # stop_scheduler()
         logger.info("🛑 Application shutting down...")
 
 def create_app() -> FastAPI:
@@ -81,6 +77,7 @@ def create_app() -> FastAPI:
 
     # include routers
     routers = [
+        stat_router,
         dict_router,
         cloud_vendor_router,
         auth_router,

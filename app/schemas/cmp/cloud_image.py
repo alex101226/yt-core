@@ -15,3 +15,4 @@ class CloudImageCreate(BaseModel):
     description: Optional[str] = None
     charge_type: Optional[str] = "PostPaid"
     resource_group_id: int = 0
+    price: Optional[float] = None

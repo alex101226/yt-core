@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from sqlalchemy import Integer, String, Enum as SAEnum, Boolean, DateTime
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import CmpBase
 from app.core.config import settings
@@ -113,6 +113,10 @@ class CloudImage(CmpBase, IsReleasedMixin):
         default=False,
         comment="是否自动续费"
     )
+
+    # price: Mapped[float] = mapped_column(
+    #     Numeric(18, 2), nullable=False, comment="单价"
+    # )
 
     # ===== 审计 =====
     created_at: Mapped[datetime] = mapped_column(
