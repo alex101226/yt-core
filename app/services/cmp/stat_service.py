@@ -1,13 +1,9 @@
 # app/services/stat_service.py
 from datetime import datetime, timezone
-from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from app.models.cmp import AuditLog
 from app.repositories.cmp.stat_repo import StatRepository
-
-from app.constants.enums import ActionOperate, ActionMode
 
 from app.schemas.cmp.state_schema import AuditLogSchema
 

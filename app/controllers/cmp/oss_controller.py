@@ -26,8 +26,8 @@ def cbs_create(
     data: OssCreate,
     service: OssBucketService = Depends(get_oss_service)
 ):
-    user_id = request.state.user.get('user_id')
-    result = service.oss_create(user_id, data)
+    # user_id = request.state.user.get('user_id')
+    result = service.oss_create(request.state.user, data)
     return Response.success(result)
 
 

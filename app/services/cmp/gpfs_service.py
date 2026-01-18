@@ -13,6 +13,8 @@ from app.services.cmp.account_service import AccountService
 
 from app.repositories.cmp.gpfs_repo import GPFSRepository
 from app.schemas.cmp.gpfs_schema import GPFSCreate, GPFSOut, GPFSPage
+from app.services.cmp.operation_helper import execute_with_notification
+
 
 class GPFSService:
     def __init__(self, db: Session):
@@ -23,12 +25,12 @@ class GPFSService:
 
     # 生成计费任务
     def create_initial_bill(
-            self,
-            user_id: int,
-            charge_type: str,
-            instance_id: str,
-            unit_price: float,
-            instance,
+        self,
+        user_id: int,
+        charge_type: str,
+        instance_id: str,
+        unit_price: float,
+        instance,
     ):
         account = self.account_service.account_exists(user_id)
         if not account:
@@ -48,22 +50,40 @@ class GPFSService:
         )
 
     # 创建gpfs
-    def gpfs_create(self, user_id: int, data: GPFSCreate):
-        payload = {
-            **data.model_dump(),
-            "created_by": user_id,
-            "status": "ACTIVE",
-            "fs_id": f"{data.storage_type}-{generate(size=12)}",
-            "fs_name": f"{data.storage_type}-{generate(size=16)}",
-        }
-        with self.db.begin():
-            result = self.repo.gpfs_create(payload)
+    def gpfs_create(self, user: dict, data: GPFSCreate):
+        user_id = user.get('user_id')
+        def _do():
+            payload = {
+                **data.model_dump(),
+                "created_by": user_id,
+                "status": "ACTIVE",
+                "fs_id": f"{data.storage_type}-{generate(size=12)}",
+                "fs_name": f"{data.storage_type}-{generate(size=16)}",
+            }
+            with self.db.begin():
+                result = self.repo.gpfs_create(payload)
 
-            self.create_initial_bill(
-                user_id, payload['charge_type'], result.fs_id, data.price, result,
-            )
+                self.create_initial_bill(
+                    user_id, payload['charge_type'], result.fs_id, data.price, result,
+                )
 
-            return True
+                return result
+
+        # -------- 交给统一封装处理通知 --------
+        return execute_with_notification(
+            db=self.db,
+            user=user,
+            system=1,
+            system_name="算力调度",
+            action_mode="GPFS",
+            action="CREATE",
+            source_id_fn=lambda result: result.id if result else None,
+            source_id_on_fail=None,  # 失败就没有 source_id
+            success_desc="GPFS文件存储创建成功",
+            failed_desc="GPFS文件存储创建失败",
+            func=_do
+        )
+
 
     # 分页列表
     def gpfs_page_list(

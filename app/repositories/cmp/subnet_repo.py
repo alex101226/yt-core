@@ -62,7 +62,7 @@ class SubnetRepository:
         self.db.add(obj)
         self.db.commit()
         self.db.refresh(obj)
-        return obj.id
+        return obj
 
     def get(self, subnet_id: str) -> Optional[Subnet]:
         return (

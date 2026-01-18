@@ -26,8 +26,8 @@ def cephfs_create(
     data: CephfsCreate,
     service: CephfsFileService = Depends(get_cephfs_service)
 ):
-    user_id = request.state.user.get('user_id')
-    result = service.cephfs_file_create(user_id, data)
+    # user_id = request.state.user.get('user_id')
+    result = service.cephfs_file_create(request.state.user, data)
     return Response.success(result)
 
 

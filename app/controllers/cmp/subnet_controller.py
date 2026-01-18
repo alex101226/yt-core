@@ -74,8 +74,8 @@ def create_subnet(
     request: Request,
     service = Depends(get_subnet_service)
 ):
-    user_id = request.state.user.get('user_id')
-    result = service.create(user_id, data)
+    # user_id = request.state.user.get('user_id')
+    result = service.create(request.state.user, data)
     return Response.success(result)
 
 # 删除

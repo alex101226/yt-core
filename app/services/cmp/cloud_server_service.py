@@ -14,7 +14,6 @@ from app.core.security import hash_password
 
 from app.services.cmp.bill_service import BillService
 from app.services.cmp.account_service import AccountService
-from app.services.cmp.operation_helper import execute_with_notification
 
 from app.services.cmp.subnet_service import SubnetService
 from app.services.cmp.vpc_service import VPCService
@@ -25,13 +24,13 @@ from app.schemas.cmp.resource_group_schema import ResourceGroupBindingCreate
 
 from app.services.cmp.cbs_service import CbsService
 
-from app.services.cmp.stat_service import StatService
+# 通知
+from app.services.cmp.operation_helper import execute_with_notification
 
 from app.repositories.cmp.server_instance_repo import ServerInstanceRepo
 from app.schemas.cmp.server_instance_schema import (
 InstanceActionSchema, InstanceUpdatePassword, InstanceCreateSchema, InstanceBaseOut, InstancePage
 )
-
 
 class InstanceService:
     def __init__(self, db: Session):
@@ -44,7 +43,6 @@ class InstanceService:
         self.subnet_service = SubnetService(db)
         self.account_service = AccountService(db)
         self.bill_service = BillService(db)
-        self.stat_service = StatService(db)
 
     # 创建服务器
     def create_instance(self, user: dict, data: InstanceCreateSchema):
@@ -136,7 +134,7 @@ class InstanceService:
                         "description": f"系统盘，挂载到实例 {instance.instance_name}",
                         "tags": []
                     }
-                    self.cbs_service.cbs_create_auto(user_id, system_disk_data, instance.instance_charge_type, 2.5)
+                    self.cbs_service.cbs_create_auto(user, system_disk_data, instance.instance_charge_type, 2.5)
 
                     # -----------------------------
                     # 3. 创建数据盘 CBS
@@ -161,8 +159,7 @@ class InstanceService:
                                 "description": f"系统盘，挂载到实例 {instance.instance_name}",
                                 "tags": []
                             }
-                            self.cbs_service.cbs_create_auto(user_id, disk_data, disk_data['charge_type'], 2.5)
-                            # self.cbs_service.cbs_create_auto(user_id, disk_data)
+                            self.cbs_service.cbs_create_auto(user, disk_data, disk_data['charge_type'], 2.5)
 
                     #   绑定资源组
                     self.resource_bind_service.bind(
@@ -192,6 +189,8 @@ class InstanceService:
             failed_desc="云服务器创建失败",
             func=_do
         )
+
+
     # 返回服务器列表
     def server_list_page(
         self,
@@ -235,14 +234,14 @@ class InstanceService:
         self.repo.commit()
 
         # 创建轮询任务
-        self.repo.create_status_check_task(
-            main_task_id=instance.id,
-            instance_id=instance.instance_id,
-            check_count=0,
-            max_check=10,
-            status=1
-        )
-        self.repo.commit()
+        # self.repo.create_status_check_task(
+        #     main_task_id=instance.id,
+        #     instance_id=instance.instance_id,
+        #     check_count=0,
+        #     max_check=10,
+        #     status=1
+        # )
+        # self.repo.commit()
         return {"instance_id": instance.instance_id}
 
 

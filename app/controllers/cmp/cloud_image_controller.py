@@ -3,7 +3,6 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from fastapi import APIRouter, Depends, Request, Query
-from pydantic import BaseModel
 
 from app.common.response import Response
 from app.common.dependencies import get_cmp_db
@@ -26,8 +25,8 @@ async def create_cloud_image(
     data: CloudImageCreate,
     service: CloudImageService = Depends(get_image_service)
 ):
-    user_id = request.state.user.get('user_id')
-    result = service.create_image(user_id, data)
+    # user_id = request.state.user.get('user_id')
+    result = service.create_image(request.state.user, data)
     return Response.success(result)
 
 

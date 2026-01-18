@@ -56,8 +56,8 @@ def create_vpc(
     data: VpcCreate,
     service: VPCService = Depends(get_vpc_service)
 ):
-    user_id = request.state.user.get('user_id')
-    vpc = service.create(user_id, data)
+    # user_id = request.state.user.get('user_id')
+    vpc = service.create(request.state.user, data)
     return Response.success(vpc)
 
 # 释放 VPC

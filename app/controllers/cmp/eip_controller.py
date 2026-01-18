@@ -26,8 +26,8 @@ def create_eip(
     request: Request,
     service: EIPService = Depends(get_eip_service)
 ):
-    user_id = request.state.user.get('user_id')
-    result = service.create_eip(user_id, data)
+    # user_id = request.state.user.get('user_id')
+    result = service.create_eip(request.state.user, data)
     return Response.success(result)
 
 @router.get("/eip_page_list")

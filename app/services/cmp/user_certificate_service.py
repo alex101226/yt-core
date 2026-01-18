@@ -8,26 +8,46 @@ from app.common.status_code import ErrorCode
 from app.common.messages import Message
 
 from app.core.logger import logger
+from app.services.cmp.operation_helper import execute_with_notification
+
 
 class UserCertificateService:
     def __init__(self, db: Session):
         self.db = db
         self.repo = UserCertificateRepository(db)
 
-    def create_certificate(self, data: dict):
-        user_id = data["user_id"]
-        count = self.repo.count_by_user(user_id)
+    def create_certificate(self, user: dict, data: dict):
+        def _do():
+            user_id = data["user_id"]
+            count = self.repo.count_by_user(user_id)
 
-        # 如果是第一条，自动设为默认
-        if count == 0:
-            data["is_default"] = 1
-        else:
-            data["is_default"] = 0
+            # 如果是第一条，自动设为默认
+            if count == 0:
+                data["is_default"] = 1
+            else:
+                data["is_default"] = 0
 
-        # cloud_code 唯一校验
-        if self.repo.get_by_code(data['cloud_code']):
-            raise BusinessException(code=ErrorCode.DATA_DUPLICATE, message=Message.DATA_DUPLICATE)
-        return self.repo.create(data)
+            # cloud_code 唯一校验
+            if self.repo.get_by_code(data['cloud_code']):
+                raise BusinessException(code=ErrorCode.DATA_DUPLICATE, message=Message.DATA_DUPLICATE)
+            certificate = self.repo.create(data)
+            return certificate
+
+        # -------- 交给统一封装处理通知 --------
+        return execute_with_notification(
+            db=self.db,
+            user=user,
+            system=1,
+            system_name="算力调度",
+            action_mode="SYSTEM_CONFIG",
+            action="CREATE",
+            source_id_fn=lambda result: result.id if result else None,
+            source_id_on_fail=None,  # 失败就没有 source_id
+            success_desc="云证书创建成功",
+            failed_desc="云证书创建失败",
+            func=_do
+        )
+
 
     def get_certificate(self, record_id: int):
         obj = self.repo.get_by_id(record_id)
@@ -57,11 +77,25 @@ class UserCertificateService:
             raise BusinessException(code=ErrorCode.DATA_NOT_FOUND, message=Message.DATA_NOT_FOUND)
         return obj
 
-    def delete_certificate(self, record_id: int) -> bool:
-        ok = self.repo.delete(record_id)
-        if not ok:
-            raise BusinessException(code=ErrorCode.DATABASE_ERROR, message=Message.DATABASE_ERROR)
-        return True
+    def delete_certificate(self, user:dict, record_id: int) -> bool:
+        def _do():
+            ok = self.repo.delete(record_id)
+            if not ok:
+                raise BusinessException(code=ErrorCode.DATABASE_ERROR, message=Message.DATABASE_ERROR)
+            return ok
+        return execute_with_notification(
+            db=self.db,
+            user=user,
+            system=1,
+            system_name="算力调度",
+            action_mode="SYSTEM_CONFIG",
+            action="RELEASE",
+            source_id_fn=lambda result: result.id if result else None,
+            source_id_on_fail=None,  # 失败就没有 source_id
+            success_desc="云证书删除成功",
+            failed_desc="云证书删除失败",
+            func=_do
+        )
 
     # 设置默认云凭证
     def set_default_certificate(self, user_id: int, record_id: int):

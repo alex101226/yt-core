@@ -31,7 +31,7 @@ def create_group(
     user_id = request.state.user.get('user_id')
     payload = data.model_dump()
     payload['user_id'] = user_id
-    group = service.create_group(payload)
+    group = service.create_group(request.state.user, payload)
     return Response.success(group)
 
 # 修改资源组

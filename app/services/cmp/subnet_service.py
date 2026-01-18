@@ -8,6 +8,7 @@ from app.common.messages import Message
 
 from app.repositories.cmp.subnet_repo import SubnetRepository
 from app.schemas.cmp.subnet_schema import SubnetCreate, SubnetOut, SubnetPage, SubnetBase
+from app.services.cmp.operation_helper import execute_with_notification
 
 from app.services.cmp.resource_group_service import ResourceGroupService
 from app.schemas.cmp.resource_group_schema import ResourceGroupBindingCreate
@@ -63,25 +64,44 @@ class SubnetService:
         )
 
     # 创建
-    def create(self, user_id: int, data: SubnetCreate) -> bool:
-        payload = {
-            **data.model_dump(),
-            "user_id": user_id,
-            "subnet_id": f"subnet-{generate(size=12)}",
-        }
-        result = self.subnet_repo.create(payload)
-        if not result:
-            return False
-        self.resource_bind_service.bind(
-            ResourceGroupBindingCreate(
-                cloud_provider_code=data.cloud_provider_code,
-                user_id=user_id,
-                resource_group_id=data.resource_group_id,
-                resource_type="subnet",
-                resource_id=str(result),
+    def create(self, user: dict, data: SubnetCreate) -> bool:
+        user_id = user.get('user_id')
+        def _do():
+            payload = {
+                **data.model_dump(),
+                "user_id": user_id,
+                "subnet_id": f"subnet-{generate(size=12)}",
+            }
+            result = self.subnet_repo.create(payload)
+            if not result:
+                raise BusinessException(code=ErrorCode.FAILED, message="子网创建失败")
+
+            self.resource_bind_service.bind(
+                ResourceGroupBindingCreate(
+                    cloud_provider_code=data.cloud_provider_code,
+                    user_id=user_id,
+                    resource_group_id=data.resource_group_id,
+                    resource_type="subnet",
+                    resource_id=str(result),
+                )
             )
+            return result
+
+        # -------- 交给统一封装处理通知 --------
+        return execute_with_notification(
+            db=self.db,
+            user=user,
+            system=1,
+            system_name="算力调度",
+            action_mode="SUBNET",
+            action="CREATE",
+            source_id_fn=lambda result: result.id if result else None,
+            source_id_on_fail=None,  # 失败就没有 source_id
+            success_desc="子网创建成功",
+            failed_desc="子网创建失败",
+            func=_do
         )
-        return True
+
 
     # 删除
     def subnet_release(self, subnet_id: str) -> bool:

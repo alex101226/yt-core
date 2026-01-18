@@ -14,6 +14,9 @@ from app.repositories.cmp.vpc_repo import VpcRepository
 from app.services.cmp.resource_group_service import ResourceGroupService
 from app.schemas.cmp.resource_group_schema import ResourceGroupBindingCreate
 
+# 通知
+from app.services.cmp.operation_helper import execute_with_notification
+
 """
 VPC 服务层：提供业务逻辑处理
 """
@@ -40,26 +43,41 @@ class VPCService:
     # --------------------------------
     # 创建单个 VPC
     # --------------------------------
-    def create(self, user_id: int, data: VpcCreate) -> bool:
-        payload = {
-            **data.model_dump(),
-            "created_by": user_id,
-            "vpc_id": f"vpc-{generate(size=12)}"
-        }
-        vpc = self.vpc_repo.create(payload)
-        if not vpc:
-            return False
+    def create(self, user: dict, data: VpcCreate):
+        user_id = user.get('user_id')
+        def _do():
+            payload = {
+                **data.model_dump(),
+                "created_by": user_id,
+                "vpc_id": f"vpc-{generate(size=12)}"
+            }
+            vpc = self.vpc_repo.create(payload)
+            if not vpc:
+                raise BusinessException(code=ErrorCode.FAILED, message="vpc创建失败")  # 不返回 False，直接抛异常
 
-        self.resource_bind_service.bind(
-            ResourceGroupBindingCreate(
-                cloud_provider_code=data.cloud_provider_code,
-                user_id=user_id,
-                resource_group_id=data.resource_group_id,
-                resource_type="vpc",
-                resource_id=str(vpc),
+            self.resource_bind_service.bind(
+                ResourceGroupBindingCreate(
+                    cloud_provider_code=data.cloud_provider_code,
+                    user_id=user_id,
+                    resource_group_id=data.resource_group_id,
+                    resource_type="vpc",
+                    resource_id=str(vpc),
+                )
             )
+            return vpc
+        return execute_with_notification(
+            db=self.db,
+            user=user,
+            system=1,
+            system_name="算力调度",
+            action_mode="VPC",
+            action="CREATE",
+            source_id_fn=lambda result: result.id if result else None,
+            source_id_on_fail=None,  # 失败就没有 source_id
+            success_desc="vpc创建成功",
+            failed_desc="vpc创建失败",
+            func=_do
         )
-        return True
 
 
     # 释放逻辑

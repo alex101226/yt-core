@@ -58,7 +58,7 @@ class VpcRepository:
         self.db.add(obj)
         self.db.commit()
         self.db.refresh(obj)
-        return obj.id
+        return obj
 
     #   获取vpc列表
     def get_by_vpcs(self, user_id: int, provider_code: str, region_id: str):

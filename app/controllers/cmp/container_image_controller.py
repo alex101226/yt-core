@@ -30,8 +30,8 @@ def image_create(
     request: Request,
     service: ContainerImageService = Depends(get_con_image_service)
 ):
-    user_id = request.state.user.get('user_id')
-    result = service.image_create(user_id, data)
+    # user_id = request.state.user.get('user_id')
+    result = service.image_create(request.state.user, data)
     return Response.success(result)
 
 # 分页列表

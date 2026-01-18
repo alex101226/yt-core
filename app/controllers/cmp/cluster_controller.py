@@ -27,7 +27,7 @@ def cbs_create(
     request: Request,
     service: ClusterService = Depends(get_cluster_service)
 ):
-    user_id = request.state.user.get('user_id')
-    result = service.create_cluster_full(user_id, data)
+    # user_id = request.state.user.get('user_id')
+    result = service.create_cluster_full(request.state.user, data)
     return Response.success(result)
 

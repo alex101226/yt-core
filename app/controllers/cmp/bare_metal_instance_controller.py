@@ -23,15 +23,9 @@ def create_instance(
     data: BareMetalInstanceCreate,
     service: BareMetalInstanceService = Depends(get_bare_service)):
 
-    user_id = request.state.user.get('user_id')
-    instance = service.bare_metal_instance_create(user_id, data)
+    # user_id = request.state.user.get('user_id')
+    instance = service.bare_metal_instance_create(request.state.user, data)
 
-    # result = {
-    #     "id": instance.id,
-    #     "instance_name": instance.instance_name,
-    #     "status": instance.status,
-    #     "resource_group_id": instance.resource_group_id
-    # }
     return Response.success(instance)
 
 

@@ -15,11 +15,10 @@ from app.schemas.cmp.account_schema import FundsFlowCreate
 
 from app.schemas.cmp.eip_schema import EIPSchema, EIPCreate, EIPOut, EIPPage, EIPSave
 from app.repositories.cmp.eip_repo import EipRepository
+from app.services.cmp.operation_helper import execute_with_notification
 
 from app.services.cmp.resource_group_service import ResourceGroupService
 from app.schemas.cmp.resource_group_schema import ResourceGroupBindingCreate
-
-
 
 class EIPService:
     def __init__(self, db: Session):
@@ -31,12 +30,12 @@ class EIPService:
 
     # 生成计费任务
     def create_initial_bill(
-            self,
-            user_id: int,
-            charge_type: str,
-            instance_id: str,
-            unit_price: float,
-            instance,
+        self,
+        user_id: int,
+        charge_type: str,
+        instance_id: str,
+        unit_price: float,
+        instance,
     ):
         account = self.account_service.account_exists(user_id)
         if not account:
@@ -56,125 +55,57 @@ class EIPService:
         )
 
     # 创建eip
-    def create_eip(self, user_id: int, data: EIPCreate):
-        try:
-            with self.db.begin():
-                payload = {
-                    **data.model_dump(),
-                    "status": "AVAILABLE",
-                    "created_by": user_id,
-                    "internet_charge_type": "PayByTraffic",
-                    "public_ip": create_public_ip(data.region_id),
-                    "eip_id": f"vpc-{generate(size=12)}"
-                }
-                result = self.repo.create_eip(payload)
-                if not result:
-                    raise BusinessException(code=ErrorCode.FAILED, message="eip创建失败")
+    def create_eip(self, user: dict, data: EIPCreate):
+        user_id = user.get('user_id')
+        def _do():
+            try:
+                with self.db.begin():
+                    payload = {
+                        **data.model_dump(),
+                        "status": "AVAILABLE",
+                        "created_by": user_id,
+                        "internet_charge_type": "PayByTraffic",
+                        "public_ip": create_public_ip(data.region_id),
+                        "eip_id": f"vpc-{generate(size=12)}"
+                    }
+                    result = self.repo.create_eip(payload)
+                    if not result:
+                        raise BusinessException(code=ErrorCode.FAILED, message="eip创建失败")
 
-                # ⚠️ 按量计费：这里只校验账户是否存在
-                account = self.account_service.account_recharge_exists(user_id)
-                if not account:
-                    raise BusinessException(code=ErrorCode.FAILED, message="请先开通账户")
+                    account = self.account_service.account_recharge_exists(user_id)
+                    if not account:
+                        raise BusinessException(code=ErrorCode.FAILED, message="请先开通账户")
 
-                self.create_initial_bill(
-                    user_id, "PostPaid", result.eip_id, payload['price'], result,
-                )
-                resource_data = ResourceGroupBindingCreate(
-                    cloud_provider_code=data.cloud_provider_code,
-                    user_id=user_id,
-                    resource_group_id=data.resource_group_id,
-                    resource_type="eip",
-                    resource_id=str(result.id),
-                )
-                self.resource_bind_service.bind(resource_data)
+                    self.create_initial_bill(
+                        user_id, "PostPaid", result.eip_id, payload['price'], result,
+                    )
+                    resource_data = ResourceGroupBindingCreate(
+                        cloud_provider_code=data.cloud_provider_code,
+                        user_id=user_id,
+                        resource_group_id=data.resource_group_id,
+                        resource_type="eip",
+                        resource_id=str(result.id),
+                    )
+                    self.resource_bind_service.bind(resource_data)
+                return result
+            except BusinessException as exception:
+                self.db.rollback()
+                raise exception
 
-                # time = datetime.now(timezone.utc)
-                # self.settle_eip_hourly(account, user_id, result, time, time)
-            return result
-        except BusinessException as exception:
-            self.db.rollback()
-            raise exception
-
-    # EIP 按量结算
-    def settle_eip_hourly(self, account, user_id: int, eip, start_at, end_at):
-        last_order = self.account_service.get_last_product_order(eip.eip_id)
-        if not last_order:
-            order_type = "CREATE"
-        elif last_order.amount_payable != eip.price:
-            order_type = "UPGRADE"
-        else:
-            order_type = "RENEW"
-
-        # 1. 创建商品订单 支付状态：PENDING/SUCCESS/FAILED
-        order = self.account_service.product_create({
-            "instance_id": eip.eip_id,
-            "region": eip.region_id,
-            "amount_payable": eip.price,
-            "created_by": eip.created_by,
-            "order_no": f"EIP-{generate(size=10)}",
-            "cloud_provider_code": eip.cloud_provider_code,
-            "product_id": 0,
-            "product_name": "弹性公网EIP",
-            "business_id": 0,
-            "business_name": f'{eip.eip_name}按量付费',
-            "order_type": order_type,
-            "consume_type": "VOLUME_BASED", # 消费类型：VOLUME_BASED=按量计费/PACKAGE_MONTHLY=包年月计费
-            "use_credit": False,
-            "use_voucher": False,
-            "settlement_type": "PLATFORM",
-            "account_id": account.id,
-            "charge_mode": "POSTPAID",
-
-            "billing_period": start_at.strftime("%Y-%m"),
-            "billing_item_name": "EIP公网宽带",
-            "duration": 1,
-            "coupon_amount": 0,
-            "credit_amount": 0,
-            "voucher_amount": 0,
-            "owe_amount": 0,
-        })
-
-        # 创建订单明细
-        # bill_order = self.account_service.bill_details_create({
-        #     "billing_period": start_at.strftime("%Y-%m"),
-        #     "region": eip.region_id,
-        #     "billing_item_name": "EIP公网宽带",
-        #     "unit_price": eip.price,
-        #     "unit": "HOUR",
-        #     "duration": 1,
-        #     "coupon_amount": 0,
-        #     "credit_amount": 0,
-        #     "balance_amount": eip.price,
-        #     "voucher_amount": 0,
-        #     "owe_amount": 0,
-        #     "order_id": order.id
-        # })
-
-        # try:
-        #     # 2. 扣费
-        #     funds_flow_data = {
-        #         "user_id": user_id,
-        #         "account_id": account.id,
-        #         "flow_no": f"{datetime.now(timezone.utc).timestamp() * 1000}{order.id % 1000:03d}",
-        #         "direction": "OUT",
-        #         "flow_type": "PAY_ORDER",
-        #         "fund_type": "BALANCE",
-        #         "amount": eip.price,
-        #         "ref_type": "BILLING_DETAIL",
-        #         "ref_id": order.id,
-        #         "billing_period": datetime.now().strftime("%Y-%m"),
-        #         "channel": "USER_ACCOUNT",
-        #         "third_trade_no": order.order_no,
-        #         "description": f"{order.billing_item_name}扣费",
-        #         "created_by": user_id,
-        #     }
-        #     self.account_service.pay(account.balance, funds_flow_data)
-        #     order.pay_status = "SUCCESS"
-        #     order.paid_at = datetime.now(timezone.utc)
-        # except BusinessException:
-        #     logger.info(f'这里是扣款失败了')
-        #     order.pay_status = "FAILED"
-        #     order.owe_amount = eip.price
+        # -------- 交给统一封装处理通知 --------
+        return execute_with_notification(
+            db=self.db,
+            user=user,
+            system=1,
+            system_name="算力调度",
+            action_mode="EIP",
+            action="CREATE",
+            source_id_fn=lambda result: result.id if result else None,
+            source_id_on_fail=None,  # 失败就没有 source_id
+            success_desc="弹性公网（EIP）创建成功",
+            failed_desc="弹性公网（EIP）创建失败",
+            func=_do
+        )
 
     # eip分页列表
     def get_eip_page_list(

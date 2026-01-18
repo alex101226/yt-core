@@ -13,6 +13,8 @@ from app.services.cmp.account_service import AccountService
 
 from app.repositories.cmp.cephfs_file_repo import CephfsFileRepository
 from app.schemas.cmp.cephfs_file_schema import CephfsCreate, CephfsPage, CephfsOut
+from app.services.cmp.operation_helper import execute_with_notification
+
 
 class CephfsFileService:
     def __init__(self, db: Session):
@@ -47,21 +49,39 @@ class CephfsFileService:
             unit_price=unit_price,
         )
 
-    def cephfs_file_create(self, user_id: int, data: CephfsCreate):
-        payload = {
-            **data.model_dump(),
-            "user_id": user_id,
-            "charge_type": "PostPaid",
-            "status": "ACTIVE",
-            "fs_id": f"cephfs-{generate(size=12)}",
-        }
-        with self.db.begin():  # begin() 会自动管理 commit/rollback
-            result = self.repo.cephfs_file_create(payload)
+    def cephfs_file_create(self, user: dict, data: CephfsCreate):
+        user_id = user.get('user_id')
+        def _do():
+            payload = {
+                **data.model_dump(),
+                "user_id": user_id,
+                "charge_type": "PostPaid",
+                "status": "ACTIVE",
+                "fs_id": f"cephfs-{generate(size=12)}",
+            }
+            with self.db.begin():  # begin() 会自动管理 commit/rollback
+                result = self.repo.cephfs_file_create(payload)
 
-            self.create_initial_bill(
-                user_id, payload['charge_type'], result.fs_id, payload['price'], result,
-            )
-            return True
+                self.create_initial_bill(
+                    user_id, payload['charge_type'], result.fs_id, payload['price'], result,
+                )
+                return result
+
+        # -------- 交给统一封装处理通知 --------
+        return execute_with_notification(
+            db=self.db,
+            user=user,
+            system=1,
+            system_name="算力调度",
+            action_mode="CEPHFS",
+            action="CREATE",
+            source_id_fn=lambda result: result.id if result else None,
+            source_id_on_fail=None,  # 失败就没有 source_id
+            success_desc="CEPHFS文件存储创建成功",
+            failed_desc="CEPHFS文件存储创建失败",
+            func=_do
+        )
+
 
     def cephfs_page_list(
             self,

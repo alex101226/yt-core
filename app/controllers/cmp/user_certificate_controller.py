@@ -2,16 +2,13 @@ from fastapi import APIRouter, Depends, Path, Query, Request
 from sqlalchemy.orm import Session
 
 from app.core.dependencies import require_user
-
 from app.common.response import Response
-from app.core.logger import logger
+from app.common.dependencies import get_cmp_db
 
 from app.schemas.cmp.user_certificate_schema import (
     UserCertificateCreate, UserCertificateUpdate
 )
 from app.services.cmp.user_certificate_service import UserCertificateService
-
-from app.common.dependencies import get_cmp_db
 
 router = APIRouter(
     prefix="/user_certificates",
@@ -31,7 +28,7 @@ def create_certificate(
     user = request.state.user
     payload = data.model_dump()
     payload['user_id'] = user.get('user_id')
-    obj = service.create_certificate(payload)
+    obj = service.create_certificate(request.state.user, payload)
     return Response.success(obj)
 
 @router.get("/cer_list")
@@ -66,10 +63,11 @@ def certificates_page_list(
 
 @router.delete("/delete/{record_id}")
 def delete_certificate(
+    request: Request,
     record_id: int = Path(..., ge=1),
     service: UserCertificateService = Depends(get_user_certificate_service)
 ):
-    service.delete_certificate(record_id)
+    service.delete_certificate(request.state.user, record_id)
     return Response.success(message="删除成功")
 
 # @router.put("/set_default/{record_id}")

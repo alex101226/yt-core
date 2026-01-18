@@ -26,8 +26,8 @@ def cbs_create(
     request: Request,
     service: CbsService = Depends(get_cbs_disk_service)
 ):
-    user_id = request.state.user.get('user_id')
-    result = service.cbs_create(user_id, data.model_dump())
+    # user_id = request.state.user.get('user_id')
+    result = service.cbs_create(request.state.user, data.model_dump())
     return Response.success(result)
 
 # 分页列表

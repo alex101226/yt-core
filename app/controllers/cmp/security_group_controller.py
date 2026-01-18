@@ -2,7 +2,6 @@ from typing import Optional
 from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.orm import Session
 
-from app.core.logger import logger
 from app.schemas.cmp.security_group_rule_schema import SecurityGroupRuleOut, SecurityGroupRuleUpdate, \
     SecurityGroupRuleItem
 from app.schemas.cmp.security_group_schema import SecurityGroupPage, SecurityGroupOut, SecurityGroupCreate
@@ -43,9 +42,8 @@ def create_security_group(
     request: Request,
     service: SecurityGroupService = Depends(get_security_service)
 ):
-    # logger.info(f'查看传递过来的安全组 {data}')
-    user_id = request.state.user.get('user_id')
-    result = service.create(user_id, data)
+    # user_id = request.state.user.get('user_id')
+    result = service.create(request.state.user, data)
     return Response.success(result)
 
 

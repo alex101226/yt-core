@@ -11,6 +11,8 @@ from app.services.cmp.account_service import AccountService
 
 from app.repositories.cmp.container_image_repo import ContainerImageRepository
 from app.schemas.cmp.container_image_schema import ContainerImageCreate, ContainerImagePage, ContainerImageOut
+from app.services.cmp.operation_helper import execute_with_notification
+
 
 class ContainerImageService:
     def __init__(self, db: Session):
@@ -47,28 +49,44 @@ class ContainerImageService:
         )
 
     # 创建镜像服务
-    def image_create(self, user_id: int, data: dict):
-        payload = {
-            "created_by": user_id,
-            "enable_https": 0,
-            "repository_id": f"cr-{generate(size=12)}",
-            "repository_name": data['repository_name'],
-            "capacity_gb": data['capacity_gb'],
-            "cephfs_id": data['cephfs_id'],
-            "charge_type": data['charge_type'],
-            "cloud_provider_code": data['cloud_provider_code'],
-            "region_id": data['region_id'],
-            "instance_spec": data['instance_spec'],
-            "resource_group_id": data['resource_group_id'],
-            "price": data['price'],
-            "status": "AVAILABLE"
-        }
-        with self.db.begin():  # begin() 会自动管理 commit/rollback  resource_id， resource_group_id
-            result = self.repo.image_create(payload)
-            self.create_initial_bill(
-                user_id, payload['charge_type'], result.repository_id, payload['price'], result,
-            )
-            return result
+    def image_create(self, user: dict, data: dict):
+        user_id = user.get('user_id')
+        def _do():
+            payload = {
+                "created_by": user_id,
+                "enable_https": 0,
+                "repository_id": f"cr-{generate(size=12)}",
+                "repository_name": data['repository_name'],
+                "capacity_gb": data['capacity_gb'],
+                "cephfs_id": data['cephfs_id'],
+                "charge_type": data['charge_type'],
+                "cloud_provider_code": data['cloud_provider_code'],
+                "region_id": data['region_id'],
+                "instance_spec": data['instance_spec'],
+                "resource_group_id": data['resource_group_id'],
+                "price": data['price'],
+                "status": "AVAILABLE"
+            }
+            with self.db.begin():  # begin() 会自动管理 commit/rollback  resource_id， resource_group_id
+                result = self.repo.image_create(payload)
+                self.create_initial_bill(
+                    user_id, payload['charge_type'], result.repository_id, payload['price'], result,
+                )
+                return result
+        # -------- 交给统一封装处理通知 --------
+        return execute_with_notification(
+            db=self.db,
+            user=user,
+            system=1,
+            system_name="算力调度",
+            action_mode="CONTAINER_IMAGE",
+            action="CREATE",
+            source_id_fn=lambda result: result.id if result else None,
+            source_id_on_fail=None,  # 失败就没有 source_id
+            success_desc="容器镜像创建成功",
+            failed_desc="容器镜像创建失败",
+            func=_do
+        )
 
 
     # 分页列表

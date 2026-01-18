@@ -1,6 +1,5 @@
 from typing import List
 
-from pydantic import model_validator
 from sqlalchemy.orm import Session
 from nanoid import generate
 
@@ -11,6 +10,7 @@ from app.common.exceptions import BusinessException
 from app.schemas.cmp.security_group_schema import SecurityGroupPage, SecurityGroup, SecurityGroupOut, SecurityGroupCreate
 from app.schemas.cmp.security_group_rule_schema import SecurityGroupRuleUpdate, SecurityGroupRuleItem
 from app.repositories.cmp.security_group_repo import SecurityGroupRepository
+from app.services.cmp.operation_helper import execute_with_notification
 
 from app.services.cmp.resource_group_service import ResourceGroupService
 from app.schemas.cmp.resource_group_schema import ResourceGroupBindingCreate
@@ -87,27 +87,42 @@ class SecurityGroupService:
     # ----------------------------
     # 创建安全组（本地 + 云端）
     # ----------------------------
-    def create(self, user_id: int, data: SecurityGroupCreate):
-        payload = {
-            **data.model_dump(),
-            "created_by": user_id,
-            "sg_id": f'sg-{generate(size=12)}',
-            "status": "AVAILABLE"
-        }
-        result = self.security_group_repo.create_group(payload)
-        if not result:
-            return False
-        # self.update_rules(result)
-        self.resource_bind_service.bind(
-            ResourceGroupBindingCreate(
-                cloud_provider_code=data.cloud_provider_code,
-                user_id=user_id,
-                resource_group_id=data.resource_group_id,
-                resource_type="security",
-                resource_id=str(result),
+    def create(self, user: dict, data: SecurityGroupCreate):
+        user_id = user.get("user_id")
+        def _do():
+            payload = {
+                **data.model_dump(),
+                "created_by": user_id,
+                "sg_id": f'sg-{generate(size=12)}',
+                "status": "AVAILABLE"
+            }
+            result = self.security_group_repo.create_group(payload)
+            if not result:
+                raise BusinessException(code=ErrorCode.FAILED, message="安全组创建失败")  # 不返回 False，直接抛异常
+
+            self.resource_bind_service.bind(
+                ResourceGroupBindingCreate(
+                    cloud_provider_code=data.cloud_provider_code,
+                    user_id=user_id,
+                    resource_group_id=data.resource_group_id,
+                    resource_type="security",
+                    resource_id=str(result),
+                )
             )
+            return result
+        return execute_with_notification(
+            db=self.db,
+            user=user,
+            system=1,
+            system_name="算力调度",
+            action_mode="SECURITY",
+            action="CREATE",
+            source_id_fn=lambda result: result if result else None,
+            source_id_on_fail=None,  # 失败就没有 source_id
+            success_desc="安全组创建成功",
+            failed_desc="安全组创建失败",
+            func=_do
         )
-        return result
 
     # ----------------------------
     # 释放安全组

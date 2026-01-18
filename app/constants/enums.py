@@ -98,6 +98,9 @@ class ActionMode(enum.Enum):
     BAREMETAL = "baremetal"  # 裸金属
     CLUSTER = "cluster"  # 集群
     LOAD_INSTANCE = "load_instance"  # 负载均衡
+    VPC = "vpc"
+    SUBNET = "subnet"
+    SECURITY = "security"
 
     # ========== 存储 ==========
     GPFS = "gpfs"  # GPFS 存储

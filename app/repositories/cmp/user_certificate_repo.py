@@ -65,7 +65,7 @@ class UserCertificateRepository:
             return False
         self.db.delete(obj)
         self.db.commit()
-        return True
+        return obj
 
     # 查询用户是否已有凭证
     def count_by_user(self, user_id: int):

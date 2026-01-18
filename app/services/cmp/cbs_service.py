@@ -13,6 +13,7 @@ from app.schemas.cmp.cbs_disk_schema import CbsDiskBase, CbsDiskCreate, CbsDiskO
 from app.common.exceptions import BusinessException
 from app.common.status_code import ErrorCode
 from app.common.messages import Message
+from app.services.cmp.operation_helper import execute_with_notification
 
 
 class CbsService:
@@ -49,42 +50,73 @@ class CbsService:
         )
 
     # 硬盘模块创建
-    def cbs_create(self, user_id: int, data: dict):
-        payload = {
-            **data,
-            "user_id": user_id,
-            "disk_id": f"CBS-{generate(size=12)}",
-            "encrypted": False,
-            "status": "InUse" if data['attached_instance_id'] else "Available",
-            "attached_time": data.get('attached_time', None),
-            "is_attached": bool(data.get('attached_instance_id')),
-        }
-        # logger.info(f'查看payload参数 {payload}')
-        result = self.repo.cbs_create(payload)
-        self.create_initial_bill(
-            user_id, payload['charge_type'], result.disk_id, payload['price'], result,
+    def cbs_create(self, user: dict, data: dict):
+        user_id = user.get('user_id')
+        def _do():
+            payload = {
+                **data,
+                "user_id": user_id,
+                "disk_id": f"CBS-{generate(size=12)}",
+                "encrypted": False,
+                "status": "InUse" if data['attached_instance_id'] else "Available",
+                "attached_time": data.get('attached_time', None),
+                "is_attached": bool(data.get('attached_instance_id')),
+            }
+            result = self.repo.cbs_create(payload)
+            self.create_initial_bill(
+                user_id, payload['charge_type'], result.disk_id, payload['price'], result,
+            )
+            self.db.commit()
+            self.db.refresh(result)
+            return result
+        # -------- 交给统一封装处理通知 --------
+        return execute_with_notification(
+            db=self.db,
+            user=user,
+            system=1,
+            system_name="算力调度",
+            action_mode="DISK",
+            action="CREATE",
+            source_id_fn=lambda result: result.id if result else None,
+            source_id_on_fail=None,  # 失败就没有 source_id
+            success_desc="云硬盘（CBS）创建成功",
+            failed_desc="云硬盘（CBS）创建失败",
+            func=_do
         )
-        self.db.commit()
-        self.db.refresh(result)
-        return True
+
 
     #   自动创建cbs
-    def cbs_create_auto(self, user_id: int, data: dict, charge_type: str, price: float):
-        # logger.info(f'查看 {data}')
-        payload = {
-            **data,
-            "user_id": user_id,
-            "disk_id": f"CBS-{generate(size=12)}",
-            "encrypted": False,
-            "status": "InUse" if data['attached_instance_id'] else "Available",
-            "attached_time": data.get('attached_time', None),
-            "is_attached": bool(data.get('attached_instance_id')),
-        }
-        result = self.repo.cbs_create(payload)
-        self.create_initial_bill(
-            user_id, charge_type, result.disk_id, price, result,
+    def cbs_create_auto(self, user: dict, data: dict, charge_type: str, price: float):
+        user_id = user.get('user_id')
+        def _do():
+            payload = {
+                **data,
+                "user_id": user_id,
+                "disk_id": f"CBS-{generate(size=12)}",
+                "encrypted": False,
+                "status": "InUse" if data['attached_instance_id'] else "Available",
+                "attached_time": data.get('attached_time', None),
+                "is_attached": bool(data.get('attached_instance_id')),
+            }
+            result = self.repo.cbs_create(payload)
+            self.create_initial_bill(
+                user_id, charge_type, result.disk_id, price, result,
+            )
+            return result
+        # -------- 交给统一封装处理通知 --------
+        return execute_with_notification(
+            db=self.db,
+            user=user,
+            system=1,
+            system_name="算力调度",
+            action_mode="DISK",
+            action="CREATE",
+            source_id_fn=lambda result: result.id if result else None,
+            source_id_on_fail=None,  # 失败就没有 source_id
+            success_desc="云硬盘（CBS）创建成功",
+            failed_desc="云硬盘（CBS）创建失败",
+            func=_do
         )
-        return result
 
     # 返回分页列表
     def cbs_page_list(

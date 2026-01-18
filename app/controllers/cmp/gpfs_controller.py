@@ -26,8 +26,8 @@ def gpfs_create(
     data: GPFSCreate,
     service: GPFSService = Depends(get_gpfs_service)
 ):
-    user_id = request.state.user.get('user_id')
-    result = service.gpfs_create(user_id, data)
+    # user_id = request.state.user.get('user_id')
+    result = service.gpfs_create(request.state.user, data)
     return Response.success(result)
 
 # 分页列表

@@ -7,6 +7,7 @@ from app.common.messages import Message
 from app.common.status_code import ErrorCode
 
 from app.core.logger import logger
+from app.services.cmp.operation_helper import execute_with_notification
 
 """资源组业务服务层"""
 class ResourceGroupService:
@@ -15,17 +16,32 @@ class ResourceGroupService:
         self.repo = ResourceGroupRepository(db)
 
     # 创建资源组
-    def create_group(self, data: dict):
-        # 检查 code 是否已存在
-        exists = self.repo.get_by_group_code(data['rg_code'])
-        if exists:
-            raise BusinessException(
-                code=ErrorCode.RESOURCE_GROUP_EXISTS,
-                message=Message.RESOURCE_GROUP_EXISTS
-            )
-        result = self.repo.create_group(data)
-        # logger.info(f'创建返回的数据查看 {result}')
-        return result
+    def create_group(self, user: dict, data: dict):
+        def _do():
+            # 检查 code 是否已存在
+            exists = self.repo.get_by_group_code(data['rg_code'])
+            if exists:
+                raise BusinessException(
+                    code=ErrorCode.RESOURCE_GROUP_EXISTS,
+                    message=Message.RESOURCE_GROUP_EXISTS
+                )
+            result = self.repo.create_group(data)
+            return result
+
+        # -------- 交给统一封装处理通知 --------
+        return execute_with_notification(
+            db=self.db,
+            user=user,
+            system=1,
+            system_name="算力调度",
+            action_mode="SYSTEM_CONFIG",
+            action="CREATE",
+            source_id_fn=lambda result: result.id if result else None,
+            source_id_on_fail=None,  # 失败就没有 source_id
+            success_desc="资源组创建成功",
+            failed_desc="资源组创建失败",
+            func=_do
+        )
 
     # 根据id查找资源组
     def get_group(self, group_id: int):

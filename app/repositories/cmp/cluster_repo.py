@@ -32,32 +32,6 @@ class NodePoolRepository:
         node_pool = ClusterNodePool(**node_pool)
         self.db.add(node_pool)
         self.db.flush()
-
-        # created_pools = []
-        # for pool in node_pools:
-        #     payload = {
-        #         "cluster_id": cluster_id,
-        #         "pool_name": pool['pool_name'],
-        #         "node_type": pool['node_type'],
-        #         "charge_type": pool['charge_type'],
-        #         "period": pool['period'],
-        #         "auto_renew": pool['auto_renew'],
-        #         "desired_size": pool['desired_size'],
-        #         "min_size": 1,
-        #         "max_size": 10,
-        #         "scaling_policy": pool['scaling_policy'],
-        #         "auto_repair": pool['auto_repair'],
-        #         "image_id": pool['image_id'],
-        #         "system_disk_type": pool['system_disk_type'],
-        #         "system_disk_size": pool['system_disk_size'],
-        #         "admin_password": pool['admin_password'],
-        #         "labels": pool['labels'],
-        #         "taints": pool['taints'],
-        #     }
-        #     node_pool = ClusterNodePool(**payload)
-        #     self.db.add(node_pool)
-        #     created_pools.append(node_pool)
-        # self.db.flush()  # 获取 node_pool.id
         return node_pool
 
 # -------------------

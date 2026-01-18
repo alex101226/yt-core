@@ -11,6 +11,7 @@ from app.services.cmp.account_service import AccountService
 
 from app.repositories.cmp.cloud_image_repo import CloudImageRepo
 from app.schemas.cmp.cloud_image import CloudImageCreate
+from app.services.cmp.operation_helper import execute_with_notification
 
 
 class CloudImageService:
@@ -47,23 +48,38 @@ class CloudImageService:
         )
 
     # 创建云镜像
-    def create_image(self, user_id: int, image_data: CloudImageCreate):
+    def create_image(self, user: dict, image_data: CloudImageCreate):
+        user_id = user.get('user_id')
 
-        payload = {
-            **image_data.model_dump(),
-            "user_id": user_id,
-            "image_id": image_data.image_name,
-        }
-        payload.pop('price')
+        def _do():
+            payload = {
+                **image_data.model_dump(),
+                "user_id": user_id,
+                "image_id": image_data.image_name,
+            }
+            payload.pop('price')
 
-        result = self.repo.create(payload)
-        self.create_initial_bill(
-            user_id, payload['charge_type'], payload['image_id'], image_data.price, result,
+            result = self.repo.create(payload)
+            self.create_initial_bill(
+                user_id, payload['charge_type'], payload['image_id'], image_data.price, result,
+            )
+            self.db.commit()
+            self.db.refresh(result)
+            return result
+        # -------- 交给统一封装处理通知 --------
+        return execute_with_notification(
+            db=self.db,
+            user=user,
+            system=1,
+            system_name="算力调度",
+            action_mode="CUSTOM_IMAGE",
+            action="CREATE",
+            source_id_fn=lambda result: result.id if result else None,
+            source_id_on_fail=None,  # 失败就没有 source_id
+            success_desc="自定义镜像创建成功",
+            failed_desc="自定义镜像创建失败",
+            func=_do
         )
-
-        self.db.commit()
-        self.db.refresh(result)
-        return result
 
     def list_page_images(
         self,
