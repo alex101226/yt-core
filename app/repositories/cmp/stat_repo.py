@@ -161,11 +161,14 @@ class StatRepository:
                 synchronize_session=False
             )
         )
-        return updated > 0
+        if updated > 0:
+            self.db.commit()  # ✅ 提交事务
+            return True
+        return False
 
     # 一键全部已读
     def mark_all_notifications_read(self, *, user_id: int) -> int:
-        return (
+        updated_count = (
             self.db.query(AuditLog)
             .filter(
                 AuditLog.operate_id == user_id,
@@ -179,3 +182,7 @@ class StatRepository:
                 synchronize_session=False
             )
         )
+
+        if updated_count > 0:
+            self.db.commit()  # ✅ 提交事务
+        return updated_count
