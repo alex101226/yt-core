@@ -4,6 +4,7 @@ from typing import Optional, List
 from enum import Enum
 from sqlalchemy.orm import Session
 
+from app.core.logger import logger
 from app.schemas.cmp.server_instance_schema import InstanceCreateSchema, InstanceActionSchema, InstanceUpdatePassword
 from app.services.cmp.cloud_server_service import InstanceService
 from app.common.response import Response
@@ -15,11 +16,6 @@ def get_server_instance_service(
 ):
     return InstanceService(db)
 
-class InstanceChargeType(str, Enum):
-    POSTPAID = "PostPaid"
-    PREPAID = "PrePaid"
-    SPOT = "Spot"
-
 router = APIRouter(prefix="/cloud_server", tags=["云服务器"], dependencies=[Depends(require_user)])
 
 # 创建服务器
@@ -28,19 +24,9 @@ def create_instance(
     data: InstanceCreateSchema,
     request: Request,
     service: InstanceService = Depends(get_server_instance_service)):
+    user = request.state.user
 
-    user_id = request.state.user.get('user_id')
-    # payload = data.model_dump()
-    # payload['user_id'] = user_id
-
-    instance = service.create_instance(user_id, data)
-
-    # result = {
-    #     "id": instance.id,
-    #     "instance_name": instance.instance_name,
-    #     "status": instance.status,
-    #     "resource_group_id": instance.resource_group_id
-    # }
+    instance = service.create_instance(user, data)
     return Response.success(instance)
 
 # 分页列表

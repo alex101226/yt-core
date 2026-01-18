@@ -46,3 +46,5 @@ from .invoice_email import InvoiceEmail
 from .invoice import Invoice
 from .invoice_item import InvoiceItem
 from .invoice_record import InvoiceRecord
+
+from .audit_log import AuditLog

@@ -1,10 +1,16 @@
 # app/repositories/stat_repo.py
+from datetime import datetime, timezone
+from typing import Optional
+
 from sqlalchemy import func, extract
 from sqlalchemy.orm import Session
+
+from app.core.logger import logger
 from app.models.cmp import (
     CloudServerInstance, Vpc, Subnet, SecurityGroup,
-    CbsDisk, CephfsFile, GPFSFile, K8sCluster, ImageRepository, FundsFlow
+    CbsDisk, CephfsFile, GPFSFile, K8sCluster, ImageRepository, AuditLog
 )
+from app.constants.enums import ActionMode, ActionOperate
 
 class StatRepository:
 
@@ -62,7 +68,7 @@ class StatRepository:
         ).scalar()
         return float(total or 0)
 
-    # 丢佣金，代金券
+    # 抵佣金
     def sum_monthly_credit(self, user_id: int, year: int, month: int) -> float:
         from app.models.cmp.order_detail import OrderDetail
         from app.models.cmp.order import Order
@@ -75,6 +81,7 @@ class StatRepository:
         ).scalar()
         return float(total or 0)
 
+    # 代金券
     def sum_monthly_voucher(self, user_id: int, year: int, month: int) -> float:
         from app.models.cmp.order_detail import OrderDetail
         from app.models.cmp.order import Order
@@ -86,3 +93,89 @@ class StatRepository:
             extract('month', Order.created_at) == month
         ).scalar()
         return float(total or 0)
+
+
+    # 系统通知（用户操作日志）
+    def create_notification(self, **kwargs) -> AuditLog:
+        log = AuditLog(**kwargs)
+        self.db.add(log)
+        self.db.commit()
+        self.db.refresh(log)
+        return log
+
+    # 获取当前用户的通知列表
+    def list_notifications(
+        self,
+        *,
+        user_id: int,
+        page: int = 1,
+        page_size: int = 10,
+    ):
+        query = self.db.query(AuditLog).filter(
+            AuditLog.operate_id == user_id,
+            AuditLog.is_read.is_(False)
+        )
+
+        total = query.count()
+
+        records = (
+            query
+            .order_by(AuditLog.created_at.desc())
+            .offset((page - 1) * page_size)
+            .limit(page_size)
+            .all()
+        )
+
+        return {
+            "total": total,
+            "items": records,
+            "page": page,
+            "page_size": page_size,
+        }
+
+    # 未读通知数量
+    def count_unread_notifications(self, user_id: int) -> int:
+        return (
+            self.db.query(func.count(AuditLog.id))
+            .filter(
+                AuditLog.operate_id == user_id,
+                AuditLog.is_read.is_(False)
+            )
+            .scalar()
+        )
+
+    # 标记单条通知已读
+    def mark_notification_read(self, *, user_id: int, log_id: int) -> bool:
+        updated = (
+            self.db.query(AuditLog)
+            .filter(
+                AuditLog.id == log_id,
+                AuditLog.operate_id == user_id,
+                AuditLog.is_read.is_(False)
+            )
+            .update(
+                {
+                    AuditLog.is_read: True,
+                    AuditLog.read_at: datetime.now(timezone.utc)
+                },
+                synchronize_session=False
+            )
+        )
+        return updated > 0
+
+    # 一键全部已读
+    def mark_all_notifications_read(self, *, user_id: int) -> int:
+        return (
+            self.db.query(AuditLog)
+            .filter(
+                AuditLog.operate_id == user_id,
+                AuditLog.is_read.is_(False)
+            )
+            .update(
+                {
+                    AuditLog.is_read: True,
+                    AuditLog.read_at: datetime.now(timezone.utc)
+                },
+                synchronize_session=False
+            )
+        )

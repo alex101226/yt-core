@@ -1,9 +1,15 @@
 # app/services/stat_service.py
-from app.repositories.cmp.stat_repo import StatRepository
+from datetime import datetime, timezone
+from typing import Optional
+
 from sqlalchemy.orm import Session
 
-from datetime import datetime, timezone
+from app.models.cmp import AuditLog
+from app.repositories.cmp.stat_repo import StatRepository
 
+from app.constants.enums import ActionOperate, ActionMode
+
+from app.schemas.cmp.state_schema import AuditLogSchema
 
 class StatService:
 
@@ -38,3 +44,35 @@ class StatService:
             "credit_amount": self.repo.sum_monthly_credit(user_id, year, month),
             "voucher_amount": self.repo.sum_monthly_voucher(user_id, year, month)
         }
+
+    # 创建一条系统通知（操作日志）
+    def create_notification(self, data: AuditLogSchema):
+        return self.repo.create_notification(**data.model_dump())
+
+    # 获取通知列表
+    def get_notifications_page_list(
+        self,
+        user_id: int,
+        page: int,
+        page_size: int,
+    ) -> dict:
+        return self.repo.list_notifications(
+            user_id=user_id,
+            page=page,
+            page_size=page_size,
+        )
+
+    # 获取未读通知数量
+    def get_unread_notification_count(self, user_id: int) -> int:
+        return self.repo.count_unread_notifications(user_id)
+
+    # 标记单条通知已读
+    def mark_notification_read(self, user_id: int, log_id: int) -> bool:
+        return self.repo.mark_notification_read(
+            user_id=user_id,
+            log_id=log_id
+        )
+
+    # 全部标记已读
+    def mark_all_notifications_read(self, user_id: int) -> int:
+        return self.repo.mark_all_notifications_read(user_id=user_id)

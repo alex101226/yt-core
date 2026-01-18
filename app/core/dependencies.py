@@ -18,12 +18,6 @@ def get_token_from_request(request: Request) -> Optional[str]:
     token = request.cookies.get("access_token")
     if token:
         return token
-
-    # 2. 兜底从 Authorization 取（兼容旧逻辑）
-    # auth = request.headers.get("Authorization")
-    # if auth and auth.startswith("Bearer "):
-    #     return auth[7:]
-
     return None
 
 

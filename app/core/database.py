@@ -16,7 +16,6 @@ def create_base():
 # === Engines & Sessions for each DB ===
 engines: Dict[str, any] = {
     "sso": create_db_engine(settings.DB_SSO_AUTH),
-    # "public": create_db_engine(settings.DB_PUBLIC),
     # "audit_center": create_db_engine(settings.DB_AUDIT_CENTER),
     "cmp": create_db_engine(settings.DB_CMP),
 }
@@ -28,6 +27,5 @@ SessionLocal = {
 
 # Distinct Base metadata objects (one per DB) - used by Alembic target_metadata
 SsoBase = create_base()
-# PublicBase = create_base()
 # AuditBase = create_base()
 CmpBase = create_base()
