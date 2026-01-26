@@ -83,7 +83,7 @@ class BillingInstance(CmpBase):
 
     # 仅 PREPAID 使用
     billing_end_time = Column(
-        DateTime,
+        DateTime(timezone=True),
         nullable=True,
         comment="计费结束时间（仅 PREPAID）"
     )

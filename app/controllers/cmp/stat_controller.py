@@ -10,7 +10,9 @@ from app.core.dependencies import require_user
 from app.common.response import Response
 
 from app.services.cmp.stat_service import StatService
-
+# 实例管理：实例名称，资源组，云凭证，云厂商，区域，VPC，IP子网，计费方式（按量，包年月），网络类型：（私网，公网），实例类型（共享，独享），标签，描述，用户，状态，实例规格，宽带上限/网络计费类型，服务地址，，
+# 证书管理：证书名称，资源组，云厂商，云证书，区域，证书内容，证书密钥，标签，备注，状态，证书域名，关联扩展域名，过期时间，关联监听，用户
+# 访问控制：策略名称，资源组，云厂商，云凭证，区域，批量添加地址，备注，状态，源地址，关联监听，用户，
 router = APIRouter(prefix="/stat", tags=["资源信息统计"], dependencies=[Depends(require_user)])
 
 # 资源信息

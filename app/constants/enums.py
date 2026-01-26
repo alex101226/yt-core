@@ -135,3 +135,106 @@ class ActionMode(enum.Enum):
     # ========== 运维 / 管理 ==========
     TASK = "task"  # 异步任务 / 工单
     SCHEDULE = "schedule"  # 定时任务
+
+
+# ==============================
+# 负载均衡实例状态
+# ==============================
+class LoadBalancerStatus(enum.Enum):
+    CREATING = "CREATING"   # 创建中
+    RUNNING = "RUNNING"     # 运行中
+    STOPPED = "STOPPED"     # 已停止
+    UPDATING = "UPDATING"   # 变更中
+    DELETING = "DELETING"   # 删除中
+    DELETED = "DELETED"     # 已删除
+    ERROR = "ERROR"         # 异常
+
+
+# ==============================
+# 负载均衡网络类型
+# ==============================
+class NetworkType(enum.Enum):
+    PUBLIC = "PUBLIC"       # 公网负载均衡
+    PRIVATE = "PRIVATE"     # 私网负载均衡
+
+
+# ==============================
+# 负载均衡实例类型
+# ==============================
+class LBInstanceType(enum.Enum):
+    SPEC = "SPEC"  # 按规格
+    PAY_AS_YOU_GO = "PAY"  # 按用量（暂不使用）
+
+
+
+# ==============================
+# 监听器协议
+# ==============================
+class ListenerProtocol(enum.Enum):
+    HTTP = "HTTP"           # HTTP
+    HTTPS = "HTTPS"         # HTTPS（需证书）
+    TCP = "TCP"             # TCP
+    UDP = "UDP"             # UDP
+
+
+# ==============================
+# 监听器状态
+# ==============================
+class ListenerStatus(enum.Enum):
+    CREATING = "CREATING"   # 创建中
+    RUNNING = "RUNNING"     # 运行中
+    STOPPED = "STOPPED"     # 已停止
+    DELETING = "DELETING"   # 删除中
+    ERROR = "ERROR"         # 异常
+
+
+# ==============================
+# 后端服务器状态
+# ==============================
+class BackendStatus(enum.Enum):
+    ENABLED = "ENABLED"     # 启用（可转发流量）
+    DISABLED = "DISABLED"   # 禁用（不接收流量）
+    UNHEALTHY = "UNHEALTHY" # 健康检查失败
+    REMOVED = "REMOVED"     # 已移除
+
+
+# ==============================
+# 负载均衡调度算法
+# ==============================
+class LBAlgorithm(enum.Enum):
+    ROUND_ROBIN = "ROUND_ROBIN"     # 轮询
+    WEIGHTED_ROUND_ROBIN = "WRR"    # 加权轮询
+    LEAST_CONNECTIONS = "LC"        # 最小连接数
+    IP_HASH = "IP_HASH"             # 源 IP 哈希
+
+
+
+# ==============================
+# 健康检查类型
+# ==============================
+class HealthCheckType(enum.Enum):
+    TCP = "TCP"             # TCP 探测
+    HTTP = "HTTP"           # HTTP 探测
+    HTTPS = "HTTPS"         # HTTPS 探测
+
+
+
+# ==============================
+# 协议证书证书状态
+# ==============================
+class LoadCertificateStatus(enum.Enum):
+    CREATING = "CREATING"   # 创建中
+    AVAILABLE = "AVAILABLE" # 可用
+    EXPIRED = "EXPIRED"     # 已过期
+    DISABLED = "DISABLED"   # 禁用
+    DELETING = "DELETING"   # 删除中
+    DELETED = "DELETED"     # 已删除
+
+
+# ==============================
+# 访问控制（ACL）状态
+# ==============================
+class ACLStatus(enum.Enum):
+    ENABLED = "ENABLED"     # 启用
+    DISABLED = "DISABLED"   # 禁用
+    DELETING = "DELETING"   # 删除中

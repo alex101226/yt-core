@@ -63,23 +63,3 @@ class AccountRepository:
     # 用户充值查看账户信息
     def account_recharge_find(self, user_id: int):
         return self.db.query(Account).filter(Account.user_id == user_id).with_for_update().first()
-
-    # 生成商品订单
-    # def product_create(self, data: dict):
-    #     self.db.add(data)
-    #     self.db.flush()
-    #     # self.db.commit()
-    #     return data
-
-    # 生成账单明细
-    # def bill_details_create(self, data: dict):
-    #     billing_detail = ProductOrderDetail(**data)
-    #     self.db.add(billing_detail)
-    #     self.db.flush()
-    #     # self.db.commit()
-    #     return billing_detail
-
-
-    # 查找商品订单
-    # def get_last_product_order(self, instance_id: str):
-    #     return self.db.query(ProductOrder).filter(ProductOrder.instance_id == instance_id).first()

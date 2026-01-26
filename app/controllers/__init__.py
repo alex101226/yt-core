@@ -28,6 +28,9 @@ from .cmp.invoice_controller import router as invoice_router
 from .cmp.invoice_item_controller import router as invoice_item_router
 
 from .cmp.stat_controller import router as stat_router
+
+from .cmp.load_controller import router as load_router
+
 # sso
 from .sso.auth_controller import router as auth_router
 from .sso.user_controller import router as user_router

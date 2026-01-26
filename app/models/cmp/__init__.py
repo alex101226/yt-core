@@ -48,3 +48,11 @@ from .invoice_item import InvoiceItem
 from .invoice_record import InvoiceRecord
 
 from .audit_log import AuditLog
+
+from .load_instance import LoadBalancer
+from .load_listener import LoadBalancerListener
+from .load_backend_pool import BackendPool
+from .load_backend_member import BackendMember
+from .load_certificate import LoadBalancerCertificate
+from .load_acl import LoadBalancerACL
+from .load_acl_rule import LoadBalancerACLRule
