@@ -178,7 +178,13 @@ class NodeRepository:
 
     # 节点列表
     def cluster_node_list(self, cluster_id: int, pool_id: Optional[int] = None):
-        query = self.db.query(ClusterNode).filter(ClusterNode.cluster_id == cluster_id).order_by(ClusterNode.id.desc())
+        query = (self.db.query(
+            ClusterNode,
+            ClusterNodePool.charge_type,
+        ).outerjoin(
+            ClusterNodePool,
+            ClusterNodePool.id == ClusterNode.node_pool_id
+        ).filter(ClusterNode.cluster_id == cluster_id).order_by(ClusterNode.id.desc()))
         # 可选条件
         if pool_id:
             query = query.filter(ClusterNode.node_pool_id == pool_id)

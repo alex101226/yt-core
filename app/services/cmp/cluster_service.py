@@ -121,6 +121,7 @@ class ClusterService:
                             "gpu_memory": inst_spec.get("gpu_memory"),
                             "instance_type": inst_spec["instance_family"],
                             "instance_type_id": inst_spec["instance_type_id"],
+                            "node_pool_type": "MASTER"
                         }
                         node_pool = self.node_pool_repo.create_batch(payload)
                         created_node_pools.append((node_pool, inst_spec))  # 同时保留实例规格信息
@@ -224,5 +225,23 @@ class ClusterService:
 
     # 节点列表
     def cluster_node_list(self, cluster_id: int, pool_id: int = None):
-        return self.node_repo.cluster_node_list(cluster_id, pool_id)
+        items = self.node_repo.cluster_node_list(cluster_id, pool_id)
+        result_items = []
+        for node, charge_type in items:
+            resource_info = self.cluster_repo.get_cluster_resource_usage(node.cluster_id)
+            item = {
+                "id": node.id,
+                "node_pool_id": node.node_pool_id,
+                "cluster_id": node.cluster_id,
+                "node_name": node.node_name,
+                "created_at": node.created_at,
+                "charge_type": charge_type,
+                "private_ip": node.private_ip,
+                "status": node.status,
+                "cluster_node_role": node.cluster_node_role,
+                "node_id": node.node_id,
+                **resource_info,
+            }
+            result_items.append(item)
+        return result_items
 
