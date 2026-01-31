@@ -10,7 +10,7 @@ from .is_released_mixin import IsReleasedMixin
 Kubernetes 集群基本信息表
 """
 class K8sCluster(CmpBase, IsReleasedMixin):
-    __tablename__ = f"{settings.CMP_TABLE_PREFIX}cmp_k8s_cluster"
+    __tablename__ = f"{settings.CMP_TABLE_PREFIX}cluster_k8s"
     __table_args__ = {'comment': 'Kubernetes 集群'}
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
@@ -20,7 +20,7 @@ class K8sCluster(CmpBase, IsReleasedMixin):
     cluster_name = Column(String(128), nullable=False, comment="集群名称")
 
     # 云环境
-    provider_code = Column(String(32), nullable=False, comment="云厂商，如 aliyun/tencent/aws")
+    cloud_provider_code = Column(String(32), nullable=False, comment="云厂商，如 aliyun/tencent/aws")
     region_id = Column(String(64), nullable=False, comment="区域 ID")
     zone_id = Column(String(64), nullable=False, comment="可用区 ID")
     resource_group_id = Column(String(64), nullable=True, comment="资源组 ID")
@@ -29,12 +29,10 @@ class K8sCluster(CmpBase, IsReleasedMixin):
     charge_type = Column(String(32), nullable=False, comment="计费方式：PostPaid/PrePaid")
     period = Column(Integer, nullable=True, comment="包年包月时长（月单位），按量付费可为空")
     auto_renew = Column(Boolean, default=False, comment="是否开启自动续费")
-    price = Column(DECIMAL(18, 2), nullable=True, comment="单价")
 
     # 集群配置
     cluster_version = Column(String(32), nullable=False, comment="K8s 版本")
     cluster_type = Column(String(32), default="managed", comment="集群类型：managed/self_managed/edge")
-    # cluster_spec = Column(String(50), nullable=False, comment="集群支持的最大节点数量")
 
     # 控制平面
     master_count = Column(Integer, default=1, comment="Master 节点数量")

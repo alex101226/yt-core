@@ -146,5 +146,4 @@ def fetch_prices_concurrent(
                 logger.exception("unexpected error when fetching price for %s: %s", it_id, e)
                 price = 0
             prices[it_id] = price
-
     return prices

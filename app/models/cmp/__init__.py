@@ -30,9 +30,10 @@ from .fs_mount_point import FileSystemMount
 from .image_repository import ImageRepository
 
 # 集群
-from .k8s_cluster import K8sCluster
+from .cluster_k8s import K8sCluster
 from .cluster_node_pool import ClusterNodePool
 from .cluster_node import ClusterNode
+from .cluster_node_resource_history import ClusterNodeResourceHistory
 
 # 用户账户，充值-账单等
 from .account import Account

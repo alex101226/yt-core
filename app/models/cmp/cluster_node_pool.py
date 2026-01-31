@@ -18,7 +18,6 @@ class ClusterNodePool(CmpBase, IsReleasedMixin):
     node_pool_type = Column(String(20), default="NODE_POOL_TYPE", comment="节点池类型，字典：NODE_POOL_TYPE")
 
     node_type = Column(String(32), nullable=False, comment="节点类型：ecs/bms")
-    # instance_types = Column(JSON, nullable=False, comment="可选实例规格列表(JSON 数组)")
 
     # 计费方式
     charge_type = Column(String(32), nullable=False, comment="计费方式：PostPaid/PrePaid")
