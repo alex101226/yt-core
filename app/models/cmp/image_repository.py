@@ -1,9 +1,9 @@
-from sqlalchemy import Column, String, Integer, Boolean, DateTime, Enum, DECIMAL, JSON, Float
+from sqlalchemy import Column, String, Integer, Boolean, DateTime, DECIMAL, JSON
 from datetime import datetime, timezone
 
 from app.core.database import CmpBase
 from app.core.config import settings
-from .is_released_mixin import IsReleasedMixin
+from app.models.is_released_mixin import IsReleasedMixin
 
 
 class ImageRepository(CmpBase, IsReleasedMixin):

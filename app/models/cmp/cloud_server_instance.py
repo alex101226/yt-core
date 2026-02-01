@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from app.core.database import CmpBase
 from app.core.config import settings
 
-from .is_released_mixin import IsReleasedMixin
+from app.models.is_released_mixin import IsReleasedMixin
 
 """
 服务器主创建任务表

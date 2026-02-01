@@ -1,17 +1,19 @@
 from datetime import datetime, timezone
-
 from sqlalchemy import Column, Integer, String, DateTime
 from sqlalchemy.orm import relationship
 from app.core.database import SsoBase
 from app.core.config import settings
+from app.models.is_released_mixin import IsReleasedMixin
+
 from app.models.sso.user_role_association import user_role_association
 
-class Role(SsoBase):
+class Role(SsoBase, IsReleasedMixin):
     __tablename__ = f"{settings.SSO_TABLE_PREFIX}roles"
     __table_args__ = {"comment": "角色表"}   # 表注释
 
     id = Column(Integer, primary_key=True, comment="角色ID")
-    role_name = Column(String(50), unique=True, index=True, comment="角色名称")
+    role_code=Column(String(50), unique=True, comment="角色编号")
+    role_name = Column(String(50), nullable=False, comment="角色名称")
     description = Column(String(200), nullable=True, comment="角色描述")
 
     created_at = Column(

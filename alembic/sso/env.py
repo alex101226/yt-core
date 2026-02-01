@@ -5,8 +5,10 @@ from alembic import context
 import os
 import sys
 
+from app.models.sso import *
+
 # 添加项目根目录到 Python 路径
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
+# sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
 
 # 导入项目配置
 from app.core.config import settings

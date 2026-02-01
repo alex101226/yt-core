@@ -1,10 +1,10 @@
 from datetime import datetime, timezone
 
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, JSON
+from sqlalchemy import Column, Integer, String, Boolean, DateTime
 
 from app.core.config import settings
 from app.core.database import CmpBase
-from .is_released_mixin import IsReleasedMixin
+from app.models.is_released_mixin import IsReleasedMixin
 
 # 集群节点表
 class ClusterNode(CmpBase, IsReleasedMixin):

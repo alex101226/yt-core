@@ -9,7 +9,7 @@ from sqlalchemy.orm import relationship
 from app.core.database import CmpBase
 from app.core.config import settings
 
-from .is_released_mixin import IsReleasedMixin
+from app.models.is_released_mixin import IsReleasedMixin
 
 #   安全组规则表（入方向 / 出方向规则）
 class SecurityGroupRule(CmpBase, IsReleasedMixin):

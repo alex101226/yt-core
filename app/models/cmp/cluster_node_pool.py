@@ -4,7 +4,7 @@ from sqlalchemy import Column, Integer, String, Boolean, DateTime, JSON, DECIMAL
 
 from app.core.config import settings
 from app.core.database import CmpBase
-from .is_released_mixin import IsReleasedMixin
+from app.models.is_released_mixin import IsReleasedMixin
 
 # 集群节点池表
 class ClusterNodePool(CmpBase, IsReleasedMixin):

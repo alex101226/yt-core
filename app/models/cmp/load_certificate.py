@@ -7,7 +7,7 @@ from sqlalchemy import Integer, String, Enum as SAEnum, DateTime, JSON, TEXT
 from sqlalchemy.orm import Mapped, mapped_column
 from app.core.database import CmpBase
 from app.core.config import settings
-from .is_released_mixin import IsReleasedMixin
+from app.models.is_released_mixin import IsReleasedMixin
 
 from ...constants.enums import LoadCertificateStatus
 

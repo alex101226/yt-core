@@ -3,7 +3,7 @@ from sqlalchemy import Column, String, Text, Integer, DateTime, Enum, Boolean
 
 from app.core.config import settings
 from app.core.database import CmpBase
-from .is_released_mixin import IsReleasedMixin
+from app.models.is_released_mixin import IsReleasedMixin
 
 from app.constants.enums import ActionMode, ActionOperate
 

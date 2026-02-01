@@ -1,10 +1,10 @@
 # app/models/cmp/eip.py
-from sqlalchemy import Column, Integer, String, DateTime, Boolean, Float, Text, JSON
+from sqlalchemy import Column, Integer, String, DateTime, Float, Text
 from datetime import datetime, timezone
 from app.core.database import CmpBase
 from app.core.config import settings
 
-from .is_released_mixin import IsReleasedMixin
+from app.models.is_released_mixin import IsReleasedMixin
 
 
 class Eip(CmpBase, IsReleasedMixin):

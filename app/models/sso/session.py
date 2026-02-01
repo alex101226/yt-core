@@ -8,8 +8,13 @@ class UserSession(SsoBase):
     __tablename__ = f"{settings.SSO_TABLE_PREFIX}sessions"
     __table_args__ = {"comment": "用户登录会话（refresh token 存储）；用于单点登录"}
 
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey(f"{settings.SSO_TABLE_PREFIX}users.id"), nullable=False, index=True, comment="用户ID")
+    id = Column(Integer, primary_key=True)
+    user_id = Column(
+        Integer,
+        ForeignKey(f"{settings.SSO_TABLE_PREFIX}users.id", name="fk_ss_sessions_user_id"),
+        nullable=False,
+        comment="用户ID"
+    )
     refresh_token = Column(String(512), nullable=False, comment="刷新 token（hash 或原文）")
     expires_at = Column(DateTime, nullable=False, comment="刷新 token 到期时间")
     ip = Column(String(64), nullable=True, comment="登录IP")

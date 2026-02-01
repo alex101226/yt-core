@@ -1,10 +1,10 @@
 # 状态， 存储类型，存储容量，已使用容量，计费方式，资源组，云厂商，区域，可用区，VPC，IP子网，价格，创建人，操作
 
-from sqlalchemy import Column, String, Integer, Boolean, DateTime, JSON, DECIMAL
+from sqlalchemy import Column, String, Integer, DateTime, JSON, DECIMAL
 from datetime import datetime, timezone
 from app.core.database import CmpBase
 from app.core.config import settings
-from .is_released_mixin import IsReleasedMixin
+from app.models.is_released_mixin import IsReleasedMixin
 
 """
 GPFS 文件存储实例表

@@ -13,13 +13,12 @@
 # updated_at
 
 from datetime import datetime, timezone
-from typing import Optional
 
-from sqlalchemy import Integer, String, Enum as SAEnum, Boolean, DateTime
+from sqlalchemy import Integer, String, Enum as SAEnum, DateTime
 from sqlalchemy.orm import Mapped, mapped_column
 from app.core.database import CmpBase
 from app.core.config import settings
-from .is_released_mixin import IsReleasedMixin
+from app.models.is_released_mixin import IsReleasedMixin
 
 from ...constants.enums import ListenerProtocol, ListenerStatus
 

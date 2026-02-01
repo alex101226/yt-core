@@ -2,13 +2,13 @@
 from datetime import datetime, timezone
 from sqlalchemy import (
     Column, String, Text, Integer, DateTime,
-    ForeignKey, Boolean
+    ForeignKey
 )
 from sqlalchemy.orm import relationship
 from app.core.database import CmpBase
 from app.core.config import settings
 
-from .is_released_mixin import IsReleasedMixin
+from app.models.is_released_mixin import IsReleasedMixin
 
 class SecurityGroup(CmpBase, IsReleasedMixin):
     __tablename__ = f"{settings.CMP_TABLE_PREFIX}security_group"

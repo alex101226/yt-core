@@ -34,3 +34,4 @@ from .cmp.load_controller import router as load_router
 # sso
 from .sso.auth_controller import router as auth_router
 from .sso.user_controller import router as user_router
+from .sso.role_controller import router as role_router

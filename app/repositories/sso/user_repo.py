@@ -3,11 +3,6 @@ from typing import Optional
 from pydantic import EmailStr
 from sqlalchemy.orm import Session
 
-from app.common.exceptions import BusinessException
-from app.common.status_code import ErrorCode
-from app.common.messages import Message
-
-from app.core.logger import logger
 from app.models.sso.user import User
 
 

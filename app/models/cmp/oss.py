@@ -2,7 +2,7 @@ from sqlalchemy import Column, String, Integer, Boolean, JSON, DateTime
 from datetime import datetime, timezone
 from app.core.database import CmpBase
 from app.core.config import settings
-from .is_released_mixin import IsReleasedMixin
+from app.models.is_released_mixin import IsReleasedMixin
 
 
 class OssBucket(CmpBase, IsReleasedMixin):

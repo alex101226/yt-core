@@ -44,6 +44,7 @@ invoice_item_router,
 cloud_image_router,
 stat_router,
 load_router,
+role_router,
 )
 
 @asynccontextmanager
@@ -78,6 +79,7 @@ def create_app() -> FastAPI:
 
     # include routers
     routers = [
+        role_router,
         load_router,
         stat_router,
         dict_router,

@@ -1,11 +1,11 @@
 # app/models/cmp/vpc.py
-from sqlalchemy import Column, Integer, String, Text, DateTime, UniqueConstraint, Boolean
+from sqlalchemy import Column, Integer, String, Text, DateTime, UniqueConstraint
 from datetime import datetime, timezone
 
 from app.core.database import CmpBase
 from app.core.config import settings
 
-from .is_released_mixin import IsReleasedMixin
+from app.models.is_released_mixin import IsReleasedMixin
 
 class Vpc(CmpBase, IsReleasedMixin):
     __tablename__ = f"{settings.CMP_TABLE_PREFIX}vpc"

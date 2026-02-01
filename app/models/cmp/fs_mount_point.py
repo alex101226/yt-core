@@ -1,8 +1,8 @@
-from sqlalchemy import Column, String, Integer, Float, Boolean, JSON, DateTime
+from sqlalchemy import Column, String, Integer, Boolean, DateTime
 from datetime import datetime, timezone
 from app.core.database import CmpBase
 from app.core.config import settings
-from .is_released_mixin import IsReleasedMixin
+from app.models.is_released_mixin import IsReleasedMixin
 
 class FileSystemMount(CmpBase, IsReleasedMixin):
     __tablename__ = f"{settings.CMP_TABLE_PREFIX}fs_mount_point"

@@ -2,7 +2,7 @@ from sqlalchemy import Column, Integer, String, Text, DateTime
 from datetime import datetime, timezone
 from app.core.config import settings
 from app.core.database import CmpBase
-from .is_released_mixin import IsReleasedMixin
+from app.models.is_released_mixin import IsReleasedMixin
 
 class CloudVendor(CmpBase, IsReleasedMixin):
     __tablename__ = f"{settings.CMP_TABLE_PREFIX}cloud_vendors"

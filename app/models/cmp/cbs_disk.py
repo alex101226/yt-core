@@ -3,7 +3,7 @@ from sqlalchemy import Column, String, Integer, Boolean, DateTime, Float, JSON, 
 
 from app.core.config import settings
 from app.core.database import CmpBase
-from .is_released_mixin import IsReleasedMixin
+from app.models.is_released_mixin import IsReleasedMixin
 
 class CbsDisk(CmpBase, IsReleasedMixin):
     __tablename__ = f"{settings.CMP_TABLE_PREFIX}cbs_disks"
