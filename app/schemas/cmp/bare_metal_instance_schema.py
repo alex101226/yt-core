@@ -24,7 +24,7 @@ class BareMetalInstanceBase(BaseModel):
     system_disk_size: int   # 系统盘类型：接口：cloud/spec_page_list，字段：memory_size
 
     # internet_charge_type: Optional[str] # 带宽的 PayByBandwidth/PayByTraffic
-    instance_charge_type: str  # 实例规格计费，PrePaid（包年包月） / PostPaid（按量付费）
+    charge_type: str  # 实例规格计费，PrePaid（包年包月） / PostPaid（按量付费）
     auto_renew: Optional[bool] = False  # 是否自动续费，instance_charge_type=PrePaid，bool值
     period: Optional[int] = 1    # instance_charge_type=PrePaid，传递选择的月份，整数
     quantity: Optional[int] = 1 # 服务器数量

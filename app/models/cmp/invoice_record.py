@@ -20,9 +20,6 @@ class InvoiceRecord(CmpBase, IsReleasedMixin):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
 
-    # 用户
-    user_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
-
     # 被开票的 InvoiceItem ID 列表，前端传 string[]，数据库用 JSON 存储
     invoice_item_ids: Mapped[list[str]] = mapped_column(JSON, nullable=False, comment="被开票的记录ID列表")
 

@@ -44,8 +44,10 @@ def cephfs_page_list(
     fs_name: Optional[str] = Query(None, description="名称"),
     service: CephfsFileService = Depends(get_cephfs_service),
 ):
-    user_id = request.state.user.get('user_id')
-    result = service.cephfs_page_list(user_id, page, page_size, provider_code, region_id, resource_group_id, storage_type, fs_name)
+    parent_id = request.state.user.get('parent_id') or 0
+    if parent_id == 0:
+        parent_id = request.state.user.get('user_id')
+    result = service.cephfs_page_list(parent_id, page, page_size, provider_code, region_id, resource_group_id, storage_type, fs_name)
     return Response.success(result)
 
 

@@ -23,7 +23,7 @@ class BareMetalInstanceRepo:
     # 裸金属分页
     def bare_metal_page_list(
         self,
-        user_id: int,
+        parent_id: int,
         page: int,
         page_size: int,
         provider_code: Optional[str] = None,
@@ -56,7 +56,7 @@ class BareMetalInstanceRepo:
             BareMetalInstance.system_disk_category,
             BareMetalInstance.system_disk_size,
             BareMetalInstance.internet_charge_type,
-            BareMetalInstance.instance_charge_type,
+            BareMetalInstance.charge_type,
             BareMetalInstance.period,
             BareMetalInstance.internet_max_bandwidth_out,
             BareMetalInstance.auto_renew,
@@ -75,7 +75,7 @@ class BareMetalInstanceRepo:
             BareMetalInstance.status,
             BareMetalInstance.quantity,
         )
-        filters = [BareMetalInstance.created_by == user_id, BareMetalInstance.is_released == 0]
+        filters = [BareMetalInstance.created_by == parent_id, BareMetalInstance.is_released == 0]
         if provider_code:
             filters.append(BareMetalInstance.cloud_provider_code == provider_code)
         if region_id:

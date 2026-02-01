@@ -238,3 +238,41 @@ class ACLStatus(enum.Enum):
     ENABLED = "ENABLED"     # 启用
     DISABLED = "DISABLED"   # 禁用
     DELETING = "DELETING"   # 删除中
+
+
+# ===== 流水方向 =====
+class Direction(str, enum.Enum):
+    IN = "IN"    # 收入，资金流入账户
+    OUT = "OUT"  # 支出，资金流出账户
+
+# ===== 流水类型 =====
+class FlowType(str, enum.Enum):
+    RECHARGE = "RECHARGE"     # 充值流水
+    PAY_ORDER = "PAY_ORDER"   # 消费支付流水（购买商品/服务）
+    REFUND = "REFUND"         # 退款（退订或冲正）
+
+# ===== 资金形式 =====
+class FundType(str, enum.Enum):
+    BALANCE = "BALANCE"   # 用户现金余额
+    CREDIT = "CREDIT"     # 平台授信额度（授信/信用）
+    VOUCHER = "VOUCHER"   # 代金券 / 优惠券
+
+# ===== 关联业务类型 =====
+class RefType(str, enum.Enum):
+    RECHARGE_ORDER = "RECHARGE_ORDER"   # 充值单
+    PRODUCT_ORDER = "PRODUCT_ORDER"     # 商品订单（一次交易）
+    BILLING_DETAIL = "BILLING_DETAIL"   # 账单单据
+    REFUND_ORDER = "REFUND_ORDER"       # 退款单
+
+# ===== 渠道 =====
+class Channel(str, enum.Enum):
+    USER_ACCOUNT = "USER_ACCOUNT"  # 用户账户余额支付
+    ALIPAY = "ALIPAY"              # 支付宝支付
+    WECHAT = "WECHAT"              # 微信支付
+    BANK = "BANK"                  # 银行支付 / 转账
+    SYSTEM = "SYSTEM"              # 系统操作或管理员操作
+
+class PayStatus(str, enum.Enum):
+    PENDING = "PENDING"  # 待支付
+    SUCCESS = "SUCCESS"  # 支付成功
+    FAILED = "FAILED"  # 支付失败

@@ -58,7 +58,6 @@ class K8sCluster(CmpBase, IsReleasedMixin):
     status = Column(String(32), default="RUNNING", comment="字典表type_code=CLUSTER_STATUS")
     message = Column(String(512), nullable=True, comment="状态信息，用于错误记录")
 
-    created_by = Column(Integer, nullable=False, comment="提交用户ID")
     created_at = Column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),

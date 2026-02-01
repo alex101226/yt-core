@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.common.exceptions import BusinessException
 from app.core.logger import logger
-from app.models.cmp.gpfs_file import GPFSFile
+from app.models.cmp.storage_gpfs import GPFSFile
 
 
 class GPFSRepository:

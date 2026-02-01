@@ -12,13 +12,14 @@ from sqlalchemy.orm import relationship
 from app.core.config import settings
 from app.core.database import CmpBase
 
+from app.models.is_released_mixin import IsReleasedMixin
 
-class ResourceGroup(CmpBase):
+
+class ResourceGroup(CmpBase, IsReleasedMixin):
     __tablename__ = f"{settings.CMP_TABLE_PREFIX}resource_group"
     __table_args__ = ({"comment": "资源组信息表"})
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    user_id = Column(Integer, index=True, nullable=False, comment="所属用户ID")
     rg_name = Column(String(100), nullable=False, comment="资源组名称")
     rg_code = Column(String(100), nullable=True, comment="系统内部资源组编码")
 
@@ -40,7 +41,7 @@ class ResourceGroup(CmpBase):
     bindings = relationship("ResourceGroupBinding", back_populates="group", cascade="all, delete-orphan")
 
 
-class ResourceGroupBinding(CmpBase):
+class ResourceGroupBinding(CmpBase, IsReleasedMixin):
     __tablename__ = f"{settings.CMP_TABLE_PREFIX}resource_group_binding"
     __table_args__ = (
         UniqueConstraint("cloud_provider_code", "resource_type", "resource_id", name="uq_rg_resource"),
@@ -48,7 +49,6 @@ class ResourceGroupBinding(CmpBase):
     )
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    user_id = Column(Integer, index=True, nullable=False, comment="所属用户ID")
     resource_group_id = Column(
         Integer,
         ForeignKey(f"{settings.CMP_TABLE_PREFIX}resource_group.id", ondelete="CASCADE"),

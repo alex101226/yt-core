@@ -14,8 +14,8 @@ class AuditLog(CmpBase, IsReleasedMixin):
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
 
     # 操作用户信息
-    operate_id = Column(String(50), nullable=True, comment="操作用户ID")
-    operate_name = Column(String(100), nullable=True, comment="操作用户名")
+    # operate_id = Column(String(50), nullable=True, comment="操作用户ID")
+    created_by_name = Column(String(100), nullable=True, comment="操作用户名")
 
     # 系统信息，比如算力调度，资源纳管
     system =  Column(Integer, nullable=False, comment="系统类型:1:算力调度")

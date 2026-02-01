@@ -4,13 +4,13 @@ from datetime import datetime, timezone
 from app.core.config import settings
 from app.core.database import CmpBase
 
+from app.models.is_released_mixin import IsReleasedMixin
 
-class Account(CmpBase):
+class Account(CmpBase, IsReleasedMixin):
     __tablename__ = f"{settings.CMP_TABLE_PREFIX}account"
     __table_args__ = {"comment": "用户现金账户表"}
 
     id = Column(BigInteger, primary_key=True, autoincrement=True, comment="主键ID")
-    user_id = Column(Integer, nullable=False, unique=True, comment="关联用户ID")
 
     balance = Column(Numeric(18, 2), nullable=False, default=0, comment="可用余额")
     frozen_balance = Column(Numeric(18, 2), nullable=False, default=0, comment="冻结余额")

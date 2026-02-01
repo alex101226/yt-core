@@ -29,7 +29,6 @@ def invoice_info(
     request: Request,
     page: int = Query(..., description="第几页"),
     page_size: int = Query(..., description="页码"),
-    # status: InvoiceItemStatus = Query(InvoiceItemStatus.ISSUED, description="发票状态：unissued / issued"),
     paid_start: Optional[str] = Query(None, description="支付起始时间，格式 YYYY-MM-DD"),
     paid_end: Optional[str] = Query(None, description="支付结束时间，格式 YYYY-MM-DD"),
     amount_min: Optional[float] = Query(None, description="最小实付金额"),
@@ -37,12 +36,14 @@ def invoice_info(
     billing_period: Optional[str] = Query(None, description="账期，例如 2026-01"),
     service: InvoiceItemService = Depends(get_invoice_service)
 ):
-    user_id = request.state.user.get('user_id')
+    parent_id = request.state.user.get('parent_id') or 0
+    if parent_id == 0:
+        parent_id = request.state.user.get('user_id')
 
     paid_start_dt = datetime.fromisoformat(paid_start) if paid_start else None
     paid_end_dt = datetime.fromisoformat(paid_end) if paid_end else None
     result = service.page_list(
-        user_id, page, page_size, paid_start_dt, paid_end_dt, amount_min, amount_max, billing_period
+        parent_id, page, page_size, paid_start_dt, paid_end_dt, amount_min, amount_max, billing_period
     )
     return Response.success(result)
 
@@ -58,11 +59,13 @@ def invoice_item_list(
     invoice_no: Optional[str] = Query(None, description="发票号"),
     service: InvoiceItemService = Depends(get_invoice_service)
 ):
-    user_id = request.state.user.get('user_id')
+    parent_id = request.state.user.get('parent_id') or 0
+    if parent_id == 0:
+        parent_id = request.state.user.get('user_id')
     apply_start_dt = datetime.fromisoformat(apply_start) if apply_start else None
     apply_end_dt = datetime.fromisoformat(apply_end) if apply_end else None
     result = service.page_list_record_issued(
-        user_id,
+        parent_id,
         page, page_size, status, apply_start_dt, apply_end_dt, invoice_no
     )
     return Response.success(result)
@@ -75,9 +78,11 @@ def invoice_overdue_list(
     page_size: int = Query(..., description="页码"),
     service: InvoiceItemService = Depends(get_invoice_service)
 ):
-    user_id = request.state.user.get('user_id')
+    parent_id = request.state.user.get('parent_id') or 0
+    if parent_id == 0:
+        parent_id = request.state.user.get('user_id')
     result = service.page_list_overdue(
-        user_id=user_id,
+        user_id=parent_id,
         page=page,
         page_size=page_size,
     )
@@ -100,7 +105,9 @@ def invoice_statistics(
     request: Request,
     service: InvoiceItemService = Depends(get_invoice_service)
 ):
-    user_id = request.state.user.get('user_id')
-    result = service.get_invoice_statistics(user_id)
+    parent_id = request.state.user.get('parent_id') or 0
+    if parent_id == 0:
+        parent_id = request.state.user.get('user_id')
+    result = service.get_invoice_statistics(parent_id)
     return Response.success(result)
 

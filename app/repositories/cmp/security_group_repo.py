@@ -7,9 +7,9 @@ from nanoid import generate
 
 from app.core.logger import logger
 from app.models.cmp import SecurityGroupRule
-from app.models.cmp.security_group import SecurityGroup
+from app.models.cmp.network_security_group import SecurityGroup
 
-from app.models.cmp.vpc import Vpc
+from app.models.cmp.network_vpc import Vpc
 from app.models.cmp.resource_group import ResourceGroup
 
 from app.schemas.cmp.security_group_rule_schema import SecurityGroupRuleItem
@@ -104,8 +104,9 @@ class SecurityGroupRepository:
         return sg
 
     #   返回安全组的列表数据
-    def get_by_security_group(self, provider_code: str, region_id: str, vpc_id: int) -> List[SecurityGroup]:
+    def get_by_security_group(self, parent_id: int, provider_code: str, region_id: str, vpc_id: int) -> List[SecurityGroup]:
         return self.db.query(SecurityGroup).filter(
+            SecurityGroup.created_by == parent_id,
             SecurityGroup.is_released == 0,
             SecurityGroup.cloud_provider_code == provider_code,
             SecurityGroup.region_id == region_id,
@@ -124,7 +125,9 @@ class SecurityGroupRepository:
 
 
     # 本地批量插入
-    def bulk_create(self, security_group_id: int, rules: List[SecurityGroupRuleItem]):
+    def bulk_create(self, security_group_id: int, rules: List[SecurityGroupRuleItem], user: dict):
+        user_id = user.get('user_id')
+        username = user.get('username')
         for item in rules:
             rule = SecurityGroupRule(
                 security_group_id=security_group_id,
@@ -135,12 +138,14 @@ class SecurityGroupRepository:
                 source=item.source,
                 description=item.description,
                 sort=item.sort,
+                created_by =user_id,
+                created_by_name = username,
             )
             self.db.add(rule)
         self.db.flush()
 
-    def create_rule(self, data: SecurityGroupRuleItem):
-        rule = SecurityGroupRule(**data.model_dump())
+    def create_rule(self, data: dict):
+        rule = SecurityGroupRule(**data)
         self.db.add(rule)
         self.db.flush()
         self.db.commit()

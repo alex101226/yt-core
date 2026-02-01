@@ -10,18 +10,22 @@ from app.common.messages import Message
 from app.common.exceptions import BusinessException
 from app.core.logger import logger
 
-from app.models.sso.session import UserSession
+from app.services.cmp.account_service import AccountService
 
+from app.models.sso.session import UserSession
 
 from app.repositories.sso.user_repo import UserRepository
 from app.repositories.sso.session_repo import SessionRepository
-from app.schemas.sso.auth_schema import LoginRequest, TokenResponse, UserRegister
+from app.schemas.sso.auth_schema import (
+LoginRequest, TokenResponse, UserRegister
+)
 
 class AuthService:
-    def __init__(self, db: Session):
+    def __init__(self, db: Session, cmp_db: Session):
         self.db = db
         self.user_repo = UserRepository(db)
         self.session_repo = SessionRepository(db)
+        self.account_service = AccountService(cmp_db)
 
     # 登录
     def login(self, data: LoginRequest, ip = None, user_agent = None) -> TokenResponse:
@@ -38,7 +42,7 @@ class AuthService:
         # 单点登录：清除历史会话
         self.session_repo.clear_user_sessions(user.id)
 
-        subject = {"user_id": user.id, "username": user.username}
+        subject = {"user_id": user.id, "username": user.username, "parent_id": user.parent_id}
         access = create_access_token(subject)
         refresh = create_refresh_token(subject)
 
@@ -64,26 +68,27 @@ class AuthService:
     # 注册
     def register(self, data: UserRegister) -> TokenResponse:
         # 检查重复
-        exists = self.user_repo.get_by_username(data.username) or self.user_repo.get_by_email(data.email)
+        exists = self.user_repo.get_by_username(data.username)
 
         if exists:
             raise BusinessException(code=ErrorCode.USER_ALREADY_EXISTS, message=Message.USER_ALREADY_EXISTS)
 
         payload = {
-            "email": data.email,
             "nickname": data.nickname,
             "username": data.username,
-            "hashed_password": hash_password(data.password)
+            "hashed_password": hash_password(data.password),
+            "role_code": "admin",
+            "parent_id": 0
         }
-        # payload.pop('password')
 
         # 创建用户
         new_user = self.user_repo.create(payload)
+        self.account_service.account_create(new_user)
 
         # 单点登录：清除历史会话
         self.session_repo.clear_user_sessions(new_user.id)
 
-        subject = {"user_id": new_user.id, "username": new_user.username}
+        subject = {"user_id": new_user.id, "username": new_user.username, "parent_id": new_user.parent_id}
 
         access = create_access_token(subject)
         refresh = create_refresh_token(subject)

@@ -32,7 +32,6 @@ class CephfsFile(CmpBase, IsReleasedMixin):
     storage_type = Column(String(64), nullable=False, comment="存储类型：普通 / 高性能 / 冷存储等")
     capacity_gb = Column(Integer, nullable=False, comment="分配容量（GB）")
     used_size_gb = Column(Integer, default=0, comment="已使用容量（GB）")
-    price = Column(Float, nullable=True, comment="价格（可按月或按量计费）")
 
     # -------------------------------
     # 状态与操作
@@ -41,15 +40,8 @@ class CephfsFile(CmpBase, IsReleasedMixin):
     operations = Column(JSON, nullable=True, comment='可操作类型，例如 ["EXPAND_CAPACITY", "RELEASE"]')
 
     # -------------------------------
-    # 快照信息（可选）
-    # -------------------------------
-    snapshot_count = Column(Integer, default=0, comment="快照数量")
-    last_snapshot_time = Column(DateTime(timezone=True), nullable=True, comment="最近快照时间（UTC）")
-
-    # -------------------------------
     # 审计信息
     # -------------------------------
-    user_id = Column(Integer, nullable=False, comment="用户 ID")
     created_at = Column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),

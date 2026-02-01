@@ -38,7 +38,6 @@ class InvoiceItemService:
         user_id: int,
         page: int,
         page_size: int,
-        # status: InvoiceItemStatus = InvoiceItemStatus.ISSUED,
         paid_start: Optional[datetime] = None,
         paid_end: Optional[datetime] = None,
         amount_min: Optional[float] = None,

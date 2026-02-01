@@ -4,13 +4,13 @@ from sqlalchemy import case, and_
 
 from app.core.logger import logger
 
-from app.models.cmp.vpc import Vpc
-from app.models.cmp.subnet import Subnet
-from app.models.cmp.security_group import SecurityGroup
-from app.models.cmp.gpfs_file import GPFSFile
-from app.models.cmp.cephfs_file import CephfsFile
+from app.models.cmp.network_vpc import Vpc
+from app.models.cmp.network_subnet import Subnet
+from app.models.cmp.network_security_group import SecurityGroup
+from app.models.cmp.storage_gpfs import GPFSFile
+from app.models.cmp.storage_cephfs import CephfsFile
 
-from app.models.cmp.fs_mount_point import FileSystemMount
+from app.models.cmp.storage_mount_point import FileSystemMount
 from app.schemas.cmp.fs_mount_schema import FileSystemMountCreate, FileSystemMountPage
 
 class FileMountRepository:

@@ -28,9 +28,13 @@ def create_group(
     request: Request,
     service: ResourceGroupService = Depends(get_resource_group_service)
 ):
-    user_id = request.state.user.get('user_id')
+    user = request.state.user
     payload = data.model_dump()
-    payload['user_id'] = user_id
+    payload = {
+        **payload,
+        'created_by': user.get('user_id'),
+        'created_by_name': user.get('username'),
+    }
     group = service.create_group(request.state.user, payload)
     return Response.success(group)
 
@@ -61,8 +65,11 @@ def list_groups(
     page_size: int = Query(10, ge=1, le=100, description="每页条数"),
     service: ResourceGroupService = Depends(get_resource_group_service)
 ):
-    user_id = request.state.user.get('user_id')
-    total, items = service.list_groups(user_id, page, page_size)
+    parent_id = request.state.user.get('parent_id') or 0
+    if parent_id == 0:
+        parent_id = request.state.user.get('user_id')
+    # user_id = request.state.user.get('user_id')
+    total, items = service.list_groups(parent_id, page, page_size)
     return Response.success(ResourceGroupPage(page=page, pageSize=page_size, total=total, items=items))
 
 

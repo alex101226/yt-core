@@ -59,7 +59,7 @@ class CloudServerInstance(CmpBase, IsReleasedMixin):
     enable_protection = Column(Boolean, default=False, comment="是否开启释放保护")
 
     # ---------- 计费 ----------
-    instance_charge_type = Column(
+    charge_type = Column(
         String(10),
         nullable=False,
         comment="实例计费类型:PrePaid（包年包月）/PostPaid（按量付费）"
@@ -88,7 +88,6 @@ class CloudServerInstance(CmpBase, IsReleasedMixin):
     data_disks = Column(JSON, nullable=True, comment="数据盘列表")
 
     # ---------- 审计 ----------
-    created_by = Column(Integer, nullable=False, comment="提交创建的用户 ID")
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), comment="创建时间（UTC）")
     updated_at = Column(
         DateTime(timezone=True),
@@ -96,11 +95,3 @@ class CloudServerInstance(CmpBase, IsReleasedMixin):
         onupdate=lambda: datetime.now(timezone.utc),
         comment="更新时间（UTC）"
     )
-
-    last_operation = Column(
-        String(50),
-        nullable=True,
-        comment="最近一次操作，如 START / STOP / REBOOT / CREATE_IMAGE / CLONE / CHANGE_IMAGE / MODIFY_PASSWORD / CHANGE_CHARGE / RELEASE"
-    )
-    request_params = Column(JSON, nullable=True, comment="用户创建实例时提交的完整参数快照")
-    error_message = Column(Text, nullable=True, comment="失败原因")

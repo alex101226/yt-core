@@ -53,7 +53,7 @@ class LoadBalancerRepo:
         lb_name: Optional[str] = None,
     ):
         query = self.db.query(LoadBalancer).order_by(LoadBalancer.id.desc())
-        filters = [LoadBalancer.user_id == user_id, LoadBalancer.is_released == 0]
+        filters = [LoadBalancer.created_by == user_id, LoadBalancer.is_released == 0]
         if provider_code:
             filters.append(LoadBalancer.cloud_provider_code == provider_code)
         if region_id:
@@ -78,10 +78,12 @@ class LoadBalancerRepo:
         return acl
 
     # 批量创建 ACL 规则
-    def bulk_create_rules(self, acl_id: int, rules: List[dict]):
+    def bulk_create_rules(self, acl_id: int, rules: List[dict], user:dict):
         rule_objs = []
         for rule in rules:
             rule["acl_id"] = acl_id
+            rule['created_by'] = user.get('user_id')
+            rule['created_by_name'] = user.get('username')
             rule_objs.append(LoadBalancerACLRule(**rule))
 
         self.db.bulk_save_objects(rule_objs)
@@ -112,12 +114,12 @@ class LoadBalancerRepo:
         page_size: int,
         cloud_provider_code: Optional[str] = None,
         region_id: Optional[str] = None,
-        resource_group_id: Optional[int] = None,
+        resource_group_id: Optional[str] = None,
         name: Optional[str] = None,
     ):
 
         query = self.db.query(LoadBalancerACL).filter(
-            LoadBalancerACL.user_id == user_id,
+            LoadBalancerACL.created_by == user_id,
             LoadBalancerACL.is_released == 0
         )
 
@@ -148,14 +150,8 @@ class LoadBalancerRepo:
         self.db.refresh(find)
         return find
 
-    # ==============证书管理=============
+    # ==============证书管理    创建负载均衡证书=============
     def create_certificate(self, cert_data: dict) -> LoadBalancerCertificate:
-        """
-        创建负载均衡证书
-        :param cert_data: dict 包含证书必要字段，例如：
-            cert_name, resource_group_id, cloud_provider_code, region_id,
-            cert_content, cert_key, tags, description, user_id
-        """
         cert_db = LoadBalancerCertificate(**cert_data)
         self.db.add(cert_db)
         self.db.flush()  # flush 保证立即生成主键
@@ -184,13 +180,13 @@ class LoadBalancerRepo:
         page_size: int,
         provider_code: Optional[str] = None,
         region_id: Optional[str] = None,
-        resource_group_id: Optional[int] = None,
+        resource_group_id: Optional[str] = None,
     ):
         """
         分页获取证书列表
         """
         query = self.db.query(LoadBalancerCertificate).order_by(LoadBalancerCertificate.id.desc())
-        filters = [LoadBalancerCertificate.user_id == user_id]
+        filters = [LoadBalancerCertificate.created_by == user_id]
         if provider_code:
             filters.append(LoadBalancerCertificate.cloud_provider_code == provider_code)
         if region_id:

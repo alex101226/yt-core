@@ -1,33 +1,23 @@
-# models/recharge_order.py
+# models/order_recharge.py
 from sqlalchemy import Column, BigInteger, Numeric, String, DateTime, Enum, Integer
 from datetime import datetime, timezone
 from app.core.database import CmpBase
 from app.core.config import settings
-import enum
+from app.constants.enums import (Channel, PayStatus)
+
+from app.models.is_released_mixin import IsReleasedMixin
 
 
-class PayChannel(str, enum.Enum):
-    ALIPAY = "ALIPAY" # 支付宝
-    WECHAT = "WECHAT" # 微信
-    BANK = "BANK" # 银行转账
-
-
-class PayStatus(str, enum.Enum):
-    PENDING = "PENDING" # 待支付
-    SUCCESS = "SUCCESS" # 支付成功
-    FAILED = "FAILED" # 支付失败
-
-class RechargeOrder(CmpBase):
+class RechargeOrder(CmpBase, IsReleasedMixin):
     __tablename__ = f"{settings.CMP_TABLE_PREFIX}recharge_order"
     __table_args__ = {"comment": "用户现金账户表"}
 
     id = Column(BigInteger, primary_key=True, autoincrement=True, comment="充值订单ID")
-    user_id = Column(Integer, nullable=False, comment="关联用户ID")
     account_id = Column(Integer, nullable=False, comment="资金账户ID")
 
     amount = Column(Numeric(18, 2), nullable=False, comment="充值金额")
 
-    pay_channel = Column(Enum(PayChannel), default=PayChannel.ALIPAY, comment="支付渠道：支付宝/微信/银行卡")
+    pay_channel = Column(Enum(Channel), default=Channel.ALIPAY, comment="支付渠道：支付宝/微信/银行卡")
 
     status = Column(Enum(PayStatus), nullable=False, default=PayStatus.SUCCESS, comment="订单状态")
 

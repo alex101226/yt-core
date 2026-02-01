@@ -16,7 +16,8 @@ class InvoiceSchema(BaseModel):
 
 
 class InvoiceItemSchema(BaseModel):
-    user_id: int = Field(..., description="用户ID", json_schema_extra={"example": 123})
+    created_by: int = Field(..., description="用户ID", json_schema_extra={"example": 123})
+    created_by_name: str = Field(..., description="用户name")
     billing_period: str = Field(..., description="账期", json_schema_extra={"example": "2026-01"})
     billing_period_start: datetime = Field(..., description="账期开始时间",
                                            json_schema_extra={"example": "2026-01-01T00:00:00Z"})

@@ -26,13 +26,13 @@ class CbsService:
     # 生成计费任务
     def create_initial_bill(
         self,
-        user_id: int,
+        user: dict,
         charge_type: str,
         instance_id: str,
         unit_price: float,
         instance,
     ):
-        account = self.account_service.account_exists(user_id)
+        account = self.account_service.account_exists(user.get('user_id'))
         if not account:
             raise BusinessException(
                 code=ErrorCode.DATA_NOT_FOUND,
@@ -40,7 +40,7 @@ class CbsService:
             )
 
         self.bill_service.create(
-            user_id=user_id,
+            user=user,
             account_id=account.id,
             resource_type="DISK",
             charge_type=charge_type,
@@ -52,19 +52,22 @@ class CbsService:
     # 硬盘模块创建
     def cbs_create(self, user: dict, data: dict):
         user_id = user.get('user_id')
+        username = user.get('username')
         def _do():
             payload = {
                 **data,
-                "user_id": user_id,
                 "disk_id": f"CBS-{generate(size=12)}",
                 "encrypted": False,
                 "status": "InUse" if data['attached_instance_id'] else "Available",
                 "attached_time": data.get('attached_time', None),
                 "is_attached": bool(data.get('attached_instance_id')),
+                "created_by": user_id,
+                "created_by_name": username,
             }
+            payload.pop('price')
             result = self.repo.cbs_create(payload)
             self.create_initial_bill(
-                user_id, payload['charge_type'], result.disk_id, payload['price'], result,
+                user, payload['charge_type'], result.disk_id, data['price'], result,
             )
             self.db.commit()
             self.db.refresh(result)
@@ -88,10 +91,12 @@ class CbsService:
     #   自动创建cbs
     def cbs_create_auto(self, user: dict, data: dict, charge_type: str, price: float):
         user_id = user.get('user_id')
+        username = user.get('username')
         def _do():
             payload = {
                 **data,
-                "user_id": user_id,
+                "created_by": user_id,
+                "created_by_name": username,
                 "disk_id": f"CBS-{generate(size=12)}",
                 "encrypted": False,
                 "status": "InUse" if data['attached_instance_id'] else "Available",
@@ -100,7 +105,7 @@ class CbsService:
             }
             result = self.repo.cbs_create(payload)
             self.create_initial_bill(
-                user_id, charge_type, result.disk_id, price, result,
+                user, charge_type, result.disk_id, price, result,
             )
             return result
         # -------- 交给统一封装处理通知 --------
@@ -127,7 +132,7 @@ class CbsService:
         provider_code: Optional[str] = None,
         region_id: Optional[int] = None,
         zone_id: Optional[int] = None,
-        resource_group_id: Optional[int] = None,
+        resource_group_id: Optional[str] = None,
         cbs_id: Optional[str] = None
     ) -> CbsDiskPage:
         items, total = self.repo.get_page_list(user_id, page, page_size, provider_code, region_id, zone_id, resource_group_id, cbs_id)

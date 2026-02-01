@@ -67,7 +67,7 @@ class ServerInstanceRepo:
             CloudServerInstance.gpu_spec,
             CloudServerInstance.system_disk_category,
             CloudServerInstance.system_disk_size,
-            CloudServerInstance.instance_charge_type,
+            CloudServerInstance.charge_type,
             CloudServerInstance.period,
             CloudServerInstance.spot_strategy,
             CloudServerInstance.internet_charge_type,
@@ -120,20 +120,6 @@ class ServerInstanceRepo:
         items = query.offset((page - 1) * page_size).limit(page_size).all()
         # logger.info(f'这里是什么呢？ {items}')
         return items, total
-
-
-    # 创建轮训任务
-    # def create_status_check_task(self, main_task_id: int, instance_id: str, check_count=0, max_check=10, status="PENDING"):
-    #     task = InstanceStatusCheckTask(
-    #         main_task_id=main_task_id,
-    #         instance_id=instance_id,
-    #         check_count=check_count,
-    #         max_check=max_check,
-    #         status=status
-    #     )
-    #     self.db.add(task)
-    #     self.db.flush()
-    #     return task
 
 
     # 修改密码
@@ -198,7 +184,7 @@ class ServerInstanceRepo:
             "sync_status": 1,
             "is_released": 0,
             "instance_id": None,
-            "last_operation": "INIT",
+            # "last_operation": "INIT",
             "released_at": None,
             "created_at": datetime.now(timezone.utc),
             "updated_at": datetime.now(timezone.utc),

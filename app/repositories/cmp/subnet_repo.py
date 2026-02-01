@@ -5,10 +5,10 @@ from sqlalchemy import and_
 from sqlalchemy.orm import Session
 
 from app.core.logger import logger
-from app.models.cmp.subnet import Subnet
+from app.models.cmp.network_subnet import Subnet
 from app.schemas.cmp.subnet_schema import SubnetOut, SubnetBase
 
-from app.models.cmp.vpc import Vpc
+from app.models.cmp.network_vpc import Vpc
 from app.models.cmp import ResourceGroup
 
 class SubnetRepository:
@@ -74,7 +74,7 @@ class SubnetRepository:
     #   返回list
     def list_by_subnet(self, user_id: int, vpc_id: int) -> list[type[Subnet]]:
         items = self.db.query(Subnet).filter(
-            Subnet.user_id == user_id,
+            Subnet.created_by == user_id,
             Subnet.vpc_id==vpc_id
         ).order_by(Subnet.created_at).all()
         return items
@@ -132,7 +132,7 @@ class SubnetRepository:
             Vpc,
             Vpc.id == Subnet.vpc_id
         )
-        filters = [Subnet.user_id == user_id, Subnet.is_released == 0]
+        filters = [Subnet.created_by == user_id, Subnet.is_released == 0]
 
         if cloud_provider_code:
             filters.append(Subnet.cloud_provider_code == cloud_provider_code)

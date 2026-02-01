@@ -52,7 +52,6 @@ class LoadBalancerCertificate(CmpBase, IsReleasedMixin):
     # 元数据
     tags: Mapped[JSON] = mapped_column(JSON, nullable=True, comment="标签")
     description: Mapped[Optional[str]] = mapped_column(String(512), nullable=True, comment="描述信息")
-    user_id: Mapped[int] = mapped_column(Integer, nullable=False, comment="创建用户ID")
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), comment="创建时间"

@@ -47,6 +47,7 @@ class InstanceService:
     # 创建服务器
     def create_instance(self, user: dict, data: InstanceCreateSchema):
         user_id = user.get('user_id')
+        username = user.get('username')
         def _do():
             try:
                 with self.db.begin():
@@ -67,9 +68,9 @@ class InstanceService:
                         **data.model_dump(),
                         "hashed_password": hash_password(data.password),
                         "status": "RUNNING",
-                        "last_operation": "RUNNING",
                         "instance_id": f"cloud_server-{generate(size=12)}",
                         "created_by": user_id,
+                        "created_by_name": username,
                         "private_ip": private_ip
                     }
 
@@ -88,10 +89,10 @@ class InstanceService:
 
                     # 创建成功，生成周期性任务
                     self.bill_service.create(
-                        user_id=user_id,
+                        user=user,
                         account_id=account.id,
                         resource_type="SERVER",
-                        charge_type=instance.instance_charge_type,
+                        charge_type=instance.charge_type,
                         instance_id=instance.instance_id,
                         instance=instance,
                         unit_price=data.price,  # 👈 创建时提交的价格
@@ -108,7 +109,6 @@ class InstanceService:
                         provider_code=data.cloud_provider_code,
                         region_id=data.region_id,
                         instance_id=instance.id,
-                        # internet_charge_type=data.internet_charge_type,
                     )
 
                     instance.public_ip = public_ip
@@ -125,16 +125,16 @@ class InstanceService:
                         "disk_type": "system",  # 磁盘类型：system 系统盘 / data 数据盘。
                         "disk_category": data.system_disk_category,  # 磁盘种类，例如：cloud、cloud_ssd、cloud_essd_pl0 等
                         "disk_size": data.system_disk_size,  # 磁盘大小
-                        "charge_type": data.instance_charge_type,  # 计费方式：PrePaid 包年包月 / PostPaid 按量付费
+                        "charge_type": data.charge_type,  # 计费方式：PrePaid 包年包月 / PostPaid 按量付费
                         "period": data.period or 1,  # 包年月的月份
                         "auto_renew": data.auto_renew,
                         "attached_instance_id": str(instance.id),  # 挂载的实例 ID（ecs/lh/lb）
                         "attached_device": data.instance_name,  # 挂载点名称，如 /dev/vdb
                         "attached_time": datetime.now(timezone.utc),  # 挂载时间
                         "description": f"系统盘，挂载到实例 {instance.instance_name}",
-                        "tags": []
+                        "tags": [],
                     }
-                    self.cbs_service.cbs_create_auto(user, system_disk_data, instance.instance_charge_type, 2.5)
+                    self.cbs_service.cbs_create_auto(user, system_disk_data, instance.charge_type, 2.5)
 
                     # -----------------------------
                     # 3. 创建数据盘 CBS
@@ -150,14 +150,14 @@ class InstanceService:
                                 "disk_type": "data",  # 磁盘类型：system 系统盘 / data 数据盘。
                                 "disk_category": disk.disk_category,  # 磁盘种类，例如：cloud、cloud_ssd、cloud_essd_pl0 等
                                 "disk_size": disk.disk_size,  # 磁盘大小
-                                "charge_type": data.instance_charge_type,  # 计费方式：PrePaid 包年包月 / PostPaid 按量付费
+                                "charge_type": data.charge_type,  # 计费方式：PrePaid 包年包月 / PostPaid 按量付费
                                 "period": data.period or 1,  # 包年月的月份
                                 "auto_renew": data.auto_renew,
                                 "attached_instance_id": str(instance.id),  # 挂载的实例 ID（ecs/lh/lb）
                                 "attached_device": data.instance_name,  # 挂载点名称，如 /dev/vdb
                                 "attached_time": datetime.now(timezone.utc),  # 挂载时间
                                 "description": f"系统盘，挂载到实例 {instance.instance_name}",
-                                "tags": []
+                                "tags": [],
                             }
                             self.cbs_service.cbs_create_auto(user, disk_data, disk_data['charge_type'], 2.5)
 
@@ -165,7 +165,8 @@ class InstanceService:
                     self.resource_bind_service.bind(
                         ResourceGroupBindingCreate(
                             cloud_provider_code=data.cloud_provider_code,
-                            user_id=user_id,
+                            created_by = user_id,
+                            created_by_name = username,
                             resource_group_id=data.resource_group_id,
                             resource_type="cloud_server",
                             resource_id=str(instance.id),
@@ -183,7 +184,7 @@ class InstanceService:
             system_name="算力调度",
             action_mode="SERVER",
             action="CREATE",
-            source_id_fn=lambda result: result.id if result else None,
+            source_id_fn=lambda result: result.id if result else 0,
             source_id_on_fail=None,  # 失败就没有 source_id
             success_desc="云服务器创建成功",
             failed_desc="云服务器创建失败",
@@ -229,7 +230,7 @@ class InstanceService:
             raise BusinessException(code=ErrorCode.DATA_NOT_FOUND, message=Message.DATA_NOT_FOUND)
 
         instance.status = data.status
-        instance.last_operation = data.status
+        # instance.last_operation = data.status
         instance.updated_at = datetime.now(timezone.utc)
         self.repo.commit()
 

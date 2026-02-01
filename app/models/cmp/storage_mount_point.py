@@ -46,7 +46,6 @@ class FileSystemMount(CmpBase, IsReleasedMixin):
     )
 
     # 审计
-    created_by = Column(Integer, nullable=False, comment="创建人")
     created_at = Column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),

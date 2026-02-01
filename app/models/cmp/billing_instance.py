@@ -8,11 +8,11 @@ from app.constants.enums import (
 BillingCycle, BillingStatus, ResourceType, BillingMethod
 )
 
+"""
+计费任务
+用于记录实例创建过程中产生的价格计算、扣费流程
+"""
 class BillingInstance(CmpBase):
-    """
-    计费任务
-    用于记录实例创建过程中产生的价格计算、扣费流程
-    """
     __tablename__ = f"{settings.CMP_TABLE_PREFIX}billing_instance"
     __table_args__ = (
         UniqueConstraint(

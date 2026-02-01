@@ -26,7 +26,7 @@ class StatRepository:
 
     # 子网数量
     def count_subnets(self, user_id: int) -> int:
-        return self.db.query(Subnet).filter(Subnet.user_id == user_id).count()
+        return self.db.query(Subnet).filter(Subnet.created_by == user_id).count()
 
     # 安全组数量
     def count_security_groups(self, user_id: int) -> int:
@@ -34,11 +34,11 @@ class StatRepository:
 
     # cbs数量
     def count_disks(self, user_id: int) -> int:
-        return self.db.query(CbsDisk).filter(CbsDisk.user_id == user_id).count()
+        return self.db.query(CbsDisk).filter(CbsDisk.created_by == user_id).count()
 
     # cephfs数量
     def count_cephfs(self, user_id: int) -> int:
-        return self.db.query(CephfsFile).filter(CephfsFile.user_id == user_id).count()
+        return self.db.query(CephfsFile).filter(CephfsFile.created_by == user_id).count()
 
     # gpfs数量
     def count_gpfs(self, user_id: int) -> int:
@@ -56,7 +56,7 @@ class StatRepository:
     def sum_monthly_spent(self, user_id: int, year: int, month: int) -> float:
         total = self.db.query(func.sum(FundsFlow.amount)) \
             .filter(
-            FundsFlow.user_id == user_id,
+            FundsFlow.created_by == user_id,
             FundsFlow.direction == 'OUT',
             FundsFlow.flow_type == 'PAY_ORDER',
             extract('year', FundsFlow.created_at) == year,
@@ -68,7 +68,7 @@ class StatRepository:
     def sum_monthly_income(self, user_id: int, year: int, month: int) -> float:
         total = self.db.query(func.sum(FundsFlow.amount)) \
             .filter(
-            FundsFlow.user_id == user_id,
+            FundsFlow.created_by == user_id,
             FundsFlow.direction == 'IN',
             extract('year', FundsFlow.created_at) == year,
             extract('month', FundsFlow.created_at) == month
@@ -80,7 +80,7 @@ class StatRepository:
     def sum_monthly_invoice_amount(self, user_id: int, billing_period: Optional[str]=None) -> float:
         query = self.db.query(func.sum(InvoiceItem.invoice_amount)) \
             .filter(
-            InvoiceItem.user_id == user_id,
+            InvoiceItem.created_by == user_id,
             InvoiceItem.status == 'UNISSUED'
         )
         if billing_period:
@@ -99,7 +99,7 @@ class StatRepository:
     ) -> float:
         query = self.db.query(func.sum(InvoiceRecord.amount)) \
             .filter(
-            InvoiceRecord.user_id == user_id,
+            InvoiceRecord.created_by == user_id,
             InvoiceRecord.status == 'ISSUED'
         )
 
@@ -134,7 +134,7 @@ class StatRepository:
 
     # 账户可用金额
     def get_available_quota(self, user_id: int) -> float:
-        query = self.db.query(Account.balance).filter(Account.user_id == user_id)
+        query = self.db.query(Account.balance).filter(Account.created_by == user_id)
         # if year and month:
         #     return query.filter(
         #         extract('year', FundsFlow.created_at) == year,
@@ -201,8 +201,9 @@ class StatRepository:
     def create_notification(self, **kwargs) -> AuditLog:
         log = AuditLog(**kwargs)
         self.db.add(log)
-        self.db.commit()
-        self.db.refresh(log)
+        self.db.flush()
+        # self.db.commit()
+        # self.db.refresh(log)
         return log
 
     # 获取当前用户的通知列表
@@ -214,7 +215,7 @@ class StatRepository:
         page_size: int = 10,
     ):
         query = self.db.query(AuditLog).filter(
-            AuditLog.operate_id == user_id,
+            AuditLog.created_by == user_id,
             AuditLog.is_read.is_(False)
         )
 
@@ -240,7 +241,7 @@ class StatRepository:
         return (
             self.db.query(func.count(AuditLog.id))
             .filter(
-                AuditLog.operate_id == user_id,
+                AuditLog.created_by == user_id,
                 AuditLog.is_read.is_(False)
             )
             .scalar()
@@ -252,7 +253,7 @@ class StatRepository:
             self.db.query(AuditLog)
             .filter(
                 AuditLog.id == log_id,
-                AuditLog.operate_id == user_id,
+                AuditLog.created_by == user_id,
                 AuditLog.is_read.is_(False)
             )
             .update(
@@ -273,7 +274,7 @@ class StatRepository:
         updated_count = (
             self.db.query(AuditLog)
             .filter(
-                AuditLog.operate_id == user_id,
+                AuditLog.created_by == user_id,
                 AuditLog.is_read.is_(False)
             )
             .update(

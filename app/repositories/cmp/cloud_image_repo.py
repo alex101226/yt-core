@@ -40,7 +40,7 @@ class CloudImageRepo:
         ).order_by(CloudImage.id.desc())
 
         # 必传过滤条件
-        filters = [CloudImage.user_id == user_id, CloudImage.is_released == 0]
+        filters = [CloudImage.created_by == user_id, CloudImage.is_released == 0]
 
         # 可选条件
         if cloud_provider_code:

@@ -1,5 +1,7 @@
 from typing import Optional, List
 from sqlalchemy.orm import Session
+
+from app.core.logger import logger
 from app.models.cmp.user_certificate import UserCertificate
 
 class UserCertificateRepository:
@@ -30,7 +32,7 @@ class UserCertificateRepository:
             UserCertificate.cloud_name,
             UserCertificate.is_default,
             UserCertificate.description
-        ).filter_by(user_id=user_id).all()
+        ).filter_by(created_by=user_id).all()
         return items
 
     # 返回云凭证列表
@@ -41,8 +43,9 @@ class UserCertificateRepository:
             UserCertificate.cloud_name,
             UserCertificate.is_default,
             UserCertificate.description,
-            UserCertificate.user_id,
-        ).filter(UserCertificate.user_id == user_id).order_by(UserCertificate.id.desc())
+            UserCertificate.created_by,
+            UserCertificate.created_by_name,
+        ).filter(UserCertificate.created_by == user_id).order_by(UserCertificate.id.desc())
         total = q.count()
         items = q.offset((page - 1) * page_size).limit(page_size).all()
         return total, items
@@ -70,13 +73,13 @@ class UserCertificateRepository:
     # 查询用户是否已有凭证
     def count_by_user(self, user_id: int):
         return self.db.query(UserCertificate).filter(
-            UserCertificate.user_id == user_id
+            UserCertificate.created_by == user_id
         ).count()
 
     # 清除用户所有的默认凭证
     def clear_default(self, user_id: int):
         self.db.query(UserCertificate).filter(
-            UserCertificate.user_id == user_id,
+            UserCertificate.created_by == user_id,
             UserCertificate.is_default == 1
         ).update({UserCertificate.is_default: 0})
         self.db.commit()
@@ -98,17 +101,18 @@ class UserCertificateRepository:
             UserCertificate.cloud_code,
             UserCertificate.cloud_name
         ).filter(
-            UserCertificate.user_id == user_id,
+            UserCertificate.created_by == user_id,
             UserCertificate.is_default == 1
         ).first()
 
     # 获取用户的ak
     def get_user_ak(self, user_id: int):
-       return self.db.query(
+       find = self.db.query(
            UserCertificate.cloud_code,
            UserCertificate.cloud_access_key_id,
            UserCertificate.cloud_access_key_secret
        ).filter(
-           UserCertificate.user_id == user_id,
+           UserCertificate.created_by == user_id,
            UserCertificate.is_default == 1
        ).first()
+       return find

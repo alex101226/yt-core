@@ -24,13 +24,13 @@ class CloudImageService:
     # 生成计费任务
     def create_initial_bill(
         self,
-        user_id: int,
+        user: dict,
         charge_type: str,
         instance_id: str,
         unit_price: float,
         instance,
     ):
-        account = self.account_service.account_exists(user_id)
+        account = self.account_service.account_exists(user.get('user_id'))
         if not account:
             raise BusinessException(
                 code=ErrorCode.DATA_NOT_FOUND,
@@ -38,7 +38,7 @@ class CloudImageService:
             )
 
         self.bill_service.create(
-            user_id=user_id,
+            user=user,
             account_id=account.id,
             resource_type="CUSTOM_IMAGE",
             charge_type=charge_type,
@@ -50,18 +50,20 @@ class CloudImageService:
     # 创建云镜像
     def create_image(self, user: dict, image_data: CloudImageCreate):
         user_id = user.get('user_id')
+        username = user.get('username')
 
         def _do():
             payload = {
                 **image_data.model_dump(),
-                "user_id": user_id,
+                "created_by": user_id,
+                "created_by_name": username,
                 "image_id": image_data.image_name,
             }
             payload.pop('price')
 
             result = self.repo.create(payload)
             self.create_initial_bill(
-                user_id, payload['charge_type'], payload['image_id'], image_data.price, result,
+                user, payload['charge_type'], payload['image_id'], image_data.price, result,
             )
             self.db.commit()
             self.db.refresh(result)
@@ -119,7 +121,6 @@ class CloudImageService:
                 "size": img.size,
                 "description": img.description,
                 "status": img.status,
-                "user_id": img.user_id,
                 "charge_type": img.charge_type,
                 "period": img.period,
                 "auto_renew": img.auto_renew,

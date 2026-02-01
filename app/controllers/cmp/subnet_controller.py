@@ -43,9 +43,12 @@ def page_subnets(
     page_size: int = Query(20, ge=20),
     service = Depends(get_subnet_service)
 ):
-    user_id = request.state.user.get('user_id')
+    parent_id = request.state.user.get('parent_id') or 0
+    if parent_id == 0:
+        parent_id = request.state.user.get('user_id')
+    # user_id = request.state.user.get('user_id')
     result = service.page_subnets(
-            user_id=user_id,
+            user_id=parent_id,
             cloud_provider_code=cloud_provider_code,
             region_id=region_id,
             zone_id=zone_id,
@@ -63,8 +66,10 @@ def list_subnets(
     vpc_id: int = Query(..., description="vpc id"),
     service = Depends(get_subnet_service)
 ):
-    user_id = request.state.user.get('user_id')
-    result = service.list_subnets(user_id, vpc_id)
+    parent_id = request.state.user.get('parent_id') or 0
+    if parent_id == 0:
+        parent_id = request.state.user.get('user_id')
+    result = service.list_subnets(parent_id, vpc_id)
     return Response.success(result)
 
 # 创建

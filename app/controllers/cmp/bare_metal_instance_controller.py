@@ -46,9 +46,11 @@ def get_bare_metal_page_list(
     ssh_proxy_port: Optional[int] = Query(None, description="ssh代理端口，字段=ssh_proxy_port"),
     service: BareMetalInstanceService = Depends(get_bare_service)
 ):
-    user_id = request.state.user.get('user_id')
+    parent_id = request.state.user.get('parent_id') or 0
+    if parent_id == 0:
+        parent_id = request.state.user.get('user_id')
     instance = service.bare_metal_page_list(
-        user_id, page, page_size, provider_code, region_id, zone_id, resource_group_id,
+        parent_id, page, page_size, provider_code, region_id, zone_id, resource_group_id,
         instance_id, instance_name, instance_type_id, public_ip, status, ssh_proxy_port
     )
     return Response.success(instance)

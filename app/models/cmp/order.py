@@ -8,7 +8,9 @@ from app.core.database import CmpBase
 
 from app.constants.enums import BillingMethod
 
-class Order(CmpBase):
+from app.models.is_released_mixin import IsReleasedMixin
+
+class Order(CmpBase, IsReleasedMixin):
     __tablename__ = f"{settings.CMP_TABLE_PREFIX}product_order"
     __table_args__ = {"comment": "商品订单表"}
 
@@ -32,7 +34,6 @@ class Order(CmpBase):
     charge_mode = Column(Enum(BillingMethod), nullable=True, comment="收费模式：PrePaid=预付费，PostPaid=后付费")  # ⭐关键
     auto_renew = Column(Boolean, default=False, comment="是否到期自动续费(仅包年包月)")
 
-    created_by = Column(Integer, nullable=True, comment="用户id")
     account_id = Column(Integer, nullable=True, comment="余额账户ID")
     created_at = Column(
         DateTime(timezone=True),

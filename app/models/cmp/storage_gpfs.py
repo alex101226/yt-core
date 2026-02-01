@@ -50,7 +50,6 @@ class GPFSFile(CmpBase, IsReleasedMixin):
     region_id = Column(String(64), nullable=False, comment="地域ID")
     zone_id = Column(String(64), nullable=True, comment="可用区ID")
     resource_group_id = Column(Integer, nullable=True, comment="资源组ID")
-    created_by = Column(Integer, nullable=True, comment="创建人（用户ID）")
 
     # GPFS 特性
     fs_version = Column(String(64), nullable=True, comment="GPFS 文件系统版本")

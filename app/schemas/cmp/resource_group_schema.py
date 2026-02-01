@@ -36,7 +36,8 @@ class ResourceGroupBindingBase(BaseModel):
     resource_group_id: int
     resource_type: str
     resource_id: str
-    user_id: int
+    created_by: int
+    created_by_name: str
     cloud_provider_code: str
 
 

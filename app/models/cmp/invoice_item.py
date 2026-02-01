@@ -23,9 +23,6 @@ class InvoiceItem(CmpBase, IsReleasedMixin):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
 
-    # 用户
-    user_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
-
     # ===== 账期 =====
     billing_period: Mapped[str] = mapped_column(
         String(32), nullable=False, index=True, comment="账期，如 2026-01"

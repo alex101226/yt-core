@@ -16,6 +16,7 @@ from app.core.logger import logger
 from app.constants.billing_meta import BILLING_META_MAP, BILLING_METHOD_META
 from app.schemas.cmp.bill_schema import ProductOrderOut, ProductOrderPage, BillDetailPage, BillDetailOut
 from app.schemas.cmp.invoice_schema import InvoiceItemCreateSchema
+from app.schemas.cmp.account_schema import FundsFlowCreate
 
 from app.services.cmp.invoice_item_service import InvoiceItemService
 from app.services.cmp.account_service import AccountService
@@ -53,14 +54,14 @@ class OrderService:
 
      # 订单明细
     def order_detail_page_list(
-            self,
-            user_id: int,
-            page: int,
-            page_size: int,
-            instance_id: Optional[str] = None,
-            consume_type: Optional[str] = None,
-            provider_code: Optional[str] = None,
-            billing_period: Optional[datetime] = None,
+        self,
+        user_id: int,
+        page: int,
+        page_size: int,
+        instance_id: Optional[str] = None,
+        consume_type: Optional[str] = None,
+        provider_code: Optional[str] = None,
+        billing_period: Optional[datetime] = None,
     ):
         items, total = self.detail_repo.bill_detail_page_list(
             user_id, page, page_size, instance_id, consume_type, provider_code,
@@ -77,7 +78,7 @@ class OrderService:
     def create_and_pay_order(
         self,
         *,
-        user_id: int,
+        user: dict,
         account_id: int,
         instance_id: str,
         billing: BillingInstance,
@@ -92,7 +93,8 @@ class OrderService:
         meta = BILLING_META_MAP[ResourceType(billing.resource_type)]
 
         method_meta = BILLING_METHOD_META[BillingMethod(billing.billing_method)]
-
+        user_id = user.get('user_id')
+        username = user.get('username')
         # cloud_provider_code = getattr(instance, "cloud_provider_code", None) or getattr(instance, "provider_code", None)
         order = Order(
             order_no=f"{billing.resource_type.value}-{timestamp}",
@@ -113,6 +115,7 @@ class OrderService:
             account_id=account_id,
             created_at=now,
             created_by=user_id,
+            created_by_name=username,
         )
         order_db = self.order_repo.create(order)
 
@@ -132,22 +135,25 @@ class OrderService:
 
         #   扣费，写入资金流水
         funds_flow_data = {
-            "user_id": user_id,
             "account_id": account_id,
             "flow_no": f"{datetime.now(timezone.utc).timestamp() * 1000}{order_db.id % 1000:03d}",
-            "third_trade_no": order.order_no,
-            "channel": "USER_ACCOUNT",
             "direction": "OUT",
             "flow_type": "PAY_ORDER",
             "fund_type": "BALANCE",
+            "amount": amount,
+            "third_trade_no": order.order_no,
+            "channel": "USER_ACCOUNT",
             "ref_type": "PRODUCT_ORDER",
             "ref_id": order_db.id,
             "billing_period": datetime.now().strftime("%Y-%m"),
-            "amount": amount,
             "description": f"{meta.product_name}扣费",
-            "created_by": user_id
+            "created_by": user_id,
+            "created_by_name": username,
         }
+
         fund_pay = self.account_service.pay(funds_flow_data)
+        if not fund_pay:
+            raise BusinessException(code=ErrorCode.FAILED, message=Message.FAILED)
 
         order.pay_status = "SUCCESS"
         order.paid_at = now
@@ -156,7 +162,8 @@ class OrderService:
         invoice_product_name = f"{method_meta.text}-{detail_db.billing_period}-{order_db.product_name}"
 
         invoice = InvoiceItemCreateSchema(
-            user_id=order_db.created_by,
+            created_by=user_id,
+            created_by_name=username,
             billing_period=detail_db.billing_period,
             billing_period_start= billing.last_billing_time or billing.billing_start_time,
             billing_period_end=billing.billing_end_time,

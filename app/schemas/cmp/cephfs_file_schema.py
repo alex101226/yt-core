@@ -21,7 +21,7 @@ class CephfsOut(CephfsBase):
     status: str = None
     charge_type: str = None
     used_size_gb: int = 0
-    user_id: int = 0
+    # user_id: int = 0
     created_at: datetime = None
     updated_at: datetime = None
 

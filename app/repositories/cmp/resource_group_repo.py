@@ -30,7 +30,7 @@ class ResourceGroupRepository:
     # 资源组列表，带分页
     def group_list_page(self, user_id: int, page: int, page_size: int) -> tuple[int, list[type[ResourceGroup]]]:
         query = self.db.query(ResourceGroup).filter(
-            ResourceGroup.user_id == user_id
+            ResourceGroup.created_by == user_id
         )
         total = query.count()
         items = query.offset((page - 1) * page_size).limit(page_size).all()

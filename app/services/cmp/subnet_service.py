@@ -66,10 +66,12 @@ class SubnetService:
     # 创建
     def create(self, user: dict, data: SubnetCreate) -> bool:
         user_id = user.get('user_id')
+        username = user.get('username')
         def _do():
             payload = {
                 **data.model_dump(),
-                "user_id": user_id,
+                "created_by": user_id,
+                "created_by_name": username,
                 "subnet_id": f"subnet-{generate(size=12)}",
             }
             result = self.subnet_repo.create(payload)
@@ -79,7 +81,8 @@ class SubnetService:
             self.resource_bind_service.bind(
                 ResourceGroupBindingCreate(
                     cloud_provider_code=data.cloud_provider_code,
-                    user_id=user_id,
+                    created_by = user_id,
+                    created_by_name = username,
                     resource_group_id=data.resource_group_id,
                     resource_type="subnet",
                     resource_id=str(result),

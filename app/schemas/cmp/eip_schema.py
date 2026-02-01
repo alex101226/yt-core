@@ -11,11 +11,11 @@ class EIPSchema(BaseModel):
     eip_name: str
     internet_charge_type: str
     bandwidth: int
-    price: float
+
 
 
 class EIPCreate(EIPSchema):
-    # public_ip: Optional[str]
+    price: float
     pass
 
 class EIPOut(EIPSchema):

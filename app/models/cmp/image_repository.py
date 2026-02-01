@@ -46,7 +46,6 @@ class ImageRepository(CmpBase, IsReleasedMixin):
         nullable=True,
         comment="资源组 ID"
     )
-    created_by=Column(Integer, nullable=False, comment="提交用户ID")
     # 时间
     created_at = Column(
         DateTime(timezone=True),

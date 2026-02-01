@@ -42,9 +42,12 @@ def list_cloud_images(
     image_name: Optional[str] = Query(None, description="可选，镜像名称"),
     service: CloudImageService = Depends(get_image_service)
 ):
-    user_id = request.state.user.get('user_id')
+    parent_id = request.state.user.get('parent_id') or 0
+    if parent_id == 0:
+        parent_id = request.state.user.get('user_id')
+    # user_id = request.state.user.get('user_id')
     result = service.list_page_images(
-        user_id=user_id,
+        user_id=parent_id,
         page=page,
         page_size=page_size,
         cloud_provider_code=cloud_provider_code,

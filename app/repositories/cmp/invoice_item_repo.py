@@ -37,13 +37,10 @@ class InvoiceItemRepo:
         query = self.db.query(InvoiceItem).order_by(InvoiceItem.id.desc())
 
         filters = [
-            InvoiceItem.user_id == user_id,
+            InvoiceItem.created_by == user_id,
             InvoiceItem.is_released == 0,
             InvoiceItem.status==InvoiceItemStatus.UNISSUED.value
         ]
-        # 状态
-        # if status:
-        #     filters.append(InvoiceItem.status == status.value)
 
         # 支付时间区间
         if paid_start and paid_end:
@@ -132,7 +129,7 @@ class InvoiceItemRepo:
         query = self.db.query(InvoiceItem).order_by(InvoiceItem.paid_at.asc())
 
         filters = [
-            InvoiceItem.user_id == user_id,
+            InvoiceItem.created_by == user_id,
             InvoiceItem.is_released == 0,
             InvoiceItem.status == InvoiceItemStatus.UNISSUED.value,
             InvoiceItem.invoice_amount > 0,
@@ -159,7 +156,7 @@ class InvoiceItemRepo:
     ):
         query = self.db.query(InvoiceRecord).order_by(InvoiceRecord.id.desc())
 
-        filters = [InvoiceRecord.user_id == user_id]
+        filters = [InvoiceRecord.created_by == user_id]
 
         # 发票状态
         if status:
@@ -195,7 +192,7 @@ class InvoiceItemRepo:
         available_amount = self.db.query(
             func.coalesce(func.sum(InvoiceItem.invoice_amount), 0)
         ).filter(
-            InvoiceItem.user_id == user_id,
+            InvoiceItem.created_by == user_id,
             InvoiceItem.status == InvoiceItemStatus.UNISSUED.value,
             InvoiceItem.invoice_amount > 0,
             InvoiceItem.is_released == 0,
@@ -205,7 +202,7 @@ class InvoiceItemRepo:
         total_consumed_amount = self.db.query(
             func.coalesce(func.sum(InvoiceItem.paid_amount), 0)
         ).filter(
-            InvoiceItem.user_id == user_id,
+            InvoiceItem.created_by == user_id,
             InvoiceItem.is_released == 0,
         ).scalar()
 
@@ -213,7 +210,7 @@ class InvoiceItemRepo:
         total_issued_amount = self.db.query(
             func.coalesce(func.sum(InvoiceItem.issued_amount), 0)
         ).filter(
-            InvoiceItem.user_id == user_id,
+            InvoiceItem.created_by == user_id,
             InvoiceItem.status == InvoiceItemStatus.ISSUED.value,
         ).scalar()
 
@@ -221,7 +218,7 @@ class InvoiceItemRepo:
         unavailable_amount = self.db.query(
             func.coalesce(func.sum(InvoiceItem.invoice_amount), 0)
         ).filter(
-            InvoiceItem.user_id == user_id,
+            InvoiceItem.created_by == user_id,
             InvoiceItem.status == InvoiceItemStatus.UNISSUED.value,
             InvoiceItem.paid_at >= month_start,
             InvoiceItem.paid_at > now - timedelta(days=1),

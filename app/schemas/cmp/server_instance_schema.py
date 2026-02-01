@@ -29,12 +29,9 @@ class InstanceBase(BaseModel):
     system_disk_size: int  # 系统盘类型：接口：cloud/spec_page_list，字段：memory_size
 
     quantity: int = 1 # 服务器数量
-    instance_charge_type: str  # 实例规格计费，PrePaid（包年包月） / PostPaid（按量付费）
+    charge_type: str  # 实例规格计费，PrePaid（包年包月） / PostPaid（按量付费）
     period: Optional[int] = 1   # instance_charge_type=PrePaid，传递选择的月份，整数
     auto_renew: Optional[bool] = False # 包年月，是否自动续费
-    # spot_strategy: Optional[str] = None # 不用的不管
-    # internet_charge_type: Optional[str] = None  # 带宽的计费模式，死值：PayByTraffic
-    # internet_max_bandwidth_out: Optional[int] = 0
 
     vpc_id: int # 选择的vpc的id
     vswitch_id: int # 选择的子网的id

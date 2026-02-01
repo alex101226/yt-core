@@ -42,9 +42,11 @@ def get_instance_page_list(
     lb_name: Optional[str] = Query(None, description="实例名称"),
     service: LoadBalancerService = Depends(get_load_service)
 ):
-    user_id = request.state.user['user_id']
+    parent_id = request.state.user.get('parent_id') or 0
+    if parent_id == 0:
+        parent_id = request.state.user.get('user_id')
     result = service.instance_page_list(
-        user_id, page, page_size, provider_code, region_id, resource_group_id, lb_name
+        parent_id, page, page_size, provider_code, region_id, resource_group_id, lb_name
     )
     return Response.success(result)
 
@@ -68,13 +70,15 @@ def acl_page_list(
     page_size: int = Query(..., description="每页条数"),
     provider_code: Optional[str] = Query(None, description="云厂商"),
     region_id: Optional[str] = Query(None, description="区域"),
-    resource_group_id: Optional[int] = Query(None, description="资源组"),
+    resource_group_id: Optional[str] = Query(None, description="资源组"),
     name: Optional[str] = Query(None, description="ACL 名称"),
     service: LoadBalancerService = Depends(get_load_service),
 ):
-    user_id = request.state.user["user_id"]
+    parent_id = request.state.user.get('parent_id') or 0
+    if parent_id == 0:
+        parent_id = request.state.user.get('user_id')
     result = service.acl_page_list(
-        user_id=user_id,
+        user_id=parent_id,
         page=page,
         page_size=page_size,
         provider_code=provider_code,
@@ -104,13 +108,15 @@ def certificate_page_list(
     page_size: int = Query(..., description="每页条数"),
     provider_code: Optional[str] = Query(None, description="云厂商"),
     region_id: Optional[str] = Query(None, description="区域id"),
-    resource_group_id: Optional[int] = Query(None, description="资源组"),
+    resource_group_id: Optional[str] = Query(None, description="资源组"),
     service: LoadBalancerService = Depends(get_load_service)
 ):
-    user_id = request.state.user['user_id']
+    parent_id = request.state.user.get('parent_id') or 0
+    if parent_id == 0:
+        parent_id = request.state.user.get('user_id')
 
     result = service.certificate_page_list(
-        user_id=user_id,
+        user_id=parent_id,
         page=page,
         page_size=page_size,
         provider_code=provider_code,

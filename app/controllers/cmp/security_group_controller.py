@@ -32,8 +32,11 @@ def list_security_groups(
     sg_name: Optional[str] = Query(None, description="安全组 name"),
     service: SecurityGroupService = Depends(get_security_service),
 ):
-    user_id = request.state.user.get('user_id')
-    items =  service.list_page(user_id, page, page_size, provider_code, region_id, resource_group_id, sg_name)
+    parent_id = request.state.user.get('parent_id') or 0
+    if parent_id == 0:
+        parent_id = request.state.user.get('user_id')
+    # user_id = request.state.user.get('user_id')
+    items =  service.list_page(parent_id, page, page_size, provider_code, region_id, resource_group_id, sg_name)
     return Response.success(items)
 
 @router.post("/group_create", response_model=SecurityGroupOut)
@@ -59,30 +62,36 @@ def release_security_group(
 #   返回安全组列表
 @router.get("/group_list", response_model=SecurityGroupPage)
 def list_security_groups(
+    request: Request,
     provider_code: str = Query(..., description="云厂商 code"),
     region_id: str = Query(..., description="区域 id"),
     vpc_id: int = Query(..., description="vpc的id"),
     service: SecurityGroupService = Depends(get_security_service),
 ):
-    items =  service.list_security_groups(provider_code, region_id, vpc_id)
+    parent_id = request.state.user.get('parent_id') or 0
+    if parent_id == 0:
+        parent_id = request.state.user.get('user_id')
+    items =  service.list_security_groups(parent_id, provider_code, region_id, vpc_id)
     return Response.success(items)
 
 # 创建安全组时，批量创建规则
 @router.put("/batch_rule_update")
 def update_rules(
+    request: Request,
     data: SecurityGroupRuleUpdate,
     service: SecurityGroupService = Depends(get_security_service)
 ):
-    result = service.batch_update_rules(data)
+    result = service.batch_update_rules(data, request.state.user)
     return Response.success(result)
 
 #   创建单条规则
 @router.post('/rule_create', response_model=SecurityGroupOut)
 def create_security_group_rule(
+    request: Request,
     data: SecurityGroupRuleItem,
     service: SecurityGroupService = Depends(get_security_service)
 ):
-    result = service.create_rule(data)
+    result = service.create_rule(data, request.state.user)
     return Response.success(result)
 
 

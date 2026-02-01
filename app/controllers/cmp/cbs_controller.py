@@ -39,13 +39,14 @@ def cbs_page_list(
     provider_code: str = Query(None, description="云厂商 code"),
     region_id: Optional[str] = Query(None, description="区域 id"),
     zone_id: Optional[str] = Query(None, description="可用区 id"),
-    resource_group_id: Optional[int] = Query(None, description="资源组 id"),
+    resource_group_id: Optional[str] = Query(None, description="资源组 id"),
     cbs_id: Optional[str] = Query(None, description="云硬盘名称"),
-    # tag: Optional[List[str]] = Query(None, description="标签"),
     service: CbsService = Depends(get_cbs_disk_service)
 ):
-    user_id = request.state.user.get('user_id')
-    result = service.cbs_page_list(user_id, page, page_size, provider_code, region_id, zone_id, resource_group_id, cbs_id)
+    parent_id = request.state.user.get('parent_id') or 0
+    if parent_id == 0:
+        parent_id = request.state.user.get('user_id')
+    result = service.cbs_page_list(parent_id, page, page_size, provider_code, region_id, zone_id, resource_group_id, cbs_id)
     return Response.success(result)
 
 

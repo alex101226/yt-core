@@ -177,9 +177,12 @@ class ClusterService:
     # 集群列表
     def cluster_page_list(self, user: dict, page: int, page_size: int, name: str):
 
-        user_id = user.get('user_id')
+        parent_id = user.get('parent_id') or 0
+        if parent_id == 0:
+            parent_id = user.get('user_id')
+        # user_id = user.get('user_id')
 
-        items, total = self.cluster_repo.cluster_page_list(user_id, page, page_size, name)
+        items, total = self.cluster_repo.cluster_page_list(parent_id, page, page_size, name)
 
         # 在获取集群列表时写入节点资源历史
         for cluster, vpc_name, rg_name, subnet_name in items:

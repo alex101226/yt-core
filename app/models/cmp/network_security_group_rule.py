@@ -1,4 +1,4 @@
-# app/models/cmp/security_group_rule.py
+# app/models/cmp/network_security_group_rule.py
 
 from datetime import datetime, timezone
 from sqlalchemy import (

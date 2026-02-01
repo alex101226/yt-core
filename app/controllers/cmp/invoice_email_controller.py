@@ -28,8 +28,10 @@ def invoice_email_page_list(
     page_size: int,
     service: InvoiceEmailService = Depends(get_invoice_email_service)
 ):
-    user_id = request.state.user.get('user_id')
-    result = service.invoice_email_page_list(user_id, page, page_size)
+    parent_id = request.state.user.get('parent_id') or 0
+    if parent_id == 0:
+        parent_id = request.state.user.get('user_id')
+    result = service.invoice_email_page_list(parent_id, page, page_size)
     return Response.success(result)
 
 @router.post('/invoice_email_create')

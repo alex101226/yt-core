@@ -48,6 +48,7 @@ class LoadBalancerService:
     def create_load_balancer(self, user: dict, data: LoadBalancerCreate):
         def _do():
             user_id = user.get('user_id')
+            username = user.get('username')
             try:
                 with self.db.begin():
 
@@ -68,7 +69,8 @@ class LoadBalancerService:
 
                     instance_payload = {
                         **data.model_dump(),
-                        "user_id": user_id,
+                        "created_by": user_id,
+                        "created_by_name": username,
                         "status": LoadBalancerStatus.CREATING,
                         "lb_id": f"load-{generate(size=12)}",
                         "private_ip": private_ip,
@@ -89,7 +91,7 @@ class LoadBalancerService:
 
                     # 创建成功，生成周期性任务
                     self.bill_service.create(
-                        user_id=user_id,
+                        user = user,
                         account_id=account.id,
                         resource_type="LOAD_INSTANCE",
                         charge_type=instance.charge_type,
@@ -102,7 +104,8 @@ class LoadBalancerService:
                     self.resource_bind_service.bind(
                         ResourceGroupBindingCreate(
                             cloud_provider_code=data.cloud_provider_code,
-                            user_id=user_id,
+                            created_by=user_id,
+                            created_by_name=username,
                             resource_group_id=data.resource_group_id,
                             resource_type="load",
                             resource_id=str(instance.id),
@@ -153,6 +156,7 @@ class LoadBalancerService:
     def create_acl(self, user: dict, data):
         def _do():
             user_id = user.get("user_id")
+            username = user.get("username")
             try:
                 with self.db.begin():
 
@@ -160,7 +164,8 @@ class LoadBalancerService:
                     acl = self.lb_repo.create_acl({
                         **data.model_dump(),
                         "status": ACLStatus.DISABLED,
-                        "user_id": user_id,
+                        "created_by": user_id,
+                        "created_by_name": username,
                     })
 
                     # 2️⃣ 解析规则文本
@@ -169,7 +174,8 @@ class LoadBalancerService:
                     # 3️⃣ 批量创建规则
                     self.lb_repo.bulk_create_rules(
                         acl_id=acl.id,
-                        rules=rules
+                        rules=rules,
+                        user=user
                     )
 
                 return acl
@@ -177,7 +183,7 @@ class LoadBalancerService:
             except BusinessException as e:
                 self.db.rollback()
                 raise e
-
+        # 192.168.1.0/24|备注
         # -------- 审计 / 通知 --------
         return execute_with_notification(
             db=self.db,
@@ -193,7 +199,7 @@ class LoadBalancerService:
             func=_do
         )
 
-    # 访问控制列表
+    # 访问控制列表    192.168.1.0/24|备注
     def acl_page_list(
         self,
         user_id: int,
@@ -201,7 +207,7 @@ class LoadBalancerService:
         page_size: int,
         provider_code: str,
         region_id: str,
-        resource_group_id: int,
+        resource_group_id: str,
         name: str,
     ):
         items, total = self.lb_repo.acl_page_list(
@@ -219,11 +225,13 @@ class LoadBalancerService:
     def create_certificate(self, user: dict, data: LoadCertificateCreate):
         def _do():
             user_id = user.get("user_id")
+            username = user.get("username")
             try:
                 with self.db.begin():
                     cert = self.lb_repo.create_certificate({
                         **data.model_dump(),
-                        "user_id": user_id,
+                        "created_by": user_id,
+                        "created_by_name": username,
                         "cert_id": f"load-cert-{generate(size=12)}",
                         "status": LoadCertificateStatus.AVAILABLE,
                     })
@@ -255,7 +263,7 @@ class LoadBalancerService:
         page_size: int,
         provider_code: Optional[str] = None,
         region_id: Optional[str] = None,
-        resource_group_id: Optional[int] = None,
+        resource_group_id: Optional[str] = None,
     ):
         items, total = self.lb_repo.certificate_page_list(
             user_id=user_id,

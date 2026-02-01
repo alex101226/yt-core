@@ -9,7 +9,6 @@ class InvoiceEmail(CmpBase, IsReleasedMixin):
     __table_args__ = {'comment': '发票邮件表'}
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    user_id = Column(String(50), nullable=True, comment="操作用户ID")
     email =  Column(String(100), nullable=True, comment="邮件")
     is_default = Column(Boolean, nullable=False, comment="是否默认邮件")
 

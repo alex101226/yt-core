@@ -37,7 +37,6 @@ class LoadBalancerACL(CmpBase, IsReleasedMixin):
         SAEnum(ACLStatus), nullable=False, comment="ACL 状态"
     )
 
-    user_id: Mapped[int] = mapped_column(Integer, nullable=False, comment="创建用户ID")
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), comment="创建时间"
     )

@@ -31,13 +31,13 @@ class EIPService:
     # 生成计费任务
     def create_initial_bill(
         self,
-        user_id: int,
+        user: dict,
         charge_type: str,
         instance_id: str,
         unit_price: float,
         instance,
     ):
-        account = self.account_service.account_exists(user_id)
+        account = self.account_service.account_exists(user.get('user_id'))
         if not account:
             raise BusinessException(
                 code=ErrorCode.DATA_NOT_FOUND,
@@ -45,7 +45,7 @@ class EIPService:
             )
 
         self.bill_service.create(
-            user_id=user_id,
+            user=user,
             account_id=account.id,
             resource_type="EIP",
             charge_type=charge_type,
@@ -57,6 +57,7 @@ class EIPService:
     # 创建eip
     def create_eip(self, user: dict, data: EIPCreate):
         user_id = user.get('user_id')
+        username = user.get('username')
         def _do():
             try:
                 with self.db.begin():
@@ -64,10 +65,12 @@ class EIPService:
                         **data.model_dump(),
                         "status": "AVAILABLE",
                         "created_by": user_id,
+                        "created_by_name": username,
                         "internet_charge_type": "PayByTraffic",
                         "public_ip": create_public_ip(data.region_id),
                         "eip_id": f"vpc-{generate(size=12)}"
                     }
+                    payload.pop('price')
                     result = self.repo.create_eip(payload)
                     if not result:
                         raise BusinessException(code=ErrorCode.FAILED, message="eip创建失败")
@@ -77,11 +80,12 @@ class EIPService:
                         raise BusinessException(code=ErrorCode.FAILED, message="请先开通账户")
 
                     self.create_initial_bill(
-                        user_id, "PostPaid", result.eip_id, payload['price'], result,
+                        user, "PostPaid", result.eip_id, data.price, result,
                     )
                     resource_data = ResourceGroupBindingCreate(
                         cloud_provider_code=data.cloud_provider_code,
-                        user_id=user_id,
+                        created_by=user_id,
+                        created_by_name=username,
                         resource_group_id=data.resource_group_id,
                         resource_type="eip",
                         resource_id=str(result.id),

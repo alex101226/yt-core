@@ -46,6 +46,7 @@ class BareMetalInstanceService:
     # 创建裸金属
     def bare_metal_instance_create(self, user: dict, data: BareMetalInstanceCreate):
         user_id = user.get('user_id')
+        username = user.get('username')
         def _do():
             try:
                 with self.db.begin():
@@ -66,9 +67,10 @@ class BareMetalInstanceService:
                         "hashed_password": hash_password(data.password),
                         "status": "RUNNING",
                         "delivery_status": "DELIVERED",
-                        "last_operation": "RUNNING",
+                        # "last_operation": "RUNNING",
                         "instance_id": f"bare_metal-{generate(size=12)}",
                         "created_by": user_id,
+                        "created_by_name": username,
                         "private_ip": private_ip,
                         "physical_machine_id": f"bare_metal-physical-{generate(size=6)}",
                     }
@@ -87,10 +89,10 @@ class BareMetalInstanceService:
 
                     # 创建成功，生成周期性任务
                     self.bill_service.create(
-                        user_id=user_id,
+                        user=user,
                         account_id=account.id,
                         resource_type="BAREMETAL",
-                        charge_type=instance.instance_charge_type,
+                        charge_type=instance.charge_type,
                         instance_id=instance.instance_id,
                         instance=instance,
                         unit_price=data.price,  # 👈 创建时提交的价格
@@ -123,7 +125,7 @@ class BareMetalInstanceService:
                         "disk_type": "system",  # 磁盘类型：system 系统盘 / data 数据盘。
                         "disk_category": data.system_disk_category,  # 磁盘种类，例如：cloud、cloud_ssd、cloud_essd_pl0 等
                         "disk_size": data.system_disk_size,  # 磁盘大小
-                        "charge_type": data.instance_charge_type,  # 计费方式：PrePaid 包年包月 / PostPaid 按量付费
+                        "charge_type": data.charge_type,  # 计费方式：PrePaid 包年包月 / PostPaid 按量付费
                         "period": data.period or 1,  # 包年月的月份
                         "auto_renew": data.auto_renew,
                         "attached_instance_id": str(instance.id),  # 挂载的实例 ID（ecs/lh/lb）
@@ -132,13 +134,14 @@ class BareMetalInstanceService:
                         "description": f"系统盘，挂载到实例 {instance.instance_name}",
                         "tags": []
                     }
-                    self.cbs_service.cbs_create_auto(user, system_disk_data, instance.instance_charge_type, 2.5)
+                    self.cbs_service.cbs_create_auto(user, system_disk_data, instance.charge_type, 2.5)
 
                     #   绑定资源组
                     self.resource_bind_service.bind(
                         ResourceGroupBindingCreate(
                             cloud_provider_code=data.cloud_provider_code,
-                            user_id=user_id,
+                            created_by=user_id,
+                            created_by_name=username,
                             resource_group_id=data.resource_group_id,
                             resource_type="bare-metal",
                             resource_id=str(instance.id),
@@ -168,7 +171,7 @@ class BareMetalInstanceService:
     # 分页列表
     def bare_metal_page_list(
         self,
-        user_id: int,
+        parent_id: int,
         page: int,
         page_size: int,
         provider_code: Optional[str] = None,
@@ -183,7 +186,7 @@ class BareMetalInstanceService:
         ssh_proxy_port: Optional[int] = None,
     ):
         items, total = self.repo.bare_metal_page_list(
-            user_id, page, page_size, provider_code, region_id, zone_id, resource_group_id,
+            parent_id, page, page_size, provider_code, region_id, zone_id, resource_group_id,
             instance_id, instance_name, instance_type_id, public_ip, status, ssh_proxy_port
         )
 

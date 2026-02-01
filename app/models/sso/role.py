@@ -1,13 +1,10 @@
 from datetime import datetime, timezone
 from sqlalchemy import Column, Integer, String, DateTime
-from sqlalchemy.orm import relationship
 from app.core.database import SsoBase
 from app.core.config import settings
-from app.models.is_released_mixin import IsReleasedMixin
+from app.models.is_released_mixin import SSOReleasedMixin
 
-from app.models.sso.user_role_association import user_role_association
-
-class Role(SsoBase, IsReleasedMixin):
+class Role(SsoBase, SSOReleasedMixin):
     __tablename__ = f"{settings.SSO_TABLE_PREFIX}roles"
     __table_args__ = {"comment": "角色表"}   # 表注释
 
@@ -28,9 +25,4 @@ class Role(SsoBase, IsReleasedMixin):
         onupdate=lambda: datetime.now(timezone.utc),
         nullable=False,
         comment="更新时间 (UTC)"
-    )
-    users = relationship(
-        "User",
-        secondary=user_role_association,  # 中间表
-        back_populates="roles"
     )

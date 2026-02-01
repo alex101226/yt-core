@@ -18,7 +18,7 @@ class UserCertificateService:
 
     def create_certificate(self, user: dict, data: dict):
         def _do():
-            user_id = data["user_id"]
+            user_id = user["user_id"]
             count = self.repo.count_by_user(user_id)
 
             # 如果是第一条，自动设为默认

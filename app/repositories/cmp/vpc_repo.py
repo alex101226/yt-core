@@ -7,8 +7,8 @@ from sqlalchemy.orm import Session
 from app.core.logger import logger
 
 from app.models.cmp import ResourceGroup
-from app.models.cmp.subnet import Subnet
-from app.models.cmp.vpc import Vpc
+from app.models.cmp.network_subnet import Subnet
+from app.models.cmp.network_vpc import Vpc
 from app.schemas.cmp.vpc_schema import VpcOut, VpcList
 
 

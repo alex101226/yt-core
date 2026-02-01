@@ -12,8 +12,8 @@ from app.models.cmp.cluster_node import ClusterNode
 from app.models.cmp.cluster_node_resource_history import ClusterNodeResourceHistory
 
 from app.models.cmp.resource_group import ResourceGroup
-from app.models.cmp.vpc import Vpc
-from app.models.cmp.subnet import Subnet
+from app.models.cmp.network_vpc import Vpc
+from app.models.cmp.network_subnet import Subnet
 
 # -------------------
 # 集群 Repository

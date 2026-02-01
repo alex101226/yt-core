@@ -30,8 +30,11 @@ def list_vpcs(
     region_id: str = Query(None, description="区域 id"),
     service: VPCService = Depends(get_vpc_service)
 ):
-    user_id = request.state.user.get('user_id')
-    items = service.sync_vpcs(user_id, provider_code, region_id)
+    parent_id = request.state.user.get('parent_id') or 0
+    if parent_id == 0:
+        parent_id = request.state.user.get('user_id')
+    # user_id = request.state.user.get('user_id')
+    items = service.sync_vpcs(parent_id, provider_code, region_id)
     return Response.success(items)
 
 @router.get('/page_list', response_model=VpcPage)
@@ -45,8 +48,11 @@ def list_page(
     page_size: int = Query(..., description="每页条数"),
     service: VPCService = Depends(get_vpc_service)
 ):
-    user_id = request.state.user.get('user_id')
-    total, items = service.list_page(user_id, page, page_size, provider_code, region_id, resource_group_id, vpc_name)
+    parent_id = request.state.user.get('parent_id') or 0
+    if parent_id == 0:
+        parent_id = request.state.user.get('user_id')
+    # user_id = request.state.user.get('user_id')
+    total, items = service.list_page(parent_id, page, page_size, provider_code, region_id, resource_group_id, vpc_name)
     return Response.success(VpcPage(page=page, pageSize=page_size, total=total, items=items))
 
 

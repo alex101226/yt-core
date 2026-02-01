@@ -8,7 +8,8 @@ class CertificateBase(BaseModel):
 
 class UserCertificateOut(CertificateBase):
     id: int
-    user_id: int
+    created_by: int
+    created_by_name: str
 
     class Config:
         from_attributes = True

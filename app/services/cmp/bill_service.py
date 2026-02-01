@@ -78,7 +78,6 @@ class BillService:
         direction: Optional[str] = None,
         flow_type: Optional[str] = None,
         channel: Optional[str] = None,
-        # fund_type: Optional[str] = None,
         start_at: Optional[datetime] = None,
         end_at: Optional[datetime] = None,
     ):
@@ -123,7 +122,7 @@ class BillService:
     # 创建计费任务
     def create(
         self, *,
-        user_id: int,
+        user: dict,
         account_id: int,
         resource_type: str,
         charge_type: str,
@@ -168,20 +167,20 @@ class BillService:
         # 创建计费任务
         billing_db = self.repo.bill_create(billing_instance)
 
-        self._first_charge(user_id, account_id, instance_id, billing_db)
+        self._first_charge(user, account_id, instance_id, billing_db)
 
         return billing_db
 
 
     # 创建订单，扣费任务，资金流水
-    def _first_charge(self, user_id: int, account_id: int, instance_id: str, billing: BillingInstance):
+    def _first_charge(self, user: dict, account_id: int, instance_id: str, billing: BillingInstance):
         now = datetime.now(timezone.utc)
         # 1 小时
         amount = billing.unit_price * billing.billing_period_count
 
         # 创建订单
         self.order_service.create_and_pay_order(
-            user_id=user_id,
+            user=user,
             account_id=account_id,
             instance_id=instance_id,
             billing=billing,

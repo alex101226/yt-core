@@ -42,7 +42,9 @@ def cbs_create(
     mount_name: Optional[str] = Query(None, description="挂载点 名称"),
     service: FileMountService = Depends(get_mount_service)
 ):
-    user_id = request.state.user.get('user_id')
+    parent_id = request.state.user.get('parent_id') or 0
+    if parent_id == 0:
+        parent_id = request.state.user.get('user_id')
 
-    result = service.fs_mount_page_list(page, page_size, user_id, mount_type, provider_code, region_id, zone_id, mount_name)
+    result = service.fs_mount_page_list(page, page_size, parent_id, mount_type, provider_code, region_id, zone_id, mount_name)
     return Response.success(result)

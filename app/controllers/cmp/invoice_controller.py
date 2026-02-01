@@ -23,8 +23,11 @@ def invoice_info(
     request: Request,
     service: InvoiceService = Depends(get_invoice_service)
 ):
-    user_id = request.state.user.get('user_id')
-    result = service.invoice_info(user_id)
+    parent_id = request.state.user.get('parent_id') or 0
+    if parent_id == 0:
+        parent_id = request.state.user.get('user_id')
+    # user_id = request.state.user.get('user_id')
+    result = service.invoice_info(parent_id)
     return Response.success(result)
 
 

@@ -43,8 +43,10 @@ def get_eip_page_list(
     public_ip: str = Query(None, description="ip地址"),
     server: EIPService = Depends(get_eip_service),
 ):
-    user_id = request.state.user.get('user_id')
-    result = server.get_eip_page_list(user_id, page, page_size, provider_code, region_id, zone_id, resource_group_id, eip_name, public_ip)
+    parent_id = request.state.user.get('parent_id') or 0
+    if parent_id == 0:
+        parent_id = request.state.user.get('user_id')
+    result = server.get_eip_page_list(parent_id, page, page_size, provider_code, region_id, zone_id, resource_group_id, eip_name, public_ip)
     return Response.success(result)
 
 # eip解绑，绑定，释放

@@ -9,7 +9,6 @@ class Invoice(CmpBase, IsReleasedMixin):
     __table_args__ = {'comment': '发票信息表'}
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    user_id = Column(String(50), nullable=True, comment="操作用户ID")
 
     # 发票抬头信息
     invoice_title = Column(String(128), nullable=False, comment='发票抬头名称')

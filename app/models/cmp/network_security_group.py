@@ -1,4 +1,4 @@
-# app/models/cmp/security_group.py
+# app/models/cmp/network_security_group.py
 from datetime import datetime, timezone
 from sqlalchemy import (
     Column, String, Text, Integer, DateTime,
@@ -40,7 +40,6 @@ class SecurityGroup(CmpBase, IsReleasedMixin):
     # 安全组的状态
     status = Column(String(50), default="AVAILABLE", comment="安全组的状态，字典表type_code=SECURITY_GROUP_STATUS")
 
-    created_by = Column(Integer, index=True, nullable=False, comment="所属用户ID")
     created_at = Column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc), nullable=False,

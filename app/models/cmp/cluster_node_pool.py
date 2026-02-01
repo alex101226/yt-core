@@ -23,8 +23,6 @@ class ClusterNodePool(CmpBase, IsReleasedMixin):
     charge_type = Column(String(32), nullable=False, comment="计费方式：PostPaid/PrePaid")
     period = Column(Integer, nullable=True, comment="包年包月时长（月单位），按量付费可为空")
     auto_renew = Column(Boolean, default=False, comment="是否开启自动续费")
-    price = Column(DECIMAL(18, 2), nullable=True, comment="单价")
-
 
     desired_size = Column(Integer, nullable=False, comment="期望节点数")
     scaling_policy = Column(String(32), nullable=True, comment="扩缩容策略，字典表type_code=SCALING_POLICY")

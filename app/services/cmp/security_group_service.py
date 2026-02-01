@@ -47,52 +47,17 @@ class SecurityGroupService:
             items=out_item
         )
 
-    def security_groups(self, provider_code: str, region_id: str, page: int = 1, page_size: int = 50):
-        # provider = self.provider_repo.get_by_code(provider_code)
-        # if not provider:
-        #     raise BusinessException(...)
-        # cloud_client = CloudClientFactory.create_client(
-        #     provider_code,
-        #     provider.access_key_id,
-        #     provider.access_key_secret,
-        #     provider.endpoint,
-        # )
-        current_page = page
-
-        while True:
-            resp = cloud_client.list_security_groups(
-                region_id=region_id,
-                vpc_id=None,
-                page=current_page,
-                page_size=page_size
-            )
-
-            items = resp.get("items", [])
-            if not items:
-                break
-
-            # 批量保存
-            self.security_group_repo.bulk_upsert_from_cloud(
-                provider_code, region_id, items
-            )
-
-            # 如果少于 page_size 说明没有下一页
-            if len(items) < page_size:
-                break
-
-            current_page += 1
-
-        return True
-
     # ----------------------------
     # 创建安全组（本地 + 云端）
     # ----------------------------
     def create(self, user: dict, data: SecurityGroupCreate):
-        user_id = user.get("user_id")
+        user_id = user.get('user_id')
+        username = user.get('username')
         def _do():
             payload = {
                 **data.model_dump(),
                 "created_by": user_id,
+                "created_by_name": username,
                 "sg_id": f'sg-{generate(size=12)}',
                 "status": "AVAILABLE"
             }
@@ -103,7 +68,8 @@ class SecurityGroupService:
             self.resource_bind_service.bind(
                 ResourceGroupBindingCreate(
                     cloud_provider_code=data.cloud_provider_code,
-                    user_id=user_id,
+                    created_by=user_id,
+                    created_by_name=username,
                     resource_group_id=data.resource_group_id,
                     resource_type="security",
                     resource_id=str(result),
@@ -137,11 +103,11 @@ class SecurityGroupService:
         return True
 
     #   返回安全组的列表数据
-    def list_security_groups(self, provider_code: str, region_id: str, vpc_id: int) -> List[SecurityGroup]:
-        return self.security_group_repo.get_by_security_group(provider_code, region_id, vpc_id)
+    def list_security_groups(self, parent_id: int, provider_code: str, region_id: str, vpc_id: int) -> List[SecurityGroup]:
+        return self.security_group_repo.get_by_security_group(parent_id, provider_code, region_id, vpc_id)
 
     # 更新规则（入 + 出）
-    def batch_update_rules(self, data: SecurityGroupRuleUpdate):
+    def batch_update_rules(self, data: SecurityGroupRuleUpdate, user: dict):
         sg = self.security_group_repo.get_by_id(data.security_group_id)
         if not sg:
             raise BusinessException(
@@ -160,10 +126,10 @@ class SecurityGroupService:
             item.direction = "outbound"
 
         # 3. 入方向写入
-        self.security_group_repo.bulk_create(data.security_group_id, data.ingress_rules)
+        self.security_group_repo.bulk_create(data.security_group_id, data.ingress_rules, user)
 
         # 4. 出方向写入
-        self.security_group_repo.bulk_create(data.security_group_id, data.egress_rules)
+        self.security_group_repo.bulk_create(data.security_group_id, data.egress_rules, user)
 
         self.db.commit()
         return True
@@ -171,14 +137,19 @@ class SecurityGroupService:
         #   删除规则
 
     # 单挑规则插入（入 + 出）
-    def create_rule(self, data: SecurityGroupRuleItem):
+    def create_rule(self, data: SecurityGroupRuleItem, user: dict):
         sg = self.security_group_repo.get_by_id(data.security_group_id)
         if not sg:
             raise BusinessException(
                 code=ErrorCode.DATA_NOT_FOUND,
                 message=Message.DATA_NOT_FOUND,
             )
-        result = self.security_group_repo.create_rule(data)
+        payload = {
+            **data.model_dump(),
+            "created_by": user.get('user_id'),
+            "created_by_name": user.get('username'),
+        }
+        result = self.security_group_repo.create_rule(payload)
         if not result:
             return False
         return True

@@ -1,4 +1,4 @@
-# app/controllers/cmp/server_instance_controller.py
+# app/controllers/cmp/cloud_server_instance_controller.py
 from fastapi import APIRouter, Depends, Request, Query
 from typing import Optional, List
 from enum import Enum
@@ -47,9 +47,12 @@ def get_server_page_list(
     page_size:int = Query(..., description="页码"),
     service: InstanceService = Depends(get_server_instance_service),
 ):
-    user_id = request.state.user.get('user_id')
+    parent_id = request.state.user.get('parent_id') or 0
+    if parent_id == 0:
+        parent_id = request.state.user.get('user_id')
+    # user_id = request.state.user.get('user_id')
     result = service.server_list_page(
-        user_id, provider_code, region_id, zone_id, resource_group_id, instance_id, instance_name,
+        parent_id, provider_code, region_id, zone_id, resource_group_id, instance_id, instance_name,
         instance_type, ip, status, ssh_proxy_port, page, page_size
     )
     return Response.success(result)

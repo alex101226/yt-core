@@ -30,8 +30,10 @@ async def list_regions(
 ):
     # 1️⃣ 查用户凭证
     cer_data = service.get_user_ak(user_id)
-
-    aliyun_service = AliyunService(access_key_id=cer_data.cloud_access_key_id, access_key_secret=cer_data.cloud_access_key_secret)
+    aliyun_service = AliyunService(
+        access_key_id=cer_data.cloud_access_key_id,
+        access_key_secret=cer_data.cloud_access_key_secret
+    )
     regions = await aliyun_service.list_regions()
     return Response.success(regions)
 
@@ -109,7 +111,7 @@ async def list_available_instance_types(
     user_id: int = Query(..., description="用户id"),
     region_id: str = Query(..., description="Region ID"),
     zone_id: str = Query(..., description="Zone ID"),
-    instance_charge_type: str = Query(..., description="计费方式"),
+    charge_type: str = Query(..., description="计费方式"),
     disk_category: str = Query(..., description="系统盘种类，默认 cloud_essd"),
     cpu_number: Optional[int] = Query(None, description="cpu核数"),
     memory_number: Optional[int] = Query(None, description="内存大小"),
@@ -127,7 +129,7 @@ async def list_available_instance_types(
     )
     types = await aliyun_service.list_instance_types(region_id)
     # logger.info(f"types: {types}")
-    available_raw = await aliyun_service.list_available_instance_types(region_id, zone_id, instance_charge_type, disk_category)
+    available_raw = await aliyun_service.list_available_instance_types(region_id, zone_id, charge_type, disk_category)
 
     available_map = {}
     for item in available_raw:
@@ -175,7 +177,7 @@ async def list_available_instance_types(
         client=aliyun_service,
         region_id=region_id,
         instance_type_ids=instance_type_ids_page,
-        instance_charge_type=instance_charge_type,
+        instance_charge_type=charge_type,
         system_disk_category=disk_category,
         max_workers=10,
     )

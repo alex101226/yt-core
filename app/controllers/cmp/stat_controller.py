@@ -22,9 +22,11 @@ def get_user_statistics(
     db: Session = Depends(get_cmp_db)
 ):
     service = StatService(db)
-    user_id = request.state.user.get('user_id')
+    parent_id = request.state.user.get('parent_id') or 0
+    if parent_id == 0:
+        parent_id = request.state.user.get('user_id')
 
-    stats = service.get_user_statistics(user_id)
+    stats = service.get_user_statistics(parent_id)
     return Response.success(stats)
 
 
@@ -33,9 +35,11 @@ def get_user_statistics(
 def get_monthly_finance(request: Request, db: Session = Depends(get_cmp_db)):
     service = StatService(db)
 
-    user_id = request.state.user.get('user_id')
+    parent_id = request.state.user.get('parent_id') or 0
+    if parent_id == 0:
+        parent_id = request.state.user.get('user_id')
 
-    stats = service.get_monthly_stats(user_id)
+    stats = service.get_monthly_stats(parent_id)
     return Response.success(stats)
 
 # 账户概览---> 纵览
@@ -45,8 +49,10 @@ def get_total_funds(
     db: Session = Depends(get_cmp_db)
 ):
     service = StatService(db)
-    user_id = request.state.user.get('user_id')
-    stats = service.get_total_funds(user_id)
+    parent_id = request.state.user.get('parent_id') or 0
+    if parent_id == 0:
+        parent_id = request.state.user.get('user_id')
+    stats = service.get_total_funds(parent_id)
     return Response.success(stats)
 
 # 账户概览----> 当月总览
@@ -56,8 +62,10 @@ def get_monthly_income(
     db: Session = Depends(get_cmp_db),
 ):
     service = StatService(db)
-    user_id = request.state.user.get('user_id')
-    stats = service.get_monthly_total(user_id)
+    parent_id = request.state.user.get('parent_id') or 0
+    if parent_id == 0:
+        parent_id = request.state.user.get('user_id')
+    stats = service.get_monthly_total(parent_id)
     return Response.success(stats)
 
 # 传入年月，查可用额度，订单数量，消费金额，退款金额，可开票金额，已开票金额
@@ -68,8 +76,10 @@ def monthly_pick_invoice(
     db: Session = Depends(get_cmp_db),
 ):
     service = StatService(db)
-    user_id = request.state.user.get('user_id')
-    stats = service.get_month_picker_total(user_id, date)
+    parent_id = request.state.user.get('parent_id') or 0
+    if parent_id == 0:
+        parent_id = request.state.user.get('user_id')
+    stats = service.get_month_picker_total(parent_id, date)
     return Response.success(stats)
 
 # 费用总揽，图表
@@ -79,8 +89,10 @@ def get_yearly_financial_chart(
     db: Session = Depends(get_cmp_db),
 ):
     service = StatService(db)
-    user_id = request.state.user.get('user_id')
-    stats = service.get_yearly_financial_chart(user_id)
+    parent_id = request.state.user.get('parent_id') or 0
+    if parent_id == 0:
+        parent_id = request.state.user.get('user_id')
+    stats = service.get_yearly_financial_chart(parent_id)
     return Response.success(stats)
 
 # 查询成本总揽
@@ -91,8 +103,10 @@ def get_monthly_top5_stats(
     db: Session = Depends(get_cmp_db),
 ):
     service = StatService(db)
-    user_id = request.state.user.get('user_id')
-    result = service.get_monthly_top5_stats(user_id, date)
+    parent_id = request.state.user.get('parent_id') or 0
+    if parent_id == 0:
+        parent_id = request.state.user.get('user_id')
+    result = service.get_monthly_top5_stats(parent_id, date)
     return Response.success(result)
 
 # 系统通知列表
@@ -105,8 +119,10 @@ def get_user_statistics(
 ):
     service = StatService(db)
 
-    user_id = request.state.user.get('user_id')
-    result = service.get_notifications_page_list(user_id, page, page_size)
+    parent_id = request.state.user.get('parent_id') or 0
+    if parent_id == 0:
+        parent_id = request.state.user.get('user_id')
+    result = service.get_notifications_page_list(parent_id, page, page_size)
     return Response.success(result)
 
 # 获取未读通知数量
@@ -117,8 +133,10 @@ def get_user_statistics(
 ):
     service = StatService(db)
 
-    user_id = request.state.user.get('user_id')
-    result = service.get_unread_notification_count(user_id)
+    parent_id = request.state.user.get('parent_id') or 0
+    if parent_id == 0:
+        parent_id = request.state.user.get('user_id')
+    result = service.get_unread_notification_count(parent_id)
     return Response.success(result)
 
 # 单条标记已读

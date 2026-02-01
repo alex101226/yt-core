@@ -8,7 +8,7 @@ from app.constants.enums import BillingStatus
 from app.core.logger import logger
 
 from app.models.cmp.billing_instance import BillingInstance
-from app.models.cmp.funds_flow import FundsFlow
+from app.models.cmp.account_funds_flow import FundsFlow
 from app.models.cmp.order import Order
 from app.models.cmp.order_detail import OrderDetail
 
@@ -128,12 +128,11 @@ class BillRepository:
         direction: Optional[str] = None,
         flow_type: Optional[str] = None,
         channel: Optional[str] = None,
-        # fund_type: Optional[str] = None,
         start_at: Optional[datetime] = None,
         end_at: Optional[datetime] = None,
     ):
         query = self.db.query(FundsFlow)
-        filters = [FundsFlow.user_id == user_id]
+        filters = [FundsFlow.created_by == user_id]
 
         if flow_no:
             filters.append(FundsFlow.flow_no.like(f'%{flow_no}%'))
@@ -146,9 +145,6 @@ class BillRepository:
             filters.append(FundsFlow.flow_type==flow_type)
         if channel:
             filters.append(FundsFlow.channel==channel)
-
-        # if fund_type:
-        #     filters.append(FundsFlow.fund_type == fund_type)
 
         if start_at and end_at:
             filters.append(
@@ -203,7 +199,7 @@ class BillRepository:
             FundsFlow.fund_type,
             func.sum(FundsFlow.amount).label("total_amount"),
         ).filter(
-            FundsFlow.user_id == user_id,
+            FundsFlow.created_by == user_id,
             FundsFlow.billing_period.between(start_month, end_month)
         )
 

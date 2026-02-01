@@ -1,4 +1,4 @@
-# app/models/cmp/eip.py
+# app/models/cmp/network_eip.py
 from sqlalchemy import Column, Integer, String, DateTime, Float, Text
 from datetime import datetime, timezone
 from app.core.database import CmpBase
@@ -11,7 +11,7 @@ class Eip(CmpBase, IsReleasedMixin):
     """
     弹性公网 IP (EIP) 资源表
     """
-    __tablename__ = f"{settings.CMP_TABLE_PREFIX}eip"
+    __tablename__ = f"{settings.CMP_TABLE_PREFIX}network_eip"
     __table_args__ = {"comment": "弹性公网 IP 资源表"}
 
     id = Column(Integer, primary_key=True, autoincrement=True)
@@ -36,7 +36,6 @@ class Eip(CmpBase, IsReleasedMixin):
     # 计费信息
     internet_charge_type = Column(String(30), nullable=False, default="PayByBandwidth", comment="公网计费类型")
     bandwidth = Column(Integer, nullable=False, comment="带宽上限 Mbps")
-    price = Column(Float, nullable=True, comment="按量计费价格（元/小时）")
 
     # 状态信息
     status = Column(String(50), default="ALLOCATING", comment="EIP 状态")
@@ -44,7 +43,6 @@ class Eip(CmpBase, IsReleasedMixin):
     last_operation = Column(String(50), nullable=True, comment="最近一次操作：CREATE/BIND/UNBIND/RELEASE")
     error_message = Column(Text, nullable=True, comment="失败原因")
 
-    created_by = Column(Integer, nullable=False, comment="提交用户ID")
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), comment="创建时间（UTC）")
     updated_at = Column(
         DateTime(timezone=True),

@@ -3,7 +3,7 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from app.models.cmp import ResourceGroup
-from app.models.cmp.oss import OssBucket
+from app.models.cmp.storage_oss import OssBucket
 
 class OssRepoRepository:
     def __init__(self, db: Session):
@@ -46,7 +46,6 @@ class OssRepoRepository:
             OssBucket.status,
             OssBucket.charge_type,
             OssBucket.used_size_bytes,
-            OssBucket.user_id,
             OssBucket.created_at,
             OssBucket.updated_at,
             ResourceGroup.rg_name.label('resource_group_name'),
@@ -54,7 +53,7 @@ class OssRepoRepository:
             ResourceGroup,
             ResourceGroup.id == OssBucket.resource_group_id,
         )
-        filters = [OssBucket.user_id==user_id]
+        filters = [OssBucket.created_by==user_id]
         if provider_code:
             filters.append(OssBucket.cloud_provider_code == provider_code)
         if region_id:

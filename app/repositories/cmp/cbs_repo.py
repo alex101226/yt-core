@@ -5,7 +5,7 @@ from typing import Optional, List
 
 from app.models.cmp.resource_group import ResourceGroup
 
-from app.models.cmp.cbs_disk import CbsDisk
+from app.models.cmp.storage_cbs_disk import CbsDisk
 from app.schemas.cmp.cbs_disk_schema import CbsDiskCreate
 
 
@@ -32,7 +32,7 @@ class CbsDiskRepository:
         provider_code: Optional[str] = None,
         region_id: Optional[int] = None,
         zone_id: Optional[int] = None,
-        resource_group_id: Optional[int] = None,
+        resource_group_id: Optional[str] = None,
         cbs_id: Optional[str] = None,
     ):
         query = self.db.query(
@@ -59,8 +59,6 @@ class CbsDiskRepository:
             CbsDisk.attached_device,
             CbsDisk.attached_time,
             CbsDisk.detached_time,
-            CbsDisk.snapshot_count,
-            CbsDisk.last_snapshot_time,
             CbsDisk.tags,
             CbsDisk.description,
             CbsDisk.status,
@@ -69,23 +67,17 @@ class CbsDiskRepository:
             ResourceGroup,
             ResourceGroup.id == CbsDisk.resource_group_id,
         )
-        filters = [CbsDisk.user_id == user_id]
-        if provider_code is not None:
+        filters = [CbsDisk.created_by == user_id]
+        if provider_code:
             filters.append(CbsDisk.cloud_provider_code == provider_code)
-        if region_id is not None:
+        if region_id:
             filters.append(CbsDisk.region_id == region_id)
-        if zone_id is not None:
+        if zone_id:
             filters.append(CbsDisk.zone_id == zone_id)
-        if resource_group_id is not None:
+        if resource_group_id:
             filters.append(CbsDisk.resource_group_id == resource_group_id)
-        if cbs_id is not None:
+        if cbs_id:
             filters.append(CbsDisk.cbs_id.like(f"%{cbs_id}%"))
-        # if tags:
-        #     tag_filters = [
-        #         func.json_contains(CbsDisk.tags, json.dumps([{"title": tag["title"]}]))
-        #         for tag in tags
-        #     ]
-        #     filters.append(or_(*tag_filters))
 
         if filters:
             query = query.filter(*filters)

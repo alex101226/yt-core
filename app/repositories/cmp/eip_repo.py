@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.core.logger import logger
 from app.models.cmp import ResourceGroup
-from app.models.cmp.eip import Eip
+from app.models.cmp.network_eip import Eip
 from app.schemas.cmp.eip_schema import EIPCreate
 
 # eip的repository
@@ -45,7 +45,6 @@ class EipRepository:
             Eip.description,
             Eip.internet_charge_type,
             Eip.bandwidth,
-            Eip.price,
             Eip.public_ip,
             Eip.bind_instance_id,
             Eip.status,

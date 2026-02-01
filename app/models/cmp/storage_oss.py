@@ -122,11 +122,6 @@ class OssBucket(CmpBase, IsReleasedMixin):
         comment="CMP 资源组 ID"
     )
 
-    user_id = Column(
-        Integer, nullable=False,
-        comment="创建人（用户 ID）"
-    )
-
     status = Column(
         String(32), default="CREATING",
         comment="状态：CREATING/ACTIVE/UPDATING/DELETING/ERROR"

@@ -49,6 +49,7 @@ class VPCService:
             payload = {
                 **data.model_dump(),
                 "created_by": user_id,
+                "created_by_name": user.get('username'),
                 "vpc_id": f"vpc-{generate(size=12)}"
             }
             vpc = self.vpc_repo.create(payload)
@@ -58,7 +59,8 @@ class VPCService:
             self.resource_bind_service.bind(
                 ResourceGroupBindingCreate(
                     cloud_provider_code=data.cloud_provider_code,
-                    user_id=user_id,
+                    created_by=user_id,
+                    created_by_name=user.get('username'),
                     resource_group_id=data.resource_group_id,
                     resource_type="vpc",
                     resource_id=str(vpc),

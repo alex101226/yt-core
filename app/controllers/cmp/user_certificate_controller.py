@@ -27,7 +27,11 @@ def create_certificate(
 ):
     user = request.state.user
     payload = data.model_dump()
-    payload['user_id'] = user.get('user_id')
+    payload = {
+        **payload,
+        'created_by': user.get('user_id') or 0,
+        'created_by_name': user.get('username'),
+    }
     obj = service.create_certificate(request.state.user, payload)
     return Response.success(obj)
 
@@ -36,8 +40,11 @@ def certificates_list(
     request: Request,
     service: UserCertificateService = Depends(get_user_certificate_service)
 ):
-    user_id = request.state.user.get('user_id')
-    items = service.certificate_list(user_id)
+    # user_id = request.state.user.get('user_id')
+    parent_id = request.state.user.get('parent_id') or 0
+    if parent_id == 0:
+        parent_id = request.state.user.get('user_id')
+    items = service.certificate_list(parent_id)
     return Response.success(items)
 
 
@@ -48,8 +55,11 @@ def certificates_page_list(
     page_size: int = Query(10, ge=1, le=100),
     service: UserCertificateService = Depends(get_user_certificate_service)
 ):
-    user_id = request.state.user.get('user_id')
-    result = service.certificates_page_list(user_id, page, page_size)
+    # user_id = request.state.user.get('user_id')
+    parent_id = request.state.user.get('parent_id') or 0
+    if parent_id == 0:
+        parent_id = request.state.user.get('user_id')
+    result = service.certificates_page_list(parent_id, page, page_size)
     return Response.success(result)
 
 # @router.put("/update/{record_id}")
@@ -82,13 +92,16 @@ def delete_certificate(
 
 #   返回用户默认凭证信息
 @router.get("/get_default_certificate")
-def create_certificate(
+def get_default_certificate(
     request: Request,
     service: UserCertificateService = Depends(get_user_certificate_service)
 ):
-    user = request.state.user
-    user_id = user.get('user_id')
-    obj = service.get_default_certificate(user_id)
+    parent_id = request.state.user.get('parent_id') or 0
+    if parent_id == 0:
+        parent_id = request.state.user.get('user_id')
+    # user = request.state.user
+    # user_id = user.get('user_id')
+    obj = service.get_default_certificate(parent_id)
 
     return Response.success({
         "id": obj.id,

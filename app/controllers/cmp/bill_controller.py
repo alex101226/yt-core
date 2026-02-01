@@ -34,8 +34,10 @@ def product_order_page_list(
     end_at: Optional[datetime] = Query(None, description="订单的创建时间结束时间"),
     service: OrderService = Depends(get_order_service)
 ):
-    user_id = request.state.user.get('user_id')
-    result = service.product_order_page_list(user_id, page, page_size, order, instance_id, start_at, end_at)
+    parent_id = request.state.user.get('parent_id') or 0
+    if parent_id == 0:
+        parent_id = request.state.user.get('user_id')
+    result = service.product_order_page_list(parent_id, page, page_size, order, instance_id, start_at, end_at)
     return Response.success(result)
 
 
@@ -51,9 +53,11 @@ def order_detail_page_list(
     billing_period: Optional[str] = Query(None, description="账期"),
     service: OrderService = Depends(get_order_service)
 ):
-    user_id = request.state.user.get('user_id')
+    parent_id = request.state.user.get('parent_id') or 0
+    if parent_id == 0:
+        parent_id = request.state.user.get('user_id')
     result = service.order_detail_page_list(
-        user_id, page, page_size, instance_id, consume_type, provider_code, billing_period
+        parent_id, page, page_size, instance_id, consume_type, provider_code, billing_period
     )
     return Response.success(result)
 
@@ -73,9 +77,11 @@ def bill_order_page_list(
     billing_status: Optional[str] = Query(None, description="账单状态"),
     service: BillService = Depends(get_bill_service)
 ):
-    user_id = request.state.user.get('user_id')
+    parent_id = request.state.user.get('parent_id') or 0
+    if parent_id == 0:
+        parent_id = request.state.user.get('user_id')
     result = service.billing_flows_page_list(
-        user_id, page, page_size, billing_id, start_month, end_month, consume_type, billing_type,
+        parent_id, page, page_size, billing_id, start_month, end_month, consume_type, billing_type,
         provider_code, billing_status
     )
     return Response.success(result)
@@ -95,9 +101,11 @@ def billing_flow_detail_page_list(
     # fund_type: Optional[str] = Query(None, description="资金形式"),
     service: BillService = Depends(get_bill_service)
 ):
-    user_id = request.state.user.get('user_id')
+    parent_id = request.state.user.get('parent_id') or 0
+    if parent_id == 0:
+        parent_id = request.state.user.get('user_id')
     result = service.billing_flow_detail_page_list(
-        user_id, page, page_size, flow_no, third_trade_no, direction, flow_type,
+        parent_id, page, page_size, flow_no, third_trade_no, direction, flow_type,
         channel
     )
     return Response.success(result)
@@ -118,9 +126,11 @@ def monthly_fund_summary_page_list(
     # third_trade_no: Optional[str] = Query(None, description="交易单号"),
     service: BillService = Depends(get_bill_service)
 ):
-    user_id = request.state.user.get('user_id')
+    parent_id = request.state.user.get('parent_id') or 0
+    if parent_id == 0:
+        parent_id = request.state.user.get('user_id')
     result = service.monthly_fund_summary(
-        user_id, page, page_size, start_month, end_month, direction, flow_type,
+        parent_id, page, page_size, start_month, end_month, direction, flow_type,
         channel, flow_no
     )
     return Response.success(result)

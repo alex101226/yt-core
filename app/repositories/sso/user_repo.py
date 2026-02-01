@@ -1,9 +1,9 @@
 from typing import Optional
 
-from pydantic import EmailStr
 from sqlalchemy.orm import Session
 
 from app.models.sso.user import User
+from app.models.sso.role import Role
 
 
 class UserRepository:
@@ -20,9 +20,11 @@ class UserRepository:
         find = self.db.query(User).filter_by(id = user_id).first()
         return find
 
-
-    def get_by_email(self, email: EmailStr) -> Optional[User]:
-        find = self.db.query(User).filter(User.email == email).first()
+    def user_info(self, user_id: int):
+        find = self.db.query(
+            User,
+            Role.role_name.label("role_name"),
+        ).outerjoin(Role, Role.role_code == User.role_code).filter(User.id == user_id, User.is_released == 0).first()
         if not find:
             return None
         return find
@@ -31,7 +33,7 @@ class UserRepository:
     def create(self, user: dict) -> User:
         register_db = User(**user)
         self.db.add(register_db)
-        # self.db.flush()
+        self.db.flush()
         return register_db
 
     # 获取用户列表
@@ -40,10 +42,9 @@ class UserRepository:
             User.id,
             User.nickname,
             User.username,
-            User.email
         ).order_by(User.id.desc())
 
-        filters = []
+        filters = [User.role_code != 'root', User.is_released == 0]
         if nickname:
             filters.append(User.nickname.like(f"%{nickname}%"))
         if username:
@@ -65,6 +66,27 @@ class UserRepository:
         if not find:
             return None
 
-        self.db.delete(find)
+        find.is_released = True
         self.db.commit()
         return True
+
+    #   返回自己和自己下属的id
+    def get_parent_id(self, parent_id: int) -> Optional[int]:
+        return self.db.query(User.id).filter(User.parent_id == parent_id).all()
+
+    # 返回用户数量和用户的角色数量
+    def user_count(self, user: dict):
+        parent_id = user.get('parent_id')
+        user_id = user.get('user_id')
+        # 普通用户：只有自己
+        if parent_id != 0:
+            return {
+                "user_count": 1,
+                "user_role": 1,
+            }
+
+        sub_count =  self.db.query(User).filter(User.parent_id == user_id).count()
+        return {
+            "user_count": sub_count + 1,
+            "user_role": 1,
+        }

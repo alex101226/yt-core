@@ -13,7 +13,6 @@ class AccountCreate(BaseModel):
 
 # 资金流水基础信息
 class FundsFlowBase(BaseModel):
-    user_id: int
     account_id: int
     flow_no: str
     third_trade_no: str
@@ -28,6 +27,7 @@ class FundsFlowBase(BaseModel):
     balance_after: Decimal
     description: Optional[str] = None
     created_by: int
+    created_by_name: str
 
 # 资金流水创建
 class FundsFlowCreate(FundsFlowBase):

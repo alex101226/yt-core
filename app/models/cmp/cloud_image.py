@@ -12,6 +12,7 @@ from ...constants.enums import CloudImageStatus, BillingMethod
 
 class CloudImage(CmpBase, IsReleasedMixin):
     __tablename__ = f"{settings.CMP_TABLE_PREFIX}cloud_image"
+    __table_args__ = {"comment": "自定义系统镜像"}
 
     # 主键
     id: Mapped[int] = mapped_column(
@@ -91,12 +92,6 @@ class CloudImage(CmpBase, IsReleasedMixin):
         comment="镜像状态，AVAILABLE=可用，DISABLED=禁用，DELETED删除"
     )
 
-    user_id: Mapped[Optional[int]] = mapped_column(
-        Integer,
-        nullable=True,
-        comment="所属用户ID，公共镜像可为空"
-    )
-
     # === 计费 3 姐妹 ===
     charge_type: Mapped[BillingMethod] = mapped_column(
         SAEnum(BillingMethod),
@@ -113,10 +108,6 @@ class CloudImage(CmpBase, IsReleasedMixin):
         default=False,
         comment="是否自动续费"
     )
-
-    # price: Mapped[float] = mapped_column(
-    #     Numeric(18, 2), nullable=False, comment="单价"
-    # )
 
     # ===== 审计 =====
     created_at: Mapped[datetime] = mapped_column(

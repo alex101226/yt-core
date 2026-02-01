@@ -44,8 +44,10 @@ def oss_page_list(
     permission: Optional[str] = Query(None, description="访问权限：private-read-write / public-read-write / public-read-private-write"),
     service: OssBucketService = Depends(get_oss_service),
 ):
-    user_id = request.state.user.get('user_id')
-    result = service.oss_page_list(user_id, page, page_size, provider_code, region_id, resource_group_id, bucket_name, permission)
+    parent_id = request.state.user.get('parent_id') or 0
+    if parent_id == 0:
+        parent_id = request.state.user.get('user_id')
+    result = service.oss_page_list(parent_id, page, page_size, provider_code, region_id, resource_group_id, bucket_name, permission)
     return Response.success(result)
 
 

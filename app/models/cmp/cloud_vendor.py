@@ -12,7 +12,6 @@ class CloudVendor(CmpBase, IsReleasedMixin):
     cloud_code = Column(String(32), comment="云厂商code")
     cloud_name=Column(String(50), comment="云厂商名称")
     description = Column(Text, nullable=True, comment="描述")
-    created_by = Column(Integer, nullable=False, comment="创建人")
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), comment="创建时间（UTC）")
     updated_at = Column(
         DateTime(timezone=True),

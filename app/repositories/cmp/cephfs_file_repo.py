@@ -42,15 +42,15 @@ class CephfsFileRepository:
             CephfsFile.storage_type,
             CephfsFile.capacity_gb,
             # CephfsFile.used_size_gb,
-            CephfsFile.price,
+            # CephfsFile.price,
             CephfsFile.status,
             CephfsFile.charge_type,
             CephfsFile.fs_id,
-            CephfsFile.user_id,
+            # CephfsFile.user_id,
             CephfsFile.created_at,
             CephfsFile.updated_at
         )
-        filters = [CephfsFile.user_id == user_id]
+        filters = [CephfsFile.created_by == user_id]
         if provider_code:
             filters.append(CephfsFile.cloud_provider_code == provider_code)
         if region_id:

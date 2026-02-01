@@ -1,4 +1,4 @@
-# app/schemas/cmp/subnet.py
+# app/schemas/cmp/network_subnet.py
 from datetime import datetime
 from typing import Optional, List
 from pydantic import BaseModel, Field

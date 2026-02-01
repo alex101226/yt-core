@@ -16,7 +16,6 @@ class CbsDisk(CmpBase, IsReleasedMixin):
         autoincrement=True,
         comment="自增主键"
     )
-    user_id = Column(Integer, nullable=False, comment="提交用户ID")
     # 云盘基础身份
     disk_id = Column(
         String(64),
@@ -93,7 +92,6 @@ class CbsDisk(CmpBase, IsReleasedMixin):
     )
 
     # 计费
-    price = Column(Float, nullable=True, comment="按量计费价格（元/小时）")
     charge_type = Column(
         String(15),
         nullable=False,
@@ -150,19 +148,6 @@ class CbsDisk(CmpBase, IsReleasedMixin):
         default=lambda: datetime.now(timezone.utc),
         nullable=True,
         comment="卸载时间（UTC）"
-    )
-
-    # 快照统计
-    snapshot_count = Column(
-        Integer,
-        default=0,
-        comment="已创建的快照数量"
-    )
-    last_snapshot_time = Column(
-        DateTime(timezone=True),
-        default=lambda: datetime.now(timezone.utc),
-        nullable=True,
-        comment="最近一次创建快照的时间（UTC）"
     )
 
     created_at = Column(

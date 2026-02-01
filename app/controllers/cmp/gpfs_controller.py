@@ -43,8 +43,10 @@ def gpfs_page_list(
     fs_name: Optional[str] = Query(None, description="名称"),
     service: GPFSService = Depends(get_gpfs_service),
 ):
-    user_id = request.state.user.get('user_id')
-    result = service.gpfs_page_list(user_id, page, page_size, provider_code, region_id, zone_id, storage_type, fs_name)
+    parent_id = request.state.user.get('parent_id') or 0
+    if parent_id == 0:
+        parent_id = request.state.user.get('user_id')
+    result = service.gpfs_page_list(parent_id, page, page_size, provider_code, region_id, zone_id, storage_type, fs_name)
     return Response.success(result)
 
 # list
@@ -54,7 +56,9 @@ def gpfs_list(
     subnet_id: str = Query(..., description="子网的id"),
     service: GPFSService = Depends(get_gpfs_service),
 ):
-    user_id = request.state.user.get('user_id')
-    result = service.gpfs_list(user_id, subnet_id)
+    parent_id = request.state.user.get('parent_id') or 0
+    if parent_id == 0:
+        parent_id = request.state.user.get('user_id')
+    result = service.gpfs_list(parent_id, subnet_id)
     return Response.success(result)
 

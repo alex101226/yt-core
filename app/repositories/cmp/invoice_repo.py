@@ -34,5 +34,5 @@ class InvoiceRepo:
 
     # 查询
     def find_by_user_id(self, user_id: int):
-        record = self.db.query(Invoice).filter_by(user_id=user_id).first()
+        record = self.db.query(Invoice).filter_by(created_by=user_id).first()
         return record
