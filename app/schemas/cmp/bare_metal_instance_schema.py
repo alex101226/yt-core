@@ -42,7 +42,7 @@ class BareMetalInstanceBase(BaseModel):
 
 class BareMetalInstanceCreate(BareMetalInstanceBase):
     password: str   # 密码
-    cidr_block: Optional[str]  # 子网的网段，要计算private_ip的ip
+    # cidr_block: Optional[str]  # 子网的网段，要计算private_ip的ip
     # enable_protection: Optional[bool] = False   # 是否开启释放保护
     install_gpu_driver: Optional[bool] = False  # 是否安装gpu驱动
     enable_ssh_agent: Optional[bool] = False     # 是否开启 SSH 代理
@@ -56,6 +56,8 @@ class BareMetalInstanceOut(BareMetalInstanceBase):
     sync_status: Optional[int] = 0
     released_at: Optional[datetime] = None
     status: Optional[str] = None
+    enable_protection: Optional[bool] = False  # 是否开启释放保护
+    enable_ssh_agent: Optional[bool] = False  # 是否开启 SSH 代理
 
     class Config:
         from_attributes = True
@@ -65,3 +67,19 @@ class BareMetalInstancePage(BaseModel):
     page: int
     page_size: int
     items: List[BareMetalInstanceOut]
+
+# 开机，关机，重启
+class BareActionSchema(BaseModel):
+    status: str
+    instance_id: int
+
+class BareUpdatePassword(BaseModel):
+    password: str
+    instance_id: int
+
+#   转包年月
+class BareUpdateCharge(BaseModel):
+    instance_id: int
+    charge_type: str  # 实例规格计费，PrePaid（包年包月） / PostPaid（按量付费）
+    period: Optional[int] = 1  # instance_charge_type=PrePaid，传递选择的月份，整数
+    auto_renew: Optional[bool] = False  # 包年月，是否自动续费

@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from typing import Optional
 
 from sqlalchemy.orm import Session
@@ -74,6 +75,8 @@ class BareMetalInstanceRepo:
             BareMetalInstance.released_at,
             BareMetalInstance.status,
             BareMetalInstance.quantity,
+            BareMetalInstance.enable_protection,
+            BareMetalInstance.enable_ssh_agent,
         )
         filters = [BareMetalInstance.created_by == parent_id, BareMetalInstance.is_released == 0]
         if provider_code:
@@ -105,6 +108,10 @@ class BareMetalInstanceRepo:
         items = query.order_by(BareMetalInstance.id.desc()).offset(offset_value).limit(page_size).all()
         return items, total
 
+    # 根据主表的自增id查一条
+    def get_instance_by_find(self, instance_id: int):
+        return self.db.query(BareMetalInstance).filter(BareMetalInstance.id == instance_id).first()
+
     # 根据子网ip来查已创建的服务器的ip
     def get_find_by_subnet_id(self, subnet_id):
         items = (self.db.query(
@@ -117,4 +124,58 @@ class BareMetalInstanceRepo:
         ).all())
         return items
 
+    # 修改密码
+    def save_server_password(self, instance_id: int, password: str):
+        db_instance = self.get_instance_by_find(instance_id)
+        if not db_instance:
+            return None
 
+        db_instance.password = password
+        self.db.commit()
+        self.db.refresh(db_instance)
+        return True
+
+    # 关闭释放保护
+    def toggle_server_release(self, instance_id: int):
+        db_instance = self.get_instance_by_find(instance_id)
+        if not db_instance:
+            return None
+
+        db_instance.enable_protection ^= 1  # 位运算异或，直接 0→1、1→0
+        self.db.commit()
+        self.db.refresh(db_instance)
+        return True
+
+    #   开启，关闭ssh代理
+    def toggle_server_ssh(self, instance_id: int):
+        db_instance = self.get_instance_by_find(instance_id)
+        if not db_instance:
+            return None
+        db_instance.enable_ssh_agent ^= 1
+        self.db.commit()
+        self.db.refresh(db_instance)
+        return True
+
+    # 释放
+    def server_release(self, instance_id: int):
+        db_instance = self.get_instance_by_find(instance_id)
+        if not db_instance:
+            return None
+        db_instance.status = 'RELEASED'
+        db_instance.is_released = 1
+        self.db.commit()
+        self.db.refresh(db_instance)
+        return True
+
+    #   转包年包月
+    def save_charge_type(self, data: dict):
+        instance_id: int = data.get('instance_id')
+        find = self.get_instance_by_find(instance_id)
+        if not find:
+            return None
+        find.charge_type = data['charge_type']
+        find.period = data['period']
+        find.auto_renew = data['auto_renew']
+        self.db.commit()
+        self.db.refresh(find)
+        return True

@@ -6,8 +6,12 @@ from app.common.response import Response
 from app.common.dependencies import get_cmp_db
 from app.core.dependencies import require_user
 
-from app.schemas.cmp.bare_metal_instance_schema import BareMetalInstanceCreate
 from app.services.cmp.bare_metal_instance_service import BareMetalInstanceService
+
+from app.schemas.cmp.bare_metal_instance_schema import (
+BareMetalInstanceCreate, BareActionSchema, BareUpdatePassword, BareUpdateCharge
+)
+
 
 def get_bare_service(
    db: Session = Depends(get_cmp_db),
@@ -54,3 +58,80 @@ def get_bare_metal_page_list(
         instance_id, instance_name, instance_type_id, public_ip, status, ssh_proxy_port
     )
     return Response.success(instance)
+
+
+# 开机，关机，重启
+@router.post("/action")
+def start_instance(
+    data: BareActionSchema,
+    service: BareMetalInstanceService = Depends(get_bare_service)
+):
+    result = service.start_instance(data)
+    return Response.success(result)
+
+# 修改密码
+@router.post('/save_server_password')
+def save_server_password(
+    data: BareUpdatePassword,
+    service: BareMetalInstanceService = Depends(get_bare_service)
+):
+    result = service.save_server_password(data)
+    return Response.success(result)
+
+# 开启/关闭释放保护
+@router.put('/toggle_release/{instance_id}')
+def toggle_release(
+    request: Request,
+    instance_id: int,
+    service: BareMetalInstanceService = Depends(get_bare_service)
+):
+    user_id = request.state.user.get("user_id")
+    result = service.toggle_server_release(instance_id, user_id)
+    return Response.success(result)
+
+# 服务器释放
+@router.put('/server_release/{instance_id}')
+def server_release(
+    instance_id: int,
+    service: BareMetalInstanceService = Depends(get_bare_service)
+):
+    result = service.server_release(instance_id)
+    return Response.success(result)
+
+# 克隆
+@router.put('/server_clone/{instance_id}')
+def server_release(
+    request: Request,
+    instance_id: int,
+    service: BareMetalInstanceService = Depends(get_bare_service)
+):
+    result = service.server_clone(request.state.user, instance_id)
+    return Response.success(result)
+
+# 开启关闭ssh代理
+@router.put('/server_ssh/{instance_id}')
+def server_release(
+    instance_id: int,
+    service: BareMetalInstanceService = Depends(get_bare_service)
+):
+    result = service.server_ssh(instance_id)
+    return Response.success(result)
+
+# 转包年月
+@router.post('/save_charge_type')
+def server_charge_type(
+    data: BareUpdateCharge,
+    service: BareMetalInstanceService = Depends(get_bare_service)
+):
+    result = service.save_charge_type(data)
+    return Response.success(result)
+
+
+# 查看服务器密码
+@router.get('/view_password')
+def get_server_password(
+    instance_id: int = Query(..., description="服务器id"),
+    service: BareMetalInstanceService = Depends(get_bare_service)
+):
+    result = service.view_password(instance_id)
+    return Response.success(result)

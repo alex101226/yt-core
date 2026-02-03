@@ -5,7 +5,7 @@ from enum import Enum
 from sqlalchemy.orm import Session
 
 from app.core.logger import logger
-from app.schemas.cmp.server_instance_schema import (
+from app.schemas.cmp.cloud_server_instance_schema import (
 InstanceCreateSchema, InstanceActionSchema, InstanceUpdatePassword, InstanceUpdateCharge,
 InstanceUpdateImage
 )

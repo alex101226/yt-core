@@ -28,7 +28,7 @@ from app.services.cmp.cbs_service import CbsService
 from app.services.cmp.operation_helper import execute_with_notification
 
 from app.repositories.cmp.cloud_server_instance_repo import ServerInstanceRepo
-from app.schemas.cmp.server_instance_schema import (
+from app.schemas.cmp.cloud_server_instance_schema import (
 InstanceActionSchema, InstanceUpdatePassword, InstanceCreateSchema, InstanceBaseOut, InstancePage,
 InstanceUpdateCharge, InstanceUpdateImage
 )
