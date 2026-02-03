@@ -46,7 +46,7 @@ class InstanceBase(BaseModel):
     price: Optional[float] = 0.00
 
 class InstanceCreateSchema(InstanceBase):
-    cidr_block: Optional[str]  # 子网的网段，要计算private_ip的ip
+    # cidr_block: Optional[str]  # 子网的网段，要计算private_ip的ip
     password: Optional[str] # 密码
     # enable_protection: Optional[bool] = False   # 是否开启释放保护
     enable_ssh_agent: Optional[bool] = False # 是否开启 SSH 代理
@@ -62,6 +62,8 @@ class InstanceBaseOut(InstanceBase):
     sync_status: Optional[int]
     enable_ssh_agent: Optional[bool] = False
     enable_protection: Optional[bool] = False
+    resource_group_name: Optional[str] = None
+    security_group_name: Optional[str] = None
     pass
 
     class Config:
@@ -82,3 +84,14 @@ class InstanceActionSchema(BaseModel):
 class InstanceUpdatePassword(BaseModel):
     password: str
     instance_id: int
+
+#   转包年月
+class InstanceUpdateCharge(BaseModel):
+    instance_id: int
+    charge_type: str  # 实例规格计费，PrePaid（包年包月） / PostPaid（按量付费）
+    period: Optional[int] = 1  # instance_charge_type=PrePaid，传递选择的月份，整数
+    auto_renew: Optional[bool] = False  # 包年月，是否自动续费
+
+class InstanceUpdateImage(BaseModel):
+    instance_id: int
+    image_id: str

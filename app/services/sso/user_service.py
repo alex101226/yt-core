@@ -25,7 +25,8 @@ class UserService:
 
         user, role_name = self.user_repo.user_info(user_id)
 
-        account = self.account_service.account_exists(user_id)
+        account_by_id = user.id if user.parent_id == 0 else user.parent_id
+        account = self.account_service.account_exists(account_by_id)
 
         return {
             "id": user.id,
@@ -35,6 +36,9 @@ class UserService:
             "role_name": role_name,
             "balance": account.balance if account else 0,
             "parent_id": user.id if user.parent_id == 0 else user.parent_id,
+            "account_name": account.account_name,
+            "account_type": account.account_type,
+            "account_status": account.account_status,
         }
 
     # 用户列表

@@ -105,7 +105,6 @@ class SubnetService:
             func=_do
         )
 
-
     # 删除
     def subnet_release(self, subnet_id: str) -> bool:
         obj = self.subnet_repo.get(subnet_id)
@@ -125,4 +124,8 @@ class SubnetService:
 
         result = self.subnet_repo.update_subnet(find, subnet_payload)
         return result
+
+    # 根据子网的id查询
+    def subnet_by_id(self, subnet_id: int):
+        return self.subnet_repo.get(subnet_id)
 

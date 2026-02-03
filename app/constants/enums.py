@@ -276,3 +276,12 @@ class PayStatus(str, enum.Enum):
     PENDING = "PENDING"  # 待支付
     SUCCESS = "SUCCESS"  # 支付成功
     FAILED = "FAILED"  # 支付失败
+
+
+class AccountType(enum.Enum):
+    PERSONAL = "PERSONAL"
+    COMPANY = "COMPANY"
+
+class AccountStatus(enum.Enum):
+    ACTIVE = "ACTIVE"
+    DELETED = "DELETED"

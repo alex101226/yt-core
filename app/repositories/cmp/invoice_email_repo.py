@@ -68,7 +68,7 @@ class InvoiceEmailRepo:
 
     # 查找表里是否有内容
     def count_by(self, user_id: int) -> Optional[int]:
-        return self.db.query(InvoiceEmail).filter(InvoiceEmail.user_id == user_id).count()
+        return self.db.query(InvoiceEmail).filter(InvoiceEmail.created_by == user_id).count()
 
     # 查找表里是否存在同一个邮件
     def find_email_by(self, email: str) -> Optional[InvoiceEmail]:

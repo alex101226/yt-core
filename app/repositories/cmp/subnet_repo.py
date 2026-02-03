@@ -64,7 +64,7 @@ class SubnetRepository:
         self.db.refresh(obj)
         return obj
 
-    def get(self, subnet_id: str) -> Optional[Subnet]:
+    def get(self, subnet_id: int) -> Optional[Subnet]:
         return (
             self.db.query(Subnet)
             .filter_by(id=subnet_id)

@@ -13,10 +13,13 @@ class InvoiceService:
         self.invoice_repo = InvoiceRepo(db)
 
     # 设置发票抬头
-    def setting_invoice(self, user_id: int, data: dict):
+    def setting_invoice(self, user: dict, data: dict):
+        user_id = user.get('user_id')
+        username = user.get('username')
         payload = {
             **data,
-            "user_id": user_id,
+            "created_by": user_id,
+            "created_by_name": username,
             "is_default": True,
             "status": 'enabled',
         }

@@ -277,3 +277,7 @@ class BillRepository:
             .with_for_update()  # 防并发重复扣费
             .all()
         )
+
+    # 查询计费单条的资源id
+    def bill_by_resource_id(self, resource_id):
+        return self.db.query(BillingInstance).filter(BillingInstance.resource_id == resource_id).first()

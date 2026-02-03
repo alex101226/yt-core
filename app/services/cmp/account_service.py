@@ -26,7 +26,10 @@ class AccountService:
         payload = {
             "created_by": new_user.id,
             "created_by_name": new_user.username,
-            "balance": 0.00
+            "balance": 0.00,
+            "account_name": new_user.nickname,
+            "account_type": "PERSONAL",
+            "account_status": "ACTIVE"
         }
         account = self.repo.account_create(payload)
         if not account:

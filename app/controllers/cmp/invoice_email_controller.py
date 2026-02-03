@@ -40,8 +40,8 @@ def invoice_email_create(
     data: InvoiceEmailSchema,
     service: InvoiceEmailService = Depends(get_invoice_email_service)
 ):
-    user_id = request.state.user.get('user_id')
-    result = service.invoice_email_create(user_id, data.model_dump())
+    # user_id = request.state.user.get('user_id')
+    result = service.invoice_email_create(request.state.user, data.model_dump())
     return Response.success(result)
 
 # 修改

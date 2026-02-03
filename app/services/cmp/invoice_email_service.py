@@ -24,12 +24,14 @@ class InvoiceEmailService:
         }
 
     # 创建邮件
-    def invoice_email_create(self, user_id: int, data: dict) -> bool:
-
+    def invoice_email_create(self, user: dict, data: dict) -> bool:
+        user_id = user.get('user_id')
+        username = user.get('username')
         is_default = 1 if self.repo.count_by(user_id) == 0 else 0
         payload = {
             **data,
-            "user_id": user_id,
+            "created_by": user_id,
+            "created_by_name": username,
             "is_default": is_default,
         }
 

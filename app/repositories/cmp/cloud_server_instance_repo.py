@@ -2,9 +2,13 @@
 from datetime import datetime, timezone
 from sqlalchemy import and_
 from sqlalchemy.orm import Session
+from nanoid import generate
 
 from app.core.logger import logger
 from app.models.cmp.cloud_server_instance import CloudServerInstance
+
+from app.models.cmp.resource_group import ResourceGroup
+from app.models.cmp.network_security_group import SecurityGroup
 
 class ServerInstanceRepo:
     def __init__(self, db: Session):
@@ -48,7 +52,7 @@ class ServerInstanceRepo:
         instance_name: str,
         instance_type: str,
         ip: str,
-        status: int,
+        status: str,
         ssh_proxy_port: int,
     ):
         query = self.db.query(
@@ -88,7 +92,15 @@ class ServerInstanceRepo:
             CloudServerInstance.sync_status,
             CloudServerInstance.enable_ssh_agent,
             CloudServerInstance.enable_protection,
-        )
+            ResourceGroup.rg_name.label('resource_group_name'),
+            SecurityGroup.sg_name.label('security_group_name'),
+        ).outerjoin(
+            ResourceGroup,
+            ResourceGroup.id == CloudServerInstance.resource_group_id
+        ).outerjoin(
+            SecurityGroup,
+            SecurityGroup.id == CloudServerInstance.security_group_id
+        ).order_by(CloudServerInstance.id.desc())
 
         filters = [CloudServerInstance.created_by == user_id, CloudServerInstance.is_released == 0]
 
@@ -121,7 +133,6 @@ class ServerInstanceRepo:
         # logger.info(f'这里是什么呢？ {items}')
         return items, total
 
-
     # 修改密码
     def save_server_password(self, instance_id: int, password: str):
         db_instance = self.get_instance_by_find(instance_id)
@@ -140,6 +151,16 @@ class ServerInstanceRepo:
             return None
 
         db_instance.enable_protection ^= 1   # 位运算异或，直接 0→1、1→0
+        self.db.commit()
+        self.db.refresh(db_instance)
+        return True
+
+    #   开启，关闭ssh代理
+    def toggle_server_ssh(self, instance_id: int):
+        db_instance = self.get_instance_by_find(instance_id)
+        if not db_instance:
+            return None
+        db_instance.enable_ssh_agent ^= 1
         self.db.commit()
         self.db.refresh(db_instance)
         return True
@@ -183,11 +204,10 @@ class ServerInstanceRepo:
             "status": "INIT",
             "sync_status": 1,
             "is_released": 0,
-            "instance_id": None,
-            # "last_operation": "INIT",
             "released_at": None,
             "created_at": datetime.now(timezone.utc),
             "updated_at": datetime.now(timezone.utc),
+            "instance_id": f"cloud_server-{generate(size=12)}"
         })
 
         # 创建新的实例对象
@@ -211,3 +231,29 @@ class ServerInstanceRepo:
             CloudServerInstance.is_released == 0,
         ).all())
         return items
+
+    #   转包年包月
+    def save_charge_type(self, data: dict):
+        instance_id: int = data.get('instance_id')
+        find = self.get_instance_by_find(instance_id)
+        if not find:
+            return None
+        find.charge_type = data['charge_type']
+        find.period = data['period']
+        find.auto_renew = data['auto_renew']
+        self.db.commit()
+        self.db.refresh(find)
+        return True
+
+    # 更换镜像
+    def save_image(self, data: dict):
+        instance_id: int = data['instance_id']
+        find = self.get_instance_by_find(instance_id)
+        if not find:
+            return None
+        find.image_id = data['image_id']
+        self.db.commit()
+        self.db.refresh(find)
+        return True
+
+

@@ -5,7 +5,10 @@ from enum import Enum
 from sqlalchemy.orm import Session
 
 from app.core.logger import logger
-from app.schemas.cmp.server_instance_schema import InstanceCreateSchema, InstanceActionSchema, InstanceUpdatePassword
+from app.schemas.cmp.server_instance_schema import (
+InstanceCreateSchema, InstanceActionSchema, InstanceUpdatePassword, InstanceUpdateCharge,
+InstanceUpdateImage
+)
 from app.services.cmp.cloud_server_service import InstanceService
 from app.common.response import Response
 from app.common.dependencies import get_cmp_db
@@ -41,7 +44,7 @@ def get_server_page_list(
     instance_name: Optional[str] =  Query(None, description="服务器实例名称"),
     instance_type: Optional[str] =  Query(None, description="实例规格"),
     ip: Optional[str] =  Query(None, description="ip"),
-    status: Optional[int] = Query(None, description="服务器状态"),
+    status: Optional[str] = Query(None, description="服务器状态"),
     ssh_proxy_port: Optional[int] = Query(None, description="ssh 代理端口"),
     page: int = Query(..., description="分页"),
     page_size:int = Query(..., description="页码"),
@@ -77,6 +80,7 @@ def start_instance(
     result = service.start_instance(data)
     return Response.success(result)
 
+# 修改密码
 @router.post('/save_server_password')
 def save_server_password(
     data: InstanceUpdatePassword,
@@ -85,7 +89,8 @@ def save_server_password(
     result = service.save_server_password(data)
     return Response.success(result)
 
-@router.post('/toggle_release')
+# 开启/关闭释放保护
+@router.put('/toggle_release/{instance_id}')
 def toggle_release(
     request: Request,
     instance_id: int,
@@ -96,7 +101,7 @@ def toggle_release(
     return Response.success(result)
 
 # 服务器释放
-@router.put('/server_release')
+@router.put('/server_release/{instance_id}')
 def server_release(
     instance_id: int,
     service: InstanceService = Depends(get_server_instance_service)
@@ -105,12 +110,47 @@ def server_release(
     return Response.success(result)
 
 # 克隆
-@router.put('/server_clone')
+@router.put('/server_clone/{instance_id}')
+def server_release(
+    request: Request,
+    instance_id: int,
+    service: InstanceService = Depends(get_server_instance_service)
+):
+    result = service.server_clone(request.state.user, instance_id)
+    return Response.success(result)
+
+# 开启关闭ssh代理
+@router.put('/server_ssh/{instance_id}')
 def server_release(
     instance_id: int,
     service: InstanceService = Depends(get_server_instance_service)
 ):
-    result = service.server_clone(instance_id)
+    result = service.server_ssh(instance_id)
     return Response.success(result)
 
+# 转包年月
+@router.post('/save_charge_type')
+def server_charge_type(
+    data: InstanceUpdateCharge,
+    service: InstanceService = Depends(get_server_instance_service)
+):
+    result = service.save_charge_type(data)
+    return Response.success(result)
 
+#   更换镜像
+@router.post('/save_image')
+def save_image(
+    data: InstanceUpdateImage,
+    service: InstanceService = Depends(get_server_instance_service)
+):
+    result = service.save_image(data)
+    return Response.success(result)
+
+# 查看服务器密码
+@router.get('/view_password')
+def get_server_password(
+    instance_id: int = Query(..., description="服务器id"),
+    service: InstanceService = Depends(get_server_instance_service)
+):
+    result = service.view_password(instance_id)
+    return Response.success(result)

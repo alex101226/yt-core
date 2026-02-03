@@ -25,7 +25,8 @@ from app.services.cmp.account_service import AccountService
 from app.services.cmp.bill_service import BillService
 from app.services.cmp.resource_group_service import ResourceGroupService
 
-from app.repositories.cmp.subnet_repo import SubnetRepository
+from app.services.cmp.subnet_service import SubnetService
+# from app.repositories.cmp.subnet_repo import SubnetRepository
 
 from app.schemas.cmp.load_schema import (
 LoadBalancerCreate,BackendMemberCreate,BackendPoolCreate,ListenerCreate,
@@ -41,7 +42,7 @@ class LoadBalancerService:
         self.resource_bind_service = ResourceGroupService(db)
         self.account_service = AccountService(db)
         self.bill_service = BillService(db)
-        self.subnet_repo = SubnetRepository(db)
+        self.subnet_repo = SubnetService(db)
 
     # ========== 负载均衡实例 ==========
     #  创建负载均衡完整流程
@@ -58,7 +59,7 @@ class LoadBalancerService:
                         subnet_all = self.lb_repo.get_subnet_id_by_find(data.subnet_id)
                         private_ips = {row.private_ip for row in subnet_all}
 
-                        cidr = self.subnet_repo.get(str(data.subnet_id))
+                        cidr = self.subnet_repo.subnet_by_id(data.subnet_id)
 
                         private_ip = allocate_private_ip(cidr.cidr_block, private_ips)
 

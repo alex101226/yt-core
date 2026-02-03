@@ -9,7 +9,7 @@ class InvoiceRepo:
     # 设置
     def setting_invoice(self, data: dict):
 
-        find = self.find_by_user_id(data['user_id'])
+        find = self.find_by_user_id(data['created_by'])
         if not find:
             return self.create(data)
         return self.update(find, data)

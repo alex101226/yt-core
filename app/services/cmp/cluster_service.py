@@ -31,7 +31,7 @@ class ClusterService:
     # 生成计费任务
     def create_initial_bill(
         self,
-        user_id: int,
+        user: dict,
         charge_type: str,
         instance_id: str,
         unit_price: float,
@@ -45,7 +45,7 @@ class ClusterService:
             )
 
         self.bill_service.create(
-            user_id=user_id,
+            user=user,
             account_id=account.id,
             resource_type="CLUSTER",
             charge_type=charge_type,
@@ -89,7 +89,7 @@ class ClusterService:
                     cluster = self.cluster_repo.create(cluster_payload)
 
                     self.create_initial_bill(
-                        user_id, cluster_payload['charge_type'], cluster_id, cluster_data['price'], cluster,
+                        user, cluster_payload['charge_type'], cluster_id, cluster_data['price'], cluster,
                     )
                     # 2. 创建节点池
                     instance_types = node_pool_data.get('instance_types', [])

@@ -38,7 +38,7 @@ def invoice_setting(
     data: InvoiceSchema,
     service: InvoiceService = Depends(get_invoice_service)
 ):
-    user_id = request.state.user.get('user_id')
-    result = service.setting_invoice(user_id, data.model_dump())
+    # user_id = request.state.user.get('user_id')
+    result = service.setting_invoice(request.state.user, data.model_dump())
     return Response.success(result)
 

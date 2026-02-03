@@ -118,6 +118,12 @@ class BillService:
             "items": items,
         }
 
+    # 单挑计费任务查询
+    def bill_by_resource_id(self, resource_id):
+        find = self.repo.bill_by_resource_id(resource_id)
+        if not find:
+            raise BusinessException(code=ErrorCode.DATA_NOT_FOUND, message=Message.DATA_NOT_FOUND)
+        return find
 
     # 创建计费任务
     def create(

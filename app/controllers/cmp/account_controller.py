@@ -29,8 +29,8 @@ def account_exists(request: Request, service: AccountService = Depends(get_accou
 # 开通账户
 # @router.post('/account_create')
 # def account_create(request: Request, service: AccountCreate = Depends(get_account_service)):
-#     user_id = request.state.user.get('user_id')
-#     result = service.account_create(user_id)
+#     # user_id = request.state.user.get('user_id')
+#     result = service.account_create(request.state.user)
 #     return Response.success(result)
 
 # 用户充值
