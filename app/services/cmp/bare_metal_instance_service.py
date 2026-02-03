@@ -102,11 +102,12 @@ class BareMetalInstanceService:
         # 设置子网
         self.subnet_service.update_subnet(data.vswitch_id, 'bind')
 
-        # 5. 是否需要公网 IP
+        # 5. 是否需要公网 IP  绑定实例类型，如 ecs/bms/lb
         public_ip = self.eip_service.allocate_eip(
             provider_code=data.cloud_provider_code,
             region_id=data.region_id,
             instance_id=instance.id,
+            bind_instance_type='baremetal'
         )
 
         instance.public_ip = public_ip

@@ -112,6 +112,7 @@ class InstanceService:
             provider_code=data.cloud_provider_code,
             region_id=data.region_id,
             instance_id=instance.id,
+            bind_instance_type='server'
         )
         instance.public_ip = public_ip
 

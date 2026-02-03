@@ -108,6 +108,7 @@ class VpcRepository:
             Vpc.service_cidr,
             Vpc.status,
             Vpc.sync_status,
+            Vpc.used_count,
             ResourceGroup.rg_name.label("resource_group_name"),
             func.count(Subnet.id).label("subnet_count"),
         ).outerjoin(
@@ -116,7 +117,7 @@ class VpcRepository:
         ).outerjoin(
             Subnet,
             Subnet.vpc_id == Vpc.id,
-        ).group_by(Vpc.id)
+        ).group_by(Vpc.id).order_by(Vpc.id.desc())
 
         filters = [Vpc.created_by == user_id, Vpc.is_released == 0]
         if provider_code:

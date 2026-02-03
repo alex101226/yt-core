@@ -181,3 +181,14 @@ class BareMetalInstanceRepo:
         self.db.commit()
         self.db.refresh(find)
         return True
+
+
+    # 更新服务器
+    def update_bare_instance(self, instance_id: int, data: dict):
+        instance = self.get_instance_by_find(instance_id)
+        if not instance:
+            return None
+        for key, value in data.items():
+            if hasattr(instance, key):
+                setattr(instance, key, value)
+        return instance

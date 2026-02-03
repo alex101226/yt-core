@@ -76,28 +76,6 @@ class EipRepository:
         items = query.order_by(Eip.id.desc()).offset(offset_value).limit(page_size).all()
         return items, count
 
-    # eip各种操作
-    def eip_action(self, status: str, eip_id: int):
-        eip_find = self.get_eip_by_id(eip_id)
-        if eip_find is None:
-            return None
-        if eip_find.status == 'RELEASED':
-            return None
-        if status == 'RELEASING':
-            eip_find.status = 'RELEASED'
-            eip_find.last_operation = 'RELEASED'
-            eip_find.is_released = 1
-        elif status == 'BINDING':
-            eip_find.status = 'BOUND'
-            eip_find.last_operation = 'BOUND'
-        elif status == 'UNBINDING':
-            eip_find.status = 'AVAILABLE'
-            eip_find.last_operation = 'AVAILABLE'
-
-        self.db.commit()
-        self.db.refresh(eip_find)
-        return True
-
     # 根据eip的自增id
     def get_eip_by_id(self, eip_id: int) -> Optional[type[Eip]]:
         return self.db.get(Eip, eip_id)
@@ -118,5 +96,41 @@ class EipRepository:
         eip_db = self.db.query(Eip).filter(Eip.bind_instance_id.isnot(None), Eip.status == 'BOUND').all()
         return eip_db
 
+    # eip解绑
+    def eip_unbind(self, eip_id: int):
+        find = self.get_eip_by_id(eip_id)
+        if not find:
+            return None
+        find.status = 'AVAILABLE'
+        find.bind_instance_id = ''
+        find.bind_instance_type = ''
+        # self.db.commit()
+        # self.db.refresh(find)
+        return find
 
+    # eip自己选择服务器绑定
+    def eip_bind(self, data: dict):
+        if not data['bind_instance_id']:
+            return None
+
+        eip = self.get_eip_by_id(data.get('eip_id'))
+        if not eip:
+            return None
+        eip.bind_instance_id = data.get('bind_instance_id')
+        eip.bind_instance_type = data.get('bind_instance_type')
+        eip.status = 'BOUND'
+
+        return eip
+
+    # eip释放
+    def eip_release(self, eip_id: int):
+        find = self.get_eip_by_id(eip_id)
+        if not find:
+            return None
+
+        find.status = 'RELEASED'
+        find.is_released = 1
+        self.db.commit()
+        self.db.refresh(find)
+        return True
 

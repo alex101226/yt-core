@@ -83,9 +83,9 @@ def create_subnet(
     return Response.success(result)
 
 # 删除
-@router.post("/release/{subnet_id}")
+@router.put("/release/{subnet_id}")
 def release_subnet(
-    subnet_id: str,
+    subnet_id: int,
     service = Depends(get_subnet_service)
 ):
     result = service.subnet_release(subnet_id)

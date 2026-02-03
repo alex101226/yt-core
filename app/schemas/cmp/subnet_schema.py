@@ -35,6 +35,7 @@ class SubnetOut(SubnetBase):
     created_at: datetime
     updated_at: Optional[datetime]
     sync_status: Optional[int]
+    used_count: Optional[int] = 0
 
     class Config:
         from_attributes = True

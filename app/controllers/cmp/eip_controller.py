@@ -49,13 +49,29 @@ def get_eip_page_list(
     result = server.get_eip_page_list(parent_id, page, page_size, provider_code, region_id, zone_id, resource_group_id, eip_name, public_ip)
     return Response.success(result)
 
-# eip解绑，绑定，释放
-@router.post('/eip_action')
-def eip_action(
-    request: Request,
+# eip解绑   UNBINDING
+@router.put('/eip_unbind/{eip_id}')
+def eip_unbind(
+    eip_id: int,
+    service: EIPService = Depends(get_eip_service)
+):
+    result = service.eip_unbind(eip_id)
+    return Response.success(result)
+
+# eip绑定
+@router.post('/bind')
+def eip_bind(
     data: EIPSave,
     service: EIPService = Depends(get_eip_service)
 ):
-    user_id = request.state.user.get('user_id')
-    result = service.eip_action(user_id, data)
+    result = service.eip_bind(data)
+    return Response.success(result)
+
+# eip释放
+@router.put('/eip_release/{eip_id}')
+def eip_release(
+    eip_id: int,
+    service: EIPService = Depends(get_eip_service)
+):
+    result = service.eip_release(eip_id)
     return Response.success(result)

@@ -11,14 +11,15 @@ from app.common.ipaddress import create_public_ip
 
 from app.services.cmp.bill_service import BillService
 from app.services.cmp.account_service import AccountService
-from app.schemas.cmp.account_schema import FundsFlowCreate
 
-from app.schemas.cmp.eip_schema import EIPSchema, EIPCreate, EIPOut, EIPPage, EIPSave
+from app.schemas.cmp.eip_schema import EIPCreate, EIPOut, EIPPage, EIPSave
 from app.repositories.cmp.eip_repo import EipRepository
 from app.services.cmp.operation_helper import execute_with_notification
 
 from app.services.cmp.resource_group_service import ResourceGroupService
 from app.schemas.cmp.resource_group_schema import ResourceGroupBindingCreate
+from app.repositories.cmp.cloud_server_instance_repo import ServerInstanceRepo
+from app.repositories.cmp.bare_metal_instance_repo import BareMetalInstanceRepo
 
 class EIPService:
     def __init__(self, db: Session):
@@ -27,6 +28,8 @@ class EIPService:
         self.resource_bind_service = ResourceGroupService(self.db)
         self.account_service = AccountService(self.db)
         self.bill_service = BillService(db)
+        self.server_repo = ServerInstanceRepo(self.db)
+        self.bare_repo = BareMetalInstanceRepo(self.db)
 
     # 生成计费任务
     def create_initial_bill(
@@ -139,21 +142,14 @@ class EIPService:
     def list_all_volume_based_eip(self):
         return self.repo.list_all_volume_based_eip()
 
-    # eip解绑，绑定，释放
-    def eip_action(self, user_id: int, data: EIPSave):
-        eip_find = self.repo.get_eip_by_id(data.eip_id)
-
-        if eip_find is None:
-            raise BusinessException(code=ErrorCode.DATA_NOT_FOUND, message=Message.DATA_NOT_FOUND)
-
-        if eip_find.status == 'ALLOCATING' or eip_find.status == 'BINDING':
-            raise BusinessException(code=ErrorCode.DATA_NOT_FOUND, message="当前eip状态不支持操作")
-
-        result = self.repo.eip_action(data.status, data.eip_id)
-        return result
-
-    # 绑定eip
-    def allocate_eip(self, provider_code: str, region_id: str, instance_id: int):
+    # 服务器绑定eip
+    def allocate_eip(
+        self,
+        provider_code: str,
+        region_id: str,
+        instance_id: int,
+        bind_instance_type: str
+    ):
         eip = self.repo.get_free_eip(provider_code, region_id)
 
         if not eip:
@@ -161,7 +157,53 @@ class EIPService:
         # 绑定
         eip.status = "BOUND"
         eip.bind_instance_id = str(instance_id)
+        eip.bind_instance_type = bind_instance_type
 
         return eip.public_ip
 
+    # eip自己选择服务器绑定
+    def eip_bind(self, data: EIPSave):
+        eip = self.repo.eip_bind(data.model_dump())
+        if not eip:
+            raise BusinessException(code=ErrorCode.FAILED, message=Message.FAILED)
 
+        payload = {
+            "public_ip": eip.public_ip,
+        }
+
+        self.save_resource(eip.bind_instance_id, eip.bind_instance_type, payload)
+        self.db.commit()
+        self.db.refresh(eip)
+        return eip
+
+    # eip解绑
+    def eip_unbind(self, eip_id: int):
+        eip = self.repo.eip_unbind(eip_id)
+        if not eip:
+            raise BusinessException(code=ErrorCode.FAILED, message=Message.FAILED)
+        payload = {
+            "public_ip": ""
+        }
+        self.save_resource(eip.bind_instance_id, eip.bind_instance_type, payload)
+
+        self.db.commit()
+        self.db.refresh(eip)
+        return eip
+
+    # 释放
+    def eip_release(self, eip_id: int):
+        eip = self.repo.get_eip_by_id(eip_id)
+
+        if eip.status != 'AVAILABLE':
+            raise BusinessException(code=ErrorCode.DATA_NOT_FOUND, message="当前eip正在使用，无法释放")
+        result = self.repo.eip_release(eip_id)
+        return result
+
+
+    # 设置资源呢
+    def save_resource(self, resource_id: str, mode_type: str, payload: dict):
+        if mode_type == 'server':
+            self.server_repo.update_server_instance(int(resource_id), payload)
+
+        if mode_type == 'baremetal':
+            self.bare_repo.update_bare_instance(int(resource_id), payload)

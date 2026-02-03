@@ -40,4 +40,5 @@ class EIPPage(BaseModel):
 
 class EIPSave(BaseModel):
     eip_id: int
-    status: str
+    bind_instance_id: str
+    bind_instance_type: str

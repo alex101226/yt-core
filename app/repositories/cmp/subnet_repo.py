@@ -121,6 +121,7 @@ class SubnetRepository:
             Subnet.created_at,
             Subnet.updated_at,
             Subnet.sync_status,
+            Subnet.used_count,
             ResourceGroup.rg_name.label("resource_group_name"),
             Vpc.vpc_name.label("vpc_name"),
         ).outerjoin(
@@ -129,7 +130,7 @@ class SubnetRepository:
         ).outerjoin(
             Vpc,
             Vpc.id == Subnet.vpc_id
-        )
+        ).order_by(Subnet.id.desc())
         filters = [Subnet.created_by == user_id, Subnet.is_released == 0]
 
         if cloud_provider_code:

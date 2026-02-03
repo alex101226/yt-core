@@ -27,6 +27,7 @@ class VpcOut(VpcBase):
     service_cidr: Optional[str]
     created_at: datetime
     updated_at: datetime
+    used_count: Optional[int] = 0
 
     class Config:
         from_attributes = True

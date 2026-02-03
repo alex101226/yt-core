@@ -67,7 +67,7 @@ def create_vpc(
     return Response.success(vpc)
 
 # 释放 VPC
-@router.post("/release/{vpc_id}")
+@router.put("/release/{vpc_id}")
 def release_vpc(
     vpc_id: int,
     service: VPCService = Depends(get_vpc_service)
