@@ -49,6 +49,7 @@ class EipRepository:
             Eip.bind_instance_id,
             Eip.status,
             Eip.sync_status,
+            Eip.bind_instance_type,
             ResourceGroup.rg_name.label("resource_group_name")
         ).outerjoin(
             ResourceGroup,

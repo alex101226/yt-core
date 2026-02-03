@@ -22,6 +22,7 @@ class EIPOut(EIPSchema):
     id: int
     public_ip: Optional[str]
     bind_instance_id: Optional[str]
+    bind_instance_type: Optional[str]
     status: Optional[str]
     created_at: Optional[datetime]
     updated_at: Optional[datetime]
