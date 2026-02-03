@@ -152,8 +152,9 @@ class InstanceService:
                     "attached_time": datetime.now(timezone.utc),
                     "description": f"数据盘，挂载到实例 {instance.instance_name}",
                     "tags": [],
+                    "charge_type": data.charge_type,
                 }
-                self.cbs_service.cbs_create_auto(user, disk_data, disk_data['charge_type'], 2.5)
+                self.cbs_service.cbs_create_auto(user, disk_data, instance.charge_type, 2.5)
 
         # 资源组绑定
         self.resource_bind_service.bind(

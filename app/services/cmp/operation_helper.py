@@ -62,7 +62,7 @@ def execute_with_notification(
             system_name=system_name,
             action_mode=mode,
             action=ac,
-            source_id=source_id_on_fail,
+            source_id='',
             message=failed_desc,
             status="failed",
         )
