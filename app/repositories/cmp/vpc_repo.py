@@ -144,6 +144,7 @@ class VpcRepository:
 
     # 释放（逻辑删除）
     def release(self, vpc: Vpc) -> bool:
+        vpc.status = 'DELETED'
         vpc.is_released = 1
         # vpc.released_at = datetime.now(timezone.utc)
         self.db.add(vpc)

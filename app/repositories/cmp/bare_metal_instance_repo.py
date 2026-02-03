@@ -158,13 +158,15 @@ class BareMetalInstanceRepo:
 
     # 释放
     def server_release(self, instance_id: int):
+
         db_instance = self.get_instance_by_find(instance_id)
         if not db_instance:
             return None
         db_instance.status = 'RELEASED'
         db_instance.is_released = 1
-        self.db.commit()
-        self.db.refresh(db_instance)
+        self.db.flush()
+        # self.db.commit()
+        # self.db.refresh(db_instance)
         return True
 
     #   转包年包月

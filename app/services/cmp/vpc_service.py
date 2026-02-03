@@ -14,6 +14,8 @@ from app.repositories.cmp.vpc_repo import VpcRepository
 from app.services.cmp.resource_group_service import ResourceGroupService
 from app.schemas.cmp.resource_group_schema import ResourceGroupBindingCreate
 
+from app.services.cmp.subnet_service import SubnetService
+
 # 通知
 from app.services.cmp.operation_helper import execute_with_notification
 
@@ -25,6 +27,7 @@ class VPCService:
         self.db = cmp_db
         self.vpc_repo = VpcRepository(cmp_db)
         self.resource_bind_service = ResourceGroupService(self.db)
+        self.subnet_service = SubnetService(self.db)
 
     """
     获取指定 Region 的 VPC 列表
@@ -91,20 +94,32 @@ class VPCService:
         if vpc.is_released:
             raise BusinessException(code=ErrorCode.CLOUD_PROVIDER_NOT_FOUND, message= '该 VPC 已释放，无需重复释放')
 
+        if vpc.used_count > 0 and vpc.status != 'AVAILABLE':
+            raise BusinessException(code=ErrorCode.FAILED, message="无法释放正在使用的VPC")
+
+        subnet_list = self.subnet_service.list_subnets(vpc_id)
+
+        if len(subnet_list) > 0:
+            raise BusinessException(code=ErrorCode.FAILED, message="请先释放vpc下的子网")
         vpc_release = self.vpc_repo.release(vpc)
-        if vpc_release:
-            return True
-        return False
+        return vpc_release
 
 
     # 修改vpc
-    def update_vpc(self, vpc_id: int):
+    def update_vpc(self, vpc_id: int, action: str):
         find = self.vpc_repo.get(vpc_id)
+        delta = 1 if action == "bind" else -1
+
+        # 防止 used_count 变成负数
+        new_used_count = max(find.used_count + delta, 0)
         vpc_payload = {
-            "used_count": find.used_count + 1,
+            "used_count": new_used_count,
         }
-        if find.status != "IN_USE":
+        # 使用中 / 空闲 状态自动切换
+        if new_used_count > 0:
             vpc_payload["status"] = "IN_USE"
+        else:
+            vpc_payload["status"] = "AVAILABLE"
 
         result = self.vpc_repo.update_vpc(find, vpc_payload)
         return result

@@ -38,7 +38,7 @@ def list_cloud_images(
     page_size: int = Query(..., ge=1, description="每页数量，必传"),
     cloud_provider_code: Optional[str] = Query(None, description="可选，云厂商代码"),
     region_id: Optional[str] = Query(None, description="可选，区域ID"),
-    resource_group_id: Optional[int] = Query(None, description="可选，资源组ID"),
+    resource_group_id: Optional[str] = Query(None, description="可选，资源组ID"),
     image_name: Optional[str] = Query(None, description="可选，镜像名称"),
     service: CloudImageService = Depends(get_image_service)
 ):

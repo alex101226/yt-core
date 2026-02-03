@@ -105,8 +105,8 @@ class InstanceService:
         # -----------------------------
         # 5. VPC / 子网 / 公网 IP / 系统盘 / 数据盘 / 资源组绑定
         # -----------------------------
-        self.vpc_service.update_vpc(data.vpc_id)
-        self.subnet_service.update_subnet(data.vswitch_id)
+        self.vpc_service.update_vpc(data.vpc_id, 'bind')
+        self.subnet_service.update_subnet(data.vswitch_id, 'bind')
 
         public_ip = self.eip_service.allocate_eip(
             provider_code=data.cloud_provider_code,
@@ -262,33 +262,42 @@ class InstanceService:
 
     # 释放
     def server_release(self, instance_id: int):
-        instance = self.repo.get_instance_by_find(instance_id)
-        if not instance:
-            raise BusinessException(code=ErrorCode.DATA_NOT_FOUND, message=Message.DATA_NOT_FOUND)
+        with self.db.begin():
+            instance = self.repo.get_instance_by_find(instance_id)
+            if not instance:
+                raise BusinessException(code=ErrorCode.DATA_NOT_FOUND, message=Message.DATA_NOT_FOUND)
 
-        if instance.enable_protection == 1:
-           raise BusinessException(code=ErrorCode.DATA_NOT_FOUND, message="此服务器无法释放")
+            if instance.enable_protection == 1:
+               raise BusinessException(code=ErrorCode.DATA_NOT_FOUND, message="此服务器无法释放")
 
-        active_status = {
-            'INIT',
-            'PREPARE_CREATE',
-            'STARTING',
-            'CREATING',
-            'RUNNING',
-            'DEPLOYING',
-            'DISK_EXPANDING',
-            'PREPARE_REBOOT',
-            'RELEASED',
-            'STOPPING',
-            'PREPARE_START',
-            'START_FAILED',
-            'REBOOT_FAILED',
-            'RELEASING'
-        }
+            active_status = {
+                'INIT',
+                'PREPARE_CREATE',
+                'STARTING',
+                'CREATING',
+                'RUNNING',
+                'DEPLOYING',
+                'DISK_EXPANDING',
+                'PREPARE_REBOOT',
+                'RELEASED',
+                'STOPPING',
+                'PREPARE_START',
+                'START_FAILED',
+                'REBOOT_FAILED',
+                'RELEASING'
+            }
 
-        if instance.status in active_status:
-            raise BusinessException(code=ErrorCode.DATA_NOT_FOUND, message="当前服务器正在使用，无法释放")
-        return self.repo.server_release(instance_id)
+            if instance.status in active_status:
+                raise BusinessException(code=ErrorCode.DATA_NOT_FOUND, message="当前服务器正在使用，无法释放")
+            result = self.repo.server_release(instance_id)
+            if not result:
+                raise BusinessException(code=ErrorCode.FAILED, message=Message.FAILED)
+            # -----------------------------
+            # 5. VPC / 子网 / 公网 IP / 系统盘 / 数据盘 / 资源组绑定
+            # -----------------------------
+            self.vpc_service.update_vpc(instance.vpc_id, 'release')
+            self.subnet_service.update_subnet(instance.vswitch_id, 'release')
+            return result
 
     # 克隆
     def server_clone(self, user: dict, instance_id: int):

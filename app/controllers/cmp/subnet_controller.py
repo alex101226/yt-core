@@ -62,14 +62,13 @@ def page_subnets(
 # select的list
 @router.get("/list", response_model=SubnetOut)
 def list_subnets(
-    request: Request,
     vpc_id: int = Query(..., description="vpc id"),
     service = Depends(get_subnet_service)
 ):
-    parent_id = request.state.user.get('parent_id') or 0
-    if parent_id == 0:
-        parent_id = request.state.user.get('user_id')
-    result = service.list_subnets(parent_id, vpc_id)
+    # parent_id = request.state.user.get('parent_id') or 0
+    # if parent_id == 0:
+    #     parent_id = request.state.user.get('user_id')
+    result = service.list_subnets(vpc_id)
     return Response.success(result)
 
 # 创建

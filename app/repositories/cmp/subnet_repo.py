@@ -72,11 +72,8 @@ class SubnetRepository:
         )
 
     #   返回list
-    def list_by_subnet(self, user_id: int, vpc_id: int) -> list[type[Subnet]]:
-        items = self.db.query(Subnet).filter(
-            Subnet.created_by == user_id,
-            Subnet.vpc_id==vpc_id
-        ).order_by(Subnet.created_at).all()
+    def list_by_subnet(self, vpc_id: int) -> list[type[Subnet]]:
+        items = self.db.query(Subnet).filter(Subnet.vpc_id==vpc_id).order_by(Subnet.created_at).all()
         return items
 
 
@@ -89,6 +86,7 @@ class SubnetRepository:
 
     # 释放
     def release(self, obj: Subnet) -> bool:
+        obj.status = "DELETED"
         obj.is_released = 1
         # obj.released_at = datetime.now(timezone.utc)
         self.db.commit()

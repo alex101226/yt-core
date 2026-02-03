@@ -5,6 +5,7 @@ from nanoid import generate
 from app.common.exceptions import BusinessException
 from app.common.status_code import ErrorCode
 from app.common.messages import Message
+from app.core.logger import logger
 
 from app.repositories.cmp.subnet_repo import SubnetRepository
 from app.schemas.cmp.subnet_schema import SubnetCreate, SubnetOut, SubnetPage, SubnetBase
@@ -20,8 +21,8 @@ class SubnetService:
         self.resource_bind_service = ResourceGroupService(self.db)
 
     # 一个list
-    def list_subnets(self, user_id: int, vpc_id: int):
-        subnets = self.subnet_repo.list_by_subnet(user_id, vpc_id)
+    def list_subnets(self, vpc_id: int):
+        subnets = self.subnet_repo.list_by_subnet(vpc_id)
         return subnets
 
     # 分页查列表
@@ -106,21 +107,32 @@ class SubnetService:
         )
 
     # 删除
-    def subnet_release(self, subnet_id: str) -> bool:
+    def subnet_release(self, subnet_id: int) -> bool:
         obj = self.subnet_repo.get(subnet_id)
         if not obj:
             raise BusinessException(code=ErrorCode.DATA_NOT_FOUND, message=Message.DATA_NOT_FOUND)
+        if obj.used_count > 0 and obj.status != 'AVAILABLE':
+            raise BusinessException(code=ErrorCode.FAILED, message="无法释放正在使用的子网")
         obj = self.subnet_repo.release(obj)
         return obj
 
     # 子网修改
-    def update_subnet(self, subnet_id: int):
-        find = self.subnet_repo.get(str(subnet_id))
+    def update_subnet(self, subnet_id: int, action: str):
+        find = self.subnet_repo.get(subnet_id)
+
+        delta = 1 if action == "bind" else -1
+
+        # 防止 used_count 变成负数
+        new_used_count = max(find.used_count + delta, 0)
+
         subnet_payload = {
-            "used_count": find.used_count + 1,
+            "used_count": new_used_count,
         }
-        if find.status != "IN_USE":
+        # 使用中 / 空闲 状态自动切换
+        if new_used_count > 0:
             subnet_payload["status"] = "IN_USE"
+        else:
+            subnet_payload["status"] = "AVAILABLE"
 
         result = self.subnet_repo.update_subnet(find, subnet_payload)
         return result
@@ -128,4 +140,3 @@ class SubnetService:
     # 根据子网的id查询
     def subnet_by_id(self, subnet_id: int):
         return self.subnet_repo.get(subnet_id)
-

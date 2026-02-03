@@ -28,7 +28,7 @@ class CloudImageRepo:
         page_size: int,
         cloud_provider_code: Optional[str] = None,
         region_id: Optional[str] = None,
-        resource_group_id: Optional[int] = None,
+        resource_group_id: Optional[str] = None,
         image_name: Optional[str] = None,
     ):
         query = self.db.query(
