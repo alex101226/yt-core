@@ -1,0 +1,10 @@
+.env.development
+.env.production
+.env.release
+__pycache__/
+.git/
+.venv
+.read.txt
+openapi.json
+start.sh
+api.html

@@ -66,7 +66,7 @@ def create_app() -> FastAPI:
         openapi_url="/openapi.json",
         lifespan=lifespan
     )
-    origins = ["http://127.0.0.1:3004", "http://127.0.0.1:3005"]
+    # origins = ["http://127.0.0.1:3004", "http://127.0.0.1:3005"]
     # ✅ 跨域配置
     app.add_middleware(
         CORSMiddleware,

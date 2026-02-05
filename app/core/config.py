@@ -7,7 +7,7 @@ from pathlib import Path as FilePath
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from functools import lru_cache
 
-BASE_DIR = FilePath(__file__).resolve().parent.parent.parent
+BASE_DIR = FilePath(__file__).resolve().parent.parent
 
 class Settings(BaseSettings):
     ENV: str = "development"
@@ -20,11 +20,9 @@ class Settings(BaseSettings):
 
     # 多数据库配置
     DB_SSO_AUTH: str
-    DB_AUDIT_CENTER: str
     DB_CMP: str
 
     SSO_TABLE_PREFIX: str = 'ss_'
-    AUDIT_TABLE_PREFIX: str = 'au_'
     CMP_TABLE_PREFIX: str = 'cm_'
 
     # jwt配置
@@ -40,10 +38,10 @@ class Settings(BaseSettings):
     REDIS_PASSWORD: str = None
     REDIS_EXPIRE: int = 2592000  # 30天
 
-    class Config:
+    # class Config:
         # env_file = "/www/wwwroot/yt-core/.env.production",
-        env_file = f".env.{os.getenv('ENV', 'development')}"
-        env_file_encoding = "utf-8"
+        # env_file = f".env.{os.getenv('ENV', 'development')}"
+        # env_file_encoding = "utf-8"
     # model_config = SettingsConfigDict(
     #     env_file=(
     #         BASE_DIR / ".env.production"
@@ -53,7 +51,11 @@ class Settings(BaseSettings):
     #     env_file_encoding="utf-8",
     #     case_sensitive=True,
     # )
-
+    model_config = SettingsConfigDict(
+        env_file=BASE_DIR / f".env.{os.getenv('ENV', 'development')}",
+        env_file_encoding="utf-8",
+        case_sensitive=True,
+    )
 @lru_cache()
 def get_settings() -> Settings:
     return Settings()
