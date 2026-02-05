@@ -1,3 +1,6 @@
+import random
+
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from typing import Optional
 from nanoid import generate
@@ -25,13 +28,13 @@ class OssBucketService:
 
     def create_initial_bill(
         self,
-        user_id: int,
+        user: dict,
         charge_type: str,
         instance_id: str,
         unit_price: float,
         instance,
     ):
-        account = self.account_service.account_exists(user_id)
+        account = self.account_service.account_exists(user.get('user_id'))
         if not account:
             raise BusinessException(
                 code=ErrorCode.DATA_NOT_FOUND,
@@ -39,7 +42,7 @@ class OssBucketService:
             )
 
         self.bill_service.create(
-            user_id=user_id,
+            user=user,
             account_id=account.id,
             resource_type="OSS",
             charge_type=charge_type,
@@ -51,20 +54,23 @@ class OssBucketService:
 
     def oss_create(self, user: dict, data: OssCreate):
         user_id = user.get('user_id')
+        username = user.get('username')
         def _do():
             payload = {
                 **data.model_dump(),
-                "user_id": user_id,
+                "created_by": user_id,
+                "created_by_name": username,
                 "charge_type": "PostPaid",
                 "status": "ACTIVE",
                 "bucket_id": f"oss-{generate(size=12)}",
-                "endpoint": "ecs.aliyuncs.com"
+                "endpoint": "ecs.aliyuncs.com",
+                "object_count": random.randint(0, 100_000),
             }
             payload.pop('price')
             with self.db.begin():
                 result = self.oss_repo.oss_create(payload)
                 self.create_initial_bill(
-                    user_id, payload['charge_type'], result.bucket_id, data.price, result,
+                    user, payload['charge_type'], result.bucket_id, data.price, result,
                 )
                 return result
 
@@ -101,3 +107,13 @@ class OssBucketService:
             page_size=page_size,
             items = [OssOut.model_validate(item) for item in items]
         )
+
+    # 释放
+    def release(self, oss_id: int):
+        result = self.oss_repo.release(oss_id)
+        if not result:
+            raise BusinessException(
+                code=ErrorCode.FAILED,
+                message=Message.FAILED
+            )
+        return result

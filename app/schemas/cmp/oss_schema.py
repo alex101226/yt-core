@@ -31,6 +31,7 @@ class OssOut(OssBase):
     created_at: datetime = None
     updated_at: datetime = None
     resource_group_name: str = None
+    object_count: int = 0
 
     class Config:
         from_attributes = True

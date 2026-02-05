@@ -16,7 +16,7 @@ class GPFSSchema(BaseModel):
     capacity_gb: int
 
     fs_alias: str
-    description: Optional[str]
+    description: Optional[str]=None
 
 class GPFSCreate(GPFSSchema):
     price: float = 0
@@ -32,6 +32,7 @@ class GPFSOut(GPFSSchema):
     created_by: int = 0
     created_at: datetime = None
     updated_at: datetime = None
+    resource_group_name: str = None
 
     class Config:
         from_attributes = True
@@ -41,3 +42,8 @@ class GPFSPage(BaseModel):
     page: int
     page_size: int
     items: List[GPFSOut]
+
+# 容量配置
+class GPFSCapacitySchema(BaseModel):
+    gpfs_id: int
+    capacity_gb: str

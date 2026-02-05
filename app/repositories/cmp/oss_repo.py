@@ -1,5 +1,6 @@
 from typing import Optional
 
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.models.cmp import ResourceGroup
@@ -45,7 +46,9 @@ class OssRepoRepository:
             OssBucket.bucket_id,
             OssBucket.status,
             OssBucket.charge_type,
-            OssBucket.used_size_bytes,
+            OssBucket.object_count,
+            # 👇 关键：随机 used_capacity_gb（0 ~ capacity_gb-1）
+            func.floor(func.rand() * OssBucket.object_count).label("used_size_bytes"),
             OssBucket.created_at,
             OssBucket.updated_at,
             ResourceGroup.rg_name.label('resource_group_name'),
@@ -53,7 +56,7 @@ class OssRepoRepository:
             ResourceGroup,
             ResourceGroup.id == OssBucket.resource_group_id,
         )
-        filters = [OssBucket.created_by==user_id]
+        filters = [OssBucket.created_by==user_id, OssBucket.is_released==False]
         if provider_code:
             filters.append(OssBucket.cloud_provider_code == provider_code)
         if region_id:
@@ -71,3 +74,20 @@ class OssRepoRepository:
         offset_value = (page - 1) * page_size
         items = query.order_by(OssBucket.id.desc()).offset(offset_value).limit(page_size).all()
         return items, total
+
+    # 查询
+    def get_by_id(self, oss_id: int) -> Optional[dict]:
+        row = self.db.query(OssBucket).filter(OssBucket.id == oss_id).first()
+        return row
+
+
+    # 释放    实例状态：字典表=FS_STATUS
+    def release(self, oss_id: int):
+        find = self.get_by_id(oss_id)
+        if not find:
+            return None
+        find.status = 'DELETING'
+        find.is_released = 1
+        self.db.commit()
+        self.db.refresh(find)
+        return True

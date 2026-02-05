@@ -50,5 +50,12 @@ def oss_page_list(
     result = service.oss_page_list(parent_id, page, page_size, provider_code, region_id, resource_group_id, bucket_name, permission)
     return Response.success(result)
 
-
+# 释放
+@router.delete("/release/{oss_id}")
+def delete_gpfs(
+    oss_id: int,
+    service: OssBucketService = Depends(get_oss_service),
+):
+    result = service.release(oss_id)
+    return Response.success(result)
 

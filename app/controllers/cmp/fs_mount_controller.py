@@ -48,3 +48,23 @@ def cbs_create(
 
     result = service.fs_mount_page_list(page, page_size, parent_id, mount_type, provider_code, region_id, zone_id, mount_name)
     return Response.success(result)
+
+
+# 卸载
+@router.put("/uninstall/{mount_id}")
+def cbs_uninstall(
+    mount_id: int,
+    service: FileMountService = Depends(get_mount_service)
+):
+    result = service.uninstall(mount_id)
+    return Response.success(result)
+
+
+# 释放
+@router.delete("/release/{mount_id}")
+def delete_gpfs(
+    mount_id: int,
+    service: FileMountService = Depends(get_mount_service)
+):
+    result = service.release(mount_id)
+    return Response.success(result)

@@ -8,7 +8,7 @@ from app.core.dependencies import require_user
 from app.common.response import Response
 
 from app.services.cmp.gpfs_service import GPFSService
-from app.schemas.cmp.gpfs_schema import GPFSOut, GPFSCreate, GPFSPage
+from app.schemas.cmp.gpfs_schema import GPFSCreate, GPFSCapacitySchema
 
 def get_gpfs_service(db: Session = Depends(get_cmp_db)):
     return GPFSService(db)
@@ -62,3 +62,20 @@ def gpfs_list(
     result = service.gpfs_list(parent_id, subnet_id)
     return Response.success(result)
 
+# 容量配置
+@router.post("/save_capacity")
+def save_capacity(
+    data: GPFSCapacitySchema,
+    service: GPFSService = Depends(get_gpfs_service)
+):
+    result = service.save_capacity_gb(data)
+    return Response.success(result)
+
+# 释放
+@router.delete("/release/{gpfs_id}")
+def delete_gpfs(
+    gpfs_id: int,
+    service: GPFSService = Depends(get_gpfs_service)
+):
+    result = service.release(gpfs_id)
+    return Response.success(result)

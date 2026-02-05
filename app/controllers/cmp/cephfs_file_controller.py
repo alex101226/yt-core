@@ -3,7 +3,7 @@ from typing import Optional, List
 from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.orm import Session
 
-from app.schemas.cmp.cephfs_file_schema import CephfsCreate
+from app.schemas.cmp.cephfs_file_schema import CephfsCreate, CEPHFSCapacitySchema
 from app.services.cmp.cephfs_file_service import CephfsFileService
 
 from app.common.dependencies import get_cmp_db
@@ -59,7 +59,28 @@ def cephfs_list(
     status: Optional[str] = Query(None, description="状态"),
     service: CephfsFileService = Depends(get_cephfs_service),
 ):
-    user_id = request.state.user.get('user_id')
-    result = service.cephfs_list(user_id, region_id, status)
+    # user_id = request.state.user.get('user_id')
+    parent_id = request.state.user.get('parent_id') or 0
+    if parent_id == 0:
+        parent_id = request.state.user.get('user_id')
+    result = service.cephfs_list(parent_id, region_id, status)
     return Response.success(result)
 
+
+# 容量配置
+@router.post("/save_capacity")
+def save_capacity(
+    data: CEPHFSCapacitySchema,
+    service: CephfsFileService = Depends(get_cephfs_service)
+):
+    result = service.save_capacity_gb(data)
+    return Response.success(result)
+
+# 释放
+@router.delete("/release/{gpfs_id}")
+def delete_gpfs(
+    gpfs_id: int,
+    service: CephfsFileService = Depends(get_cephfs_service)
+):
+    result = service.release(gpfs_id)
+    return Response.success(result)

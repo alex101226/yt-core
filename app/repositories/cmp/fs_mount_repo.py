@@ -21,9 +21,9 @@ class FileMountRepository:
     def fs_mount_create(self, data: dict) -> bool:
         mount = FileSystemMount(**data)
         self.db.add(mount)
-        self.db.commit()
-        self.db.refresh(mount)
-        return True
+        # self.db.commit()
+        # self.db.refresh(mount)
+        return mount
 
     def fs_mount_page_list(
         self,
@@ -36,10 +36,6 @@ class FileMountRepository:
         zone_id: Optional[str] = None,
         mount_name: Optional[str] = None,
     ):
-
-        if user_id is None:
-            return None
-
         query = (
             self.db.query(
                 FileSystemMount.id,
@@ -105,3 +101,29 @@ class FileMountRepository:
         offset_value = (page - 1) * page_size
         items = query.order_by(FileSystemMount.id.desc()).offset(offset_value).limit(page_size).all()
         return items, total
+
+
+    # 查询
+    def get_by_id(self, mount_id: int) -> Optional[dict]:
+        row = self.db.query(FileSystemMount).filter(FileSystemMount.id == mount_id).first()
+        return row
+
+    # 卸载
+    def uninstall(self, mount_id: int):
+        find = self.get_by_id(mount_id)
+        if not find:
+            return None
+        find.status = 'UNMOUNTING'
+        # self.db.commit()
+        # self.db.refresh(find)
+        return find
+
+    def release(self, mount_id: int):
+        find = self.get_by_id(mount_id)
+        if not find:
+            return None
+        find.status = 'RELEASED'
+        find.is_released = True
+        self.db.commit()
+        self.db.refresh(find)
+        return find

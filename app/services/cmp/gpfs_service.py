@@ -12,7 +12,7 @@ from app.services.cmp.account_service import AccountService
 
 
 from app.repositories.cmp.gpfs_repo import GPFSRepository
-from app.schemas.cmp.gpfs_schema import GPFSCreate, GPFSOut, GPFSPage
+from app.schemas.cmp.gpfs_schema import GPFSCreate, GPFSOut, GPFSPage, GPFSCapacitySchema
 from app.services.cmp.operation_helper import execute_with_notification
 
 
@@ -26,13 +26,13 @@ class GPFSService:
     # 生成计费任务
     def create_initial_bill(
         self,
-        user_id: int,
+        user: dict,
         charge_type: str,
         instance_id: str,
         unit_price: float,
         instance,
     ):
-        account = self.account_service.account_exists(user_id)
+        account = self.account_service.account_exists(user.get('user_id'))
         if not account:
             raise BusinessException(
                 code=ErrorCode.DATA_NOT_FOUND,
@@ -40,7 +40,7 @@ class GPFSService:
             )
 
         self.bill_service.create(
-            user_id=user_id,
+            user=user,
             account_id=account.id,
             resource_type="GPFS",
             charge_type=charge_type,
@@ -62,9 +62,9 @@ class GPFSService:
             }
             with self.db.begin():
                 result = self.repo.gpfs_create(payload)
-
+                # 计费方式：PrePaid / PostPaid
                 self.create_initial_bill(
-                    user_id, payload['charge_type'], result.fs_id, data.price, result,
+                    user, data.charge_type, result.fs_id, data.price, result,
                 )
 
                 return result
@@ -112,10 +112,24 @@ class GPFSService:
     # 返回gpfs的列表
     def gpfs_list(self, user_id: int, subnet_id: str):
         result = self.repo.gpfs_list(user_id, subnet_id)
-        # logger.info(f'查看列表呗 {result}')
+        return result
+
+    # 容量配置
+    def save_capacity_gb(self, data: GPFSCapacitySchema):
+        result = self.repo.save_capacity_gb(data.model_dump())
         if not result:
             raise BusinessException(
-                code=ErrorCode.DATA_NOT_FOUND,
-                message=Message.DATA_NOT_FOUND
+                code=ErrorCode.FAILED,
+                message=Message.FAILED
+            )
+        return result
+
+    # 释放
+    def release(self, gpfs_id: int):
+        result = self.repo.release(gpfs_id)
+        if not result:
+            raise BusinessException(
+                code=ErrorCode.FAILED,
+                message=Message.FAILED
             )
         return result

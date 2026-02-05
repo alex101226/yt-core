@@ -10,9 +10,9 @@ class CephfsBase(BaseModel):
     resource_group_id: Optional[int] = Field(...)
     storage_type: str = Field(...)
     capacity_gb: int = Field(...)
-    price: float = Field(...)
 
 class CephfsCreate(CephfsBase):
+    price: float = Field(...)
     pass
 
 class CephfsOut(CephfsBase):
@@ -33,3 +33,9 @@ class CephfsPage(BaseModel):
     page: int
     page_size: int
     items: List[CephfsOut]
+
+
+# 容量配置
+class CEPHFSCapacitySchema(BaseModel):
+    cephfs_id: int
+    capacity_gb: str
