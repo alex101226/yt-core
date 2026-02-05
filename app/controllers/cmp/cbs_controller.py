@@ -4,7 +4,9 @@ from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.orm import Session
 
 from app.services.cmp.cbs_service import CbsService
-from app.schemas.cmp.cbs_disk_schema import CbsDiskCreate, CbsDiskReleaseSchema
+from app.schemas.cmp.cbs_disk_schema import (
+CbsDiskCreate, CbsDiskReleaseSchema, CbsInstallSchema
+)
 
 from app.common.dependencies import get_cmp_db
 from app.core.dependencies import require_user
@@ -51,21 +53,30 @@ def cbs_page_list(
 
 
 # 释放
-@router.post("/cbs_release")
+@router.delete("/cbs_release/{cbs_id}")
 def cbs_release(
-    data: CbsDiskReleaseSchema,
+    cbs_id: int,
     service: CbsService = Depends(get_cbs_disk_service)
 ):
     # user_id = request.state.user.get('user_id')
-    result = service.cbs_release(data.cbs_id)
+    result = service.cbs_release(cbs_id)
     return Response.success(result)
 
 # 卸载
-@router.post("/cbs_uninstall")
+@router.put("/cbs_uninstall/{cbs_id}")
 def cbs_uninstall(
-    data: CbsDiskReleaseSchema,
+    cbs_id: int,
     service: CbsService = Depends(get_cbs_disk_service)
 ):
     # user_id = request.state.user.get('user_id')
-    result = service.cbs_uninstall(data.cbs_id)
+    result = service.cbs_uninstall(cbs_id)
+    return Response.success(result)
+
+# 挂载
+@router.post('/cbs_install')
+def cbs_install(
+    data: CbsInstallSchema,
+    service: CbsService = Depends(get_cbs_disk_service)
+):
+    result = service.cbs_install(data)
     return Response.success(result)

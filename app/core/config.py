@@ -2,7 +2,6 @@
 import os
 
 from pathlib import Path as FilePath
-# from dotenv import load_dotenv
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from functools import lru_cache
@@ -38,24 +37,12 @@ class Settings(BaseSettings):
     REDIS_PASSWORD: str = None
     REDIS_EXPIRE: int = 2592000  # 30天
 
-    # class Config:
-        # env_file = "/www/wwwroot/yt-core/.env.production",
-        # env_file = f".env.{os.getenv('ENV', 'development')}"
-        # env_file_encoding = "utf-8"
-    # model_config = SettingsConfigDict(
-    #     env_file=(
-    #         BASE_DIR / ".env.production"
-    #         if FilePath(BASE_DIR / ".env.production").exists()
-    #         else BASE_DIR / ".env.development"
-    #     ),
-    #     env_file_encoding="utf-8",
-    #     case_sensitive=True,
-    # )
     model_config = SettingsConfigDict(
         env_file=BASE_DIR / f".env.{os.getenv('ENV', 'development')}",
         env_file_encoding="utf-8",
         case_sensitive=True,
     )
+
 @lru_cache()
 def get_settings() -> Settings:
     return Settings()

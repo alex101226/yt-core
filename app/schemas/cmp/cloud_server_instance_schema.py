@@ -6,7 +6,7 @@ from typing import List, Optional
 class DiskItem(BaseModel):
     disk_category: str
     disk_size: int
-    encrypted: Optional[bool] = False
+    # encrypted: Optional[bool] = False
 
 class InstanceBase(BaseModel):
     instance_name: str  # 服务器名称

@@ -34,6 +34,7 @@ class CbsDiskOut(CbsDiskBase):
     updated_at: datetime
     status: Optional[str] = None
     resource_group_name: Optional[str] = None
+    is_attached: bool = False
 
     class Config:
         from_attributes = True
@@ -46,4 +47,9 @@ class CbsDiskPage(BaseModel):
 
 
 class CbsDiskReleaseSchema(BaseModel):
+    cbs_id: int
+
+class CbsInstallSchema(BaseModel):
+    attached_instance_id: str
+    disk_type: str
     cbs_id: int

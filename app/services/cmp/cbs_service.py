@@ -1,20 +1,21 @@
+from datetime import datetime, timezone
 from typing import List, Optional
 from sqlalchemy.orm import Session
 from nanoid import generate
 
 from app.core.logger import logger
+from app.common.exceptions import BusinessException
+from app.common.status_code import ErrorCode
+from app.common.messages import Message
+from app.common.util import gen_random_name
 
 from app.services.cmp.bill_service import BillService
 from app.services.cmp.account_service import AccountService
 
 from app.repositories.cmp.cbs_repo import CbsDiskRepository
-from app.schemas.cmp.cbs_disk_schema import CbsDiskBase, CbsDiskCreate, CbsDiskOut, CbsDiskPage
+from app.schemas.cmp.cbs_disk_schema import CbsInstallSchema, CbsDiskOut, CbsDiskPage
 
-from app.common.exceptions import BusinessException
-from app.common.status_code import ErrorCode
-from app.common.messages import Message
 from app.services.cmp.operation_helper import execute_with_notification
-
 
 class CbsService:
     def __init__(self, db: Session):
@@ -89,7 +90,7 @@ class CbsService:
 
 
     #   自动创建cbs
-    def cbs_create_auto(self, user: dict, data: dict, charge_type: str, price: float):
+    def cbs_create_auto(self, user: dict, price: float, data: dict, instance):
         user_id = user.get('user_id')
         username = user.get('username')
         def _do():
@@ -99,13 +100,17 @@ class CbsService:
                 "created_by_name": username,
                 "disk_id": f"CBS-{generate(size=12)}",
                 "encrypted": False,
-                "status": "InUse" if data['attached_instance_id'] else "Available",
-                "attached_time": data.get('attached_time', None),
-                "is_attached": bool(data.get('attached_instance_id')),
+                "tags": [],
+                "status": "InUse" if data.get('attached_instance_id') else "Available",
+                "cloud_provider_code": instance.cloud_provider_code,
+                "region_id": instance.region_id,
+                "zone_id": instance.zone_id,
+                "resource_group_id": instance.resource_group_id,
+                "charge_type": instance.charge_type,
             }
             result = self.repo.cbs_create(payload)
             self.create_initial_bill(
-                user, charge_type, result.disk_id, price, result,
+                user, payload['charge_type'], result.disk_id, price, result,
             )
             return result
         # -------- 交给统一封装处理通知 --------
@@ -156,7 +161,7 @@ class CbsService:
 
         return self.repo.cbs_release(cbs_id)
 
-    # 卸载
+    # 卸载，系统盘不允许卸载，只允许根据实例一起释放
     def cbs_uninstall(self, cbs_id: int) -> bool:
         db_cbs = self.repo.get_find(cbs_id)
         if db_cbs is None:
@@ -165,6 +170,11 @@ class CbsService:
         if db_cbs.disk_type == 'system':
             raise BusinessException(code=ErrorCode.DATA_NOT_FOUND, message="系统盘不允许卸载实例")
 
-        # if db_cbs.user_id != user_id:
-        #     raise BusinessException(code=ErrorCode.USER_NOT_FOUND, message="用户错误")
         return self.repo.cbs_uninstall(cbs_id)
+
+    # 挂载
+    def cbs_install(self, data: CbsInstallSchema):
+        cbs = self.repo.cbs_install(data.model_dump())
+        if not cbs:
+            raise BusinessException(code=ErrorCode.FAILED, message=Message.FAILED)
+        return cbs

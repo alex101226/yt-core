@@ -1,4 +1,5 @@
 from datetime import datetime
+from nanoid import generate
 
 from app.common.exceptions import BusinessException
 from app.common.status_code import ErrorCode
@@ -6,7 +7,7 @@ from app.common.status_code import ErrorCode
 
 #   生成随机名称，比如订单号之类的
 def gen_random_name(name: str):
-    return f"{name}-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+    return f"{datetime.now().strftime('%Y%m%d%H%M%S')}-{name}-{generate(size=3)}"
 
 #   文本解析
 def parse_acl_rules(source_cidr: str):

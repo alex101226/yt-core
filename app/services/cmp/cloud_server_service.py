@@ -118,44 +118,34 @@ class InstanceService:
 
         # 系统盘
         system_disk_data = {
-            "cloud_provider_code": data.cloud_provider_code,
-            "region_id": data.region_id,
-            "zone_id": data.zone_id,
-            "resource_group_id": data.resource_group_id,
             "disk_name": gen_random_name('cbs-system'),
             "disk_type": "system",
+            "description": f"系统盘，挂载到实例 {instance.instance_name}",
+            "attached_device": "server",
+            "attached_time": datetime.now(timezone.utc),
+            "is_attached": bool(instance.id),
+            "attached_instance_id": str(instance.id),
             "disk_category": data.system_disk_category,
             "disk_size": data.system_disk_size,
-            "charge_type": data.charge_type,
-            "period": data.period or 1,
-            "auto_renew": data.auto_renew,
-            "attached_instance_id": str(instance.id),
-            "attached_device": data.instance_name,
-            "attached_time": datetime.now(timezone.utc),
-            "description": f"系统盘，挂载到实例 {instance.instance_name}",
-            "tags": [],
         }
-        self.cbs_service.cbs_create_auto(user, system_disk_data, instance.charge_type, 2.5)
+        self.cbs_service.cbs_create_auto(user, 2.5, system_disk_data, instance)
 
         # 数据盘
         if data.data_disks:
             for disk in data.data_disks:
                 disk_data = {
                     **disk.model_dump(),
-                    "cloud_provider_code": data.cloud_provider_code,
-                    "region_id": data.region_id,
-                    "zone_id": data.zone_id,
-                    "resource_group_id": data.resource_group_id,
                     "disk_name": gen_random_name('cbs-data'),
                     "disk_type": "data",
-                    "attached_instance_id": str(instance.id),
-                    "attached_device": data.instance_name,
-                    "attached_time": datetime.now(timezone.utc),
                     "description": f"数据盘，挂载到实例 {instance.instance_name}",
-                    "tags": [],
-                    "charge_type": data.charge_type,
+                    "attached_device": "server",
+                    "attached_time": datetime.now(timezone.utc),
+                    "attached_instance_id": str(instance.id),
+                    "is_attached": bool(instance.id),
+                    "disk_category": disk.disk_category,
+                    "disk_size": disk.disk_size,
                 }
-                self.cbs_service.cbs_create_auto(user, disk_data, instance.charge_type, 2.5)
+                self.cbs_service.cbs_create_auto(user,2.5, disk_data, instance)
 
         # 资源组绑定
         self.resource_bind_service.bind(

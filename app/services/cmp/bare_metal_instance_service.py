@@ -116,24 +116,17 @@ class BareMetalInstanceService:
         # 2. 创建系统盘 CBS
         # -----------------------------
         system_disk_data = {
-            "cloud_provider_code": data.cloud_provider_code,
-            "region_id": data.region_id,
-            "zone_id": data.zone_id,
-            "resource_group_id": data.resource_group_id,
             "disk_name": gen_random_name('cbs'),
             "disk_type": "system",  # 磁盘类型：system 系统盘 / data 数据盘。
             "disk_category": data.system_disk_category,  # 磁盘种类，例如：cloud、cloud_ssd、cloud_essd_pl0 等
             "disk_size": data.system_disk_size,  # 磁盘大小
-            "charge_type": data.charge_type,  # 计费方式：PrePaid 包年包月 / PostPaid 按量付费
-            "period": data.period or 1,  # 包年月的月份
-            "auto_renew": data.auto_renew,
             "attached_instance_id": str(instance.id),  # 挂载的实例 ID（ecs/lh/lb）
-            "attached_device": data.instance_name,  # 挂载点名称，如 /dev/vdb
+            "attached_device": 'baremetal',  # 挂载点名称
             "attached_time": datetime.now(timezone.utc),  # 挂载时间
+            "is_attached": bool(instance.id),
             "description": f"系统盘，挂载到实例 {instance.instance_name}",
-            "tags": []
         }
-        self.cbs_service.cbs_create_auto(user, system_disk_data, instance.charge_type, 2.5)
+        self.cbs_service.cbs_create_auto(user, 2.5, system_disk_data, instance)
 
         #   绑定资源组
         self.resource_bind_service.bind(

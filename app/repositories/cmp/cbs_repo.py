@@ -62,12 +62,13 @@ class CbsDiskRepository:
             CbsDisk.tags,
             CbsDisk.description,
             CbsDisk.status,
+            CbsDisk.is_attached,
             ResourceGroup.rg_name.label('resource_group_name'),
         ).outerjoin(
             ResourceGroup,
             ResourceGroup.id == CbsDisk.resource_group_id,
         )
-        filters = [CbsDisk.created_by == user_id]
+        filters = [CbsDisk.created_by == user_id, CbsDisk.is_released == 0]
         if provider_code:
             filters.append(CbsDisk.cloud_provider_code == provider_code)
         if region_id:
@@ -92,6 +93,8 @@ class CbsDiskRepository:
         if db_obj is None:
             return None
         db_obj.is_released = 1
+        db_obj.status = 'Deleted'
+
         self.db.commit()
         self.db.refresh(db_obj)
         return True
@@ -102,12 +105,27 @@ class CbsDiskRepository:
         if db_obj is None:
             return None
         # 1) 状态改为 AVAILABLE
-        db_obj.status = 'AVAILABLE'
+        db_obj.status = 'Available'
 
         # 2) 清除挂载关联
+        db_obj.is_attached = 0
         db_obj.attached_instance_id = None
         db_obj.attached_device = None
         db_obj.detached_time = datetime.now(timezone.utc)
+        self.db.commit()
+        self.db.refresh(db_obj)
+        return True
+
+    # 挂载
+    def cbs_install(self, data: dict):
+        db_obj = self.get_find(data['cbs_id'])
+        if not db_obj:
+            return None
+        db_obj.is_attached = 1
+        db_obj.status = 'InUse'
+        db_obj.attached_instance_id = data['attached_instance_id']
+        db_obj.attached_device = 'server'
+        db_obj.attached_time = datetime.now(timezone.utc)
         self.db.commit()
         self.db.refresh(db_obj)
         return True
