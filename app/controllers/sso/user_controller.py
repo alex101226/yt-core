@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Request, Query
+from fastapi import APIRouter, Depends, Request, Query, Body
 from sqlalchemy.orm import Session
 
 from app.core.dependencies import require_user
@@ -9,7 +9,7 @@ from app.services.sso.user_service import UserService
 from app.common.dependencies import get_sso_db
 from app.common.dependencies import get_cmp_db
 
-from app.schemas.sso.auth_schema import UserOut, UserRegister
+from app.schemas.sso.auth_schema import UserRegister, UpdateUserSchema, UpdateUserPasswordSchema
 
 def get_user_service(
     sso_db: Session = Depends(get_sso_db),
@@ -87,4 +87,24 @@ def user_update(
     service: UserService = Depends(get_user_service)
 ):
     result = service.user_count(request.state.user)
+    return Response.success(result)
+
+# 修改用户  save_user
+@router.post("/save_user")
+def user_list(
+    request: Request,
+    data: UpdateUserSchema,
+    service: UserService = Depends(get_user_service)
+):
+    result = service.save_user(request.state.user.get('user_id'), data)
+    return Response.success(result)
+
+# 修改密码
+@router.post("/save_password")
+def user_password(
+    request: Request,
+    data: UpdateUserPasswordSchema,
+    service: UserService = Depends(get_user_service)
+):
+    result = service.save_password(request.state.user.get('user_id'), data)
     return Response.success(result)

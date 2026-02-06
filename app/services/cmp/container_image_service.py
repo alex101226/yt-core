@@ -2,17 +2,19 @@ from sqlalchemy.orm import Session
 from typing import Optional
 from nanoid import generate
 
+from app.core.logger import logger
 from app.common.exceptions import BusinessException
 from app.common.messages import Message
 from app.common.status_code import ErrorCode
-from app.core.logger import logger
+from app.services.cmp.operation_helper import execute_with_notification
+
+from app.repositories.cmp.cephfs_file_repo import CephfsFileRepository
+
 from app.services.cmp.bill_service import BillService
 from app.services.cmp.account_service import AccountService
 
 from app.repositories.cmp.container_image_repo import ContainerImageRepository
 from app.schemas.cmp.container_image_schema import ContainerImageCreate, ContainerImagePage, ContainerImageOut
-from app.services.cmp.operation_helper import execute_with_notification
-
 
 class ContainerImageService:
     def __init__(self, db: Session):
@@ -20,9 +22,9 @@ class ContainerImageService:
         self.repo = ContainerImageRepository(db)
         self.account_service = AccountService(db)
         self.bill_service = BillService(db)
+        self.cephfs_repo = CephfsFileRepository(db)
 
-        # 生成计费任务
-
+    # 生成计费任务
     def create_initial_bill(
         self,
         user: dict,
@@ -71,6 +73,10 @@ class ContainerImageService:
             }
             with self.db.begin():  # begin() 会自动管理 commit/rollback  resource_id， resource_group_id
                 result = self.repo.image_create(payload)
+                if not result:
+                    raise BusinessException(code=ErrorCode.FAILED, message=Message.FAILED)
+
+                self.save_file_data(result.cephfs_id, True)
                 self.create_initial_bill(
                     user, payload['charge_type'], result.repository_id, payload['price'], result,
                 )
@@ -119,4 +125,13 @@ class ContainerImageService:
         find = self.repo.release(image_id)
         if not find:
             raise BusinessException(code=ErrorCode.FAILED,message=Message.FAILED)
+        self.save_file_data(find.cephfs_id, False)
+        self.db.commit()
+        self.db.refresh(find)
         return True
+
+    # 修改存储
+    # 更新文件系统数据
+    def save_file_data(self, fs_id: int, is_mounted: bool):
+        status = 'MOUNTED' if is_mounted else 'ACTIVE'
+        self.cephfs_repo.save_status(fs_id, status)

@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 
 from pydantic import BaseModel, EmailStr, Field
 
@@ -45,7 +45,6 @@ class LogoutRequest(BaseModel):
     domain: str
     user_id: int = 0
 
-
 class UserOutSchema(BaseModel):
     id: int
     username: str
@@ -59,3 +58,11 @@ class UserPageSchema(BaseModel):
     page_size: int
     total: int
     items: List[UserOutSchema]
+
+
+# 修改用户信息
+class UpdateUserSchema(BaseModel):
+    nickname: str = None
+
+class UpdateUserPasswordSchema(BaseModel):
+    password: str = None

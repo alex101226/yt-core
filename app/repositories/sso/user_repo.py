@@ -92,3 +92,25 @@ class UserRepository:
             "user_count": sub_count + 1,
             "user_role": 1,
         }
+
+    # 修改用户
+    def save_user(self, data: dict):
+        user = self.get_by_id(data['user_id'])
+        if not user:
+            return None
+        for key, value in data.items():
+            if hasattr(user, key):
+                setattr(user, key, value)
+
+        self.db.commit()
+        self.db.refresh(user)
+        return user
+
+    def save_password(self, data: dict):
+        user = self.get_by_id(data['user_id'])
+        if not user:
+            return None
+        user.hashed_password = data['hashed_password']
+        self.db.commit()
+        self.db.refresh(user)
+        return user

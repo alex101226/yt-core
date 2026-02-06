@@ -81,7 +81,7 @@ class ContainerImageRepository:
             return None
         find.status = 'RELEASED'
         find.is_released = 1
-        self.db.commit()
-        self.db.refresh(find)
+        # self.db.commit()
+        # self.db.refresh(find)
         return find
 

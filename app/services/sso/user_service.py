@@ -7,7 +7,9 @@ from app.core.security import hash_password
 from app.core.logger import logger
 
 from app.repositories.sso.user_repo import UserRepository
-from app.schemas.sso.auth_schema import UserOutSchema, UserPageSchema, UserRegister
+from app.schemas.sso.auth_schema import (
+UserOutSchema, UserPageSchema, UserRegister, UpdateUserSchema, UpdateUserPasswordSchema
+)
 
 from app.services.cmp.account_service import AccountService
 
@@ -100,10 +102,32 @@ class UserService:
             result.append({
                 "id": u.id,
                 "username": u.username,
-                "nickname": '管理员' if u.parent_id == 0 else u.nickname,
+                "nickname": u.nickname,
                 "role_code": u.role_code,
                 "parent_id": u.parent_id,
                 "role_name": '所有者' if u.parent_id == 0 else '成员'
 
             })
         return result
+
+    # 修改用户
+    def save_user(self, user_id: int, data: UpdateUserSchema):
+        payload = {
+            'user_id': user_id,
+            **data.model_dump(),
+        }
+        result = self.user_repo.save_user(payload)
+        if not result:
+            raise BusinessException(code=ErrorCode.FAILED, message='修改失败')
+        return result
+
+    # 修改密码
+    def save_password(self, user_id: int, data: UpdateUserPasswordSchema):
+        payload = {
+            'user_id': user_id,
+            'hashed_password': hash_password(data.password),
+        }
+        result = self.user_repo.save_password(payload)
+        if not result:
+            raise BusinessException(code=ErrorCode.FAILED, message='修改失败')
+        return True
