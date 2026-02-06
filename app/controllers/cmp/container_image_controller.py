@@ -51,3 +51,12 @@ def con_image_page_list(
         parent_id = request.state.user.get('user_id')
     result = service.con_image_page_list(parent_id, page, page_size, provider_code, region_id, resource_group_id, repository_name)
     return Response.success(result)
+
+# 释放
+@router.delete("/release/{image_id}")
+def image_delete(
+    image_id: int,
+    service: ContainerImageService = Depends(get_con_image_service),
+):
+    result = service.release(image_id)
+    return Response.success(result)

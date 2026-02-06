@@ -25,13 +25,13 @@ class ContainerImageService:
 
     def create_initial_bill(
         self,
-        user_id: int,
+        user: dict,
         charge_type: str,
         instance_id: str,
         unit_price: float,
         instance,
     ):
-        account = self.account_service.account_exists(user_id)
+        account = self.account_service.account_exists(user.get('user_id'))
         if not account:
             raise BusinessException(
                 code=ErrorCode.DATA_NOT_FOUND,
@@ -39,7 +39,7 @@ class ContainerImageService:
             )
 
         self.bill_service.create(
-            user_id=user_id,
+            user=user,
             account_id=account.id,
             resource_type="CUSTOM_IMAGE",
             charge_type=charge_type,
@@ -51,9 +51,11 @@ class ContainerImageService:
     # 创建镜像服务
     def image_create(self, user: dict, data: dict):
         user_id = user.get('user_id')
+        username = user.get('username')
         def _do():
             payload = {
                 "created_by": user_id,
+                "created_by_name": username,
                 "enable_https": 0,
                 "repository_id": f"cr-{generate(size=12)}",
                 "repository_name": data['repository_name'],
@@ -70,7 +72,7 @@ class ContainerImageService:
             with self.db.begin():  # begin() 会自动管理 commit/rollback  resource_id， resource_group_id
                 result = self.repo.image_create(payload)
                 self.create_initial_bill(
-                    user_id, payload['charge_type'], result.repository_id, payload['price'], result,
+                    user, payload['charge_type'], result.repository_id, payload['price'], result,
                 )
                 return result
         # -------- 交给统一封装处理通知 --------
@@ -91,14 +93,14 @@ class ContainerImageService:
 
     # 分页列表
     def con_image_page_list(
-            self,
-            user_id: int,
-            page: int,
-            page_size: int,
-            provider_code: Optional[str] = None,
-            region_id: Optional[int] = None,
-            resource_group_id: Optional[str] = None,
-            repository_name: str = None
+        self,
+        user_id: int,
+        page: int,
+        page_size: int,
+        provider_code: Optional[str] = None,
+        region_id: Optional[int] = None,
+        resource_group_id: Optional[str] = None,
+        repository_name: str = None
     ):
         items, total = self.repo.con_image_page_list(
             user_id, page, page_size, provider_code, region_id, resource_group_id,
@@ -111,3 +113,10 @@ class ContainerImageService:
             page_size=page_size,
             items=[ContainerImageOut.model_validate(item) for item in items]
         )
+
+    # 释放
+    def release(self, image_id: int):
+        find = self.repo.release(image_id)
+        if not find:
+            raise BusinessException(code=ErrorCode.FAILED,message=Message.FAILED)
+        return True
