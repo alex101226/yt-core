@@ -4,6 +4,7 @@ from typing import Optional, Tuple, List, Dict
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
+from app.constants.billing_meta import BILLING_META_MAP
 from app.constants.enums import BillingStatus, ResourceType
 from app.core.logger import logger
 from app.models.cmp import (
@@ -321,9 +322,9 @@ class BillRepository:
             resource = self.fetch_resource(t.resource_type, t.resource_id)
             if not resource:
                 continue
-
+            meta = BILLING_META_MAP[ResourceType(t.resource_type)]
             result_list.append({
-                "resource_type": t.resource_type,  # 商品
+                "product_name": meta.product_name,  # 商品
                 "instance_name": getattr(resource, 'instance_name', getattr(resource, 'fs_name', '')),  # 实例名称
                 "resource_id": t.resource_id,  # 实例ID
                 "config_info": self.get_resource_config(resource),  # 配置信息
