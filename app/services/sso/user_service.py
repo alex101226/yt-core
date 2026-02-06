@@ -91,3 +91,19 @@ class UserService:
     def user_count(self, user: dict):
         user = self.user_repo.user_count(user)
         return user
+
+    def user_member_list(self, parent_id: int):
+        users_list = self.user_repo.get_parent_id(parent_id)
+        # 遍历，只返回特定字段
+        result = []
+        for u in users_list:
+            result.append({
+                "id": u.id,
+                "username": u.username,
+                "nickname": '管理员' if u.parent_id == 0 else u.nickname,
+                "role_code": u.role_code,
+                "parent_id": u.parent_id,
+                "role_name": '所有者' if u.parent_id == 0 else '成员'
+
+            })
+        return result

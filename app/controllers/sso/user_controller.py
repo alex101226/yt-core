@@ -46,6 +46,19 @@ def user_page_list(
     result = service.user_page_list(page, page_size, nickname, username)
     return Response.success(result)
 
+# 成员列表
+@router.get('/user/member_list')
+def user_member_list(
+    request: Request,
+    service: UserService = Depends(get_user_service),
+):
+    parent_id = request.state.user.get('parent_id') or 0
+    if parent_id == 0:
+        parent_id = request.state.user.get('user_id')
+    result = service.user_member_list(parent_id)
+    return Response.success(result)
+
+
 # 创建用户
 @router.post('/user_create')
 def user_create(

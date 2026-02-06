@@ -37,7 +37,7 @@ class ClusterService:
         unit_price: float,
         instance,
     ):
-        account = self.account_service.account_exists(user_id)
+        account = self.account_service.account_exists(user.get('user_id'))
         if not account:
             raise BusinessException(
                 code=ErrorCode.DATA_NOT_FOUND,
@@ -57,6 +57,7 @@ class ClusterService:
     # 创建集群
     def create_cluster_full(self, user: dict, cluster_data: dict):
         user_id = user.get('user_id')
+        username = user.get('username')
         def _do():
             try:
                 with self.db.begin():
@@ -83,6 +84,7 @@ class ClusterService:
                         "deletion_protection": cluster_data['deletion_protection'],
                         "tags": cluster_data['tags'],
                         "created_by": user_id,
+                        "created_by_name": username,
                         "cluster_id": cluster_id,
                         # "price": cluster_data.get('price', 0),
                     }
@@ -114,14 +116,16 @@ class ClusterService:
                             "admin_password": hash_password(node_pool_data.get("admin_password")),
                             "labels": node_pool_data.get("labels", []),
                             "taints": node_pool_data.get("taints", []),
-                            "price": node_pool_data.get('price', 0),
+                            # "price": node_pool_data.get('price', 0),
                             "cpu": inst_spec.get("cpu_core_count"),
                             "gpu_amount": inst_spec.get("gpu_amount"),
                             "gpu_spec": inst_spec.get("gpu_spec"),
                             "gpu_memory": inst_spec.get("gpu_memory"),
                             "instance_type": inst_spec["instance_family"],
                             "instance_type_id": inst_spec["instance_type_id"],
-                            "node_pool_type": "MASTER"
+                            "node_pool_type": "MASTER",
+                            "created_by": user_id,
+                            "created_by_name": username,
                         }
                         node_pool = self.node_pool_repo.create_batch(payload)
                         created_node_pools.append((node_pool, inst_spec))  # 同时保留实例规格信息
@@ -150,7 +154,9 @@ class ClusterService:
                                 "system_disk_category": node_pool.system_disk_category,
                                 "system_disk_size": node_pool.system_disk_size,
                                 "cluster_node_role": "WORKER",
-                                "private_ip": allocate_private_ip(cluster_data['service_cidr'], [])
+                                "private_ip": allocate_private_ip(cluster_data['service_cidr'], []),
+                                "created_by": user_id,
+                                "created_by_name": username,
                             }
                             node_list.append(node_payload)
                         self.node_repo.create_batch(node_list)

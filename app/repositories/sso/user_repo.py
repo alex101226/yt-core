@@ -72,7 +72,9 @@ class UserRepository:
 
     #   返回自己和自己下属的id
     def get_parent_id(self, parent_id: int) -> Optional[int]:
-        return self.db.query(User.id).filter(User.parent_id == parent_id).all()
+        return self.db.query(User).filter(
+            (User.id == parent_id) | (User.parent_id == parent_id)
+        ).all()
 
     # 返回用户数量和用户的角色数量
     def user_count(self, user: dict):
