@@ -285,3 +285,14 @@ class AccountType(enum.Enum):
 class AccountStatus(enum.Enum):
     ACTIVE = "ACTIVE"
     DELETED = "DELETED"
+
+# 退订资源
+class Unsubscribe:
+    SERVER = "SERVER" # 服务器
+    BAREMETAL = 'BAREMETAL' # 裸金属
+    CLUSTER = 'CLUSTER'     # 集群
+    GPFS = 'GPFS' # GPFS存储
+    CEPHFS = 'CEPHFS'  # CephFS存储
+    DISK = "DISK"  # cbs磁盘
+    EIP = 'EIP' # 公网IP
+    LOAD_INSTANCE = 'LOAD_INSTANCE' # 负载均衡

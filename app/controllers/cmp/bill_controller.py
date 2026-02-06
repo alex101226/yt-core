@@ -136,3 +136,26 @@ def monthly_fund_summary_page_list(
     return Response.success(result)
 
 
+@router.get("/unsubscribe_page_list")
+def unsubscribe_page_list(
+    request: Request,
+    page: int = Query(1, description="分页"),
+    page_size: int = Query(10, description="每页条数"),
+    service: BillService = Depends(get_bill_service)
+):
+    parent_id = request.state.user.get('parent_id') or 0
+    if parent_id == 0:
+        parent_id = request.state.user.get('user_id')
+
+    result = service.unsubscribe_page_list(parent_id, page, page_size)
+    return Response.success(result)
+
+@router.put('/unsubscribe/{task_id}')
+def unsubscribe(
+    task_id: int,
+    service: BillService = Depends(get_bill_service)
+):
+    result = service.set_unsubscribe(task_id)
+    return Response.success(result)
+
+

@@ -169,6 +169,8 @@ class BillService:
             billing_period_count = period_months,
             cloud_provider_code=cloud_provider_code,
             region_id=getattr(instance, 'region_id'),
+            created_by = user.get('user_id'),
+            created_by_name=user.get('username'),
         )
         # 创建计费任务
         billing_db = self.repo.bill_create(billing_instance)
@@ -206,5 +208,18 @@ class BillService:
             billing_id = billing.id,
             last_time=now,
             next_time=next_time,
+            # next_time=now + timedelta(minutes=1),
             status=BillingStatus.ACTIVE,
         )
+
+
+    #   查询可退订的资源列表
+    def unsubscribe_page_list(self, parent_id: int, page: int, page_size: int):
+        return self.repo.unsubscribe_page_list(parent_id, page, page_size)
+
+    # 退订
+    def set_unsubscribe(self, task_id: int):
+        result = self.repo.set_unsubscribe(task_id)
+        if not result:
+            raise BusinessException(code=ErrorCode.FAILED, message="退订失败")
+        return True

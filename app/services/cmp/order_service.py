@@ -178,5 +178,4 @@ class OrderService:
             paid_at=order_db.paid_at
         )
         self.invoice_item_service.create_invoice_item(invoice)
-        # self.db.commit()
 

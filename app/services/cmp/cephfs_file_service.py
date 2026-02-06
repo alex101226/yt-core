@@ -70,8 +70,6 @@ class CephfsFileService:
                 if not result:
                     raise BusinessException(code=ErrorCode.FAILED, message=Message.FAILED)
 
-
-
                 self.create_initial_bill(
                     user, payload['charge_type'], result.fs_id, data.price, result,
                 )

@@ -19,7 +19,6 @@ class IsReleasedMixin:
                 target.released_at = datetime.now(timezone.utc)
 
 
-
 class SSOReleasedMixin:
     is_released = Column(Boolean, default=False, nullable=False)
     released_at = Column(DateTime(timezone=True), nullable=True)

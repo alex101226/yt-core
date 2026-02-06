@@ -1,6 +1,7 @@
 # cmp
 from .cmp.dict_controller import router as dict_router
 
+from .cmp.user_access_key_controller import router as user_access_key_router
 from .cmp.user_certificate_controller import router as user_certificate_router
 from .cmp.resource_group_controller import router as resource_group_router
 from .cmp.cloud_vendor_controller import router as cloud_vendor_router

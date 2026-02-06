@@ -4,8 +4,12 @@ from typing import Optional, Tuple, List, Dict
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from app.constants.enums import BillingStatus
+from app.constants.enums import BillingStatus, ResourceType
 from app.core.logger import logger
+from app.models.cmp import (
+CloudServerInstance, BareMetalInstance, GPFSFile, CbsDisk,
+LoadBalancerACL, Eip, K8sCluster, CephfsFile
+)
 
 from app.models.cmp.billing_instance import BillingInstance
 from app.models.cmp.account_funds_flow import FundsFlow
@@ -281,3 +285,101 @@ class BillRepository:
     # 查询计费单条的资源id
     def bill_by_resource_id(self, resource_id):
         return self.db.query(BillingInstance).filter(BillingInstance.resource_id == resource_id).first()
+
+    # 根据任务id查询
+    def get_by_id(self, task_id: int):
+        return self.db.query(BillingInstance).filter(BillingInstance.id == task_id).first()
+
+    # 退订列表
+    def unsubscribe_page_list(self, parent_id: int, page: int, page_size: int):
+        unsubscribe = [
+            ResourceType.SERVER,
+            ResourceType.BAREMETAL,
+            ResourceType.CLUSTER,
+            ResourceType.GPFS,
+            ResourceType.CEPHFS,
+            ResourceType.DISK,
+            ResourceType.EIP,
+            ResourceType.LOAD_INSTANCE
+        ]
+
+        query = self.db.query(BillingInstance) \
+            .filter(
+            BillingInstance.resource_type.in_(unsubscribe),
+            BillingInstance.status == 'ACTIVE',
+            BillingInstance.created_by == parent_id  # 按 parent_id 过滤
+        )
+
+        total = query.count()
+
+        # 分页
+        tasks = query.offset((page - 1) * page_size).limit(page_size).all()
+
+        result_list = []
+        for t in tasks:
+            # 2️⃣ 查资源详情
+            resource = self.fetch_resource(t.resource_type, t.resource_id)
+            if not resource:
+                continue
+
+            result_list.append({
+                "resource_type": t.resource_type,  # 商品
+                "instance_name": getattr(resource, 'instance_name', getattr(resource, 'fs_name', '')),  # 实例名称
+                "resource_id": t.resource_id,  # 实例ID
+                "config_info": self.get_resource_config(resource),  # 配置信息
+                "cloud_provider": t.cloud_provider_code,  # 云厂商
+                "region_id": getattr(resource, 'region_id', ''),  # 区域
+                "zone_id": getattr(resource, 'zone_id', ''),  # 可用区
+                "created_at": getattr(resource, 'created_at', None),  # 实例创建时间
+                "billing_end_time": getattr(t, 'billing_end_time', None),  # 实例到期时间
+                "action": "unsubscribe"  # 操作
+            })
+        return {
+            "total": total,
+            "page": page,
+            "page_size": page_size,
+            "items": result_list
+        }
+
+    def fetch_resource(self, resource_type: str, resource_id: int):
+        # 根据资源类型去对应表查
+        mapping = {
+            ResourceType.SERVER: CloudServerInstance,
+            ResourceType.BAREMETAL: BareMetalInstance,
+            ResourceType.CLUSTER: K8sCluster,
+            ResourceType.GPFS: GPFSFile,
+            ResourceType.CEPHFS: CephfsFile,
+            ResourceType.DISK: CbsDisk,
+            ResourceType.EIP: Eip,
+            ResourceType.LOAD_INSTANCE: LoadBalancerACL,  # 假设有
+        }
+        model = mapping.get(resource_type)
+        if not model:
+            return None
+        return self.db.query(model).filter(model.id == resource_id).first()
+
+    def get_resource_config(self, resource) -> str:
+        # 统一组装配置描述，例如 CPU/内存/磁盘/带宽等
+        info = []
+        if hasattr(resource, 'cpu') and hasattr(resource, 'gpu_memory'):
+            info.append(f"CPU:{resource.cpu} 核")
+            info.append(f"GPU:{resource.gpu_memory} GB")
+        if hasattr(resource, 'system_disk_size'):
+            info.append(f"{resource.system_disk_size} GB")
+        if hasattr(resource, 'disk_size'):
+            info.append(f"{resource.disk_size} GB")
+        if hasattr(resource, 'bandwidth'):
+            info.append(f"{resource.bandwidth} Mbps")
+        return ', '.join(info)
+
+    # 'CREATED','ACTIVE','SUSPENDED','RELEASED'
+    # 执行退订
+    def set_unsubscribe(self, task_id: int):
+        find = self.get_by_id(task_id)
+        if not find:
+            return None
+        find.status = BillingStatus.RELEASED
+        find.billing_end_time = datetime.now(timezone.utc)
+        self.db.commit()
+        self.db.refresh(find)
+        return find

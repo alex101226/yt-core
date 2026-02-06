@@ -1,3 +1,5 @@
+from typing import Optional
+
 from apscheduler.schedulers.background import BackgroundScheduler
 from datetime import datetime, timezone, timedelta
 from dateutil.relativedelta import relativedelta
@@ -5,10 +7,11 @@ from nanoid import generate
 
 from app.core.database import SessionLocal
 
+from app.constants.enums import BillingMethod
 from app.common.exceptions import BusinessException
 from app.core.logger import logger
 
-from app.models.cmp import BillingInstance
+from app.models.cmp import BillingInstance, Account
 
 from app.repositories.cmp.bill_repo import BillRepository
 from app.services.cmp.order_service import OrderService
@@ -34,33 +37,39 @@ class BillingCronService:
         billings = self.repo.find_due_billings(now)
 
         for billing in billings:
+            account = self.account_service.account_exists(billing.created_by)
             try:
-                if billing.billing_method == "PostPaid":
-                    self._handle_postpaid(billing, now)
+                if billing.billing_method == BillingMethod.PostPaid:
+                    self._handle_postpaid(billing, now, account)
                 else:
-                    self._handle_prepaid(billing, now)
+                    self._handle_prepaid(billing, now, account)
 
             except BusinessException as e:
                 logger.exception(f"billing failed: {billing.id}")
                 self.db.rollback()
 
     # 扣费
-    def _handle_postpaid(self, billing: BillingInstance, now: datetime):
+    def _handle_postpaid(self, billing: BillingInstance, now: datetime, account: Optional[Account]):
         # 每周扣费一次
         last_billing = billing.last_billing_time or billing.billing_start_time
+        # 统一成 UTC aware
+        if last_billing.tzinfo is None:
+            last_billing = last_billing.replace(tzinfo=timezone.utc)
+
         next_billing_due = last_billing + timedelta(weeks=1)
         if now < next_billing_due:
             return  # 本周期还没到
-
-        # amount = billing.unit_price
 
         amount = billing.unit_price * 7 * 24  # 假设按小时计费，7天*24小时
 
         # 创建订单 + 扣费
         self.order_service.create_and_pay_order(
-            user_id=billing.user_id,
-            account_id=billing.account_id,
-            instance_id=billing.resource_id,
+            user={
+                'user_id': billing.created_by,
+                "username": billing.created_by_name,
+            },
+            account_id=account.id,
+            instance_id=str(billing.resource_id),
             billing=billing,
             amount=amount,
             order_type="RENEW",
@@ -69,24 +78,26 @@ class BillingCronService:
         )
 
         # 更新计费时间
-        # billing.last_billing_time = billing.next_bill_time
-        # billing.next_bill_time = billing.next_bill_time + timedelta(hours=1)
         billing.last_billing_time = now
         billing.next_bill_time = now + timedelta(weeks=1)
 
         logger.info(f"按量付费扣费成功, billing_id={billing.id}")
-        self.db.flush()
+        # self.db.flush()
+        self.db.commit()
 
     # PrePaid 到期检查
-    def _handle_prepaid(self, billing: BillingInstance, now: datetime):
+    def _handle_prepaid(self, billing: BillingInstance, now: datetime,  account: Optional[Account]):
         # end_time = billing.billing_start_time + relativedelta(
         #     months=billing.billing_period_count
         # )
         # 计算本周期结束时间
         last_billing = billing.last_billing_time or billing.billing_start_time
+
+        if last_billing.tzinfo is None:
+            last_billing = last_billing.replace(tzinfo=timezone.utc)
+
         period_months = billing.billing_period_count or 1
         end_time = last_billing + relativedelta(months=+period_months)
-
         if now < end_time:
             return  # 本周期还没到
 
@@ -94,9 +105,12 @@ class BillingCronService:
         if billing.auto_renew:
             amount = billing.unit_price * period_months
             self.order_service.create_and_pay_order(
-                user_id=billing.user_id,
-                account_id=billing.account_id,
-                instance_id=billing.resource_id,
+                user={
+                    'user_id': billing.created_by,
+                    "username": billing.created_by_name,
+                },
+                account_id=account.id,
+                instance_id=str(billing.resource_id),
                 billing=billing,
                 amount=amount,
                 order_type="RENEW",

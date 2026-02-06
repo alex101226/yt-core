@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from app.core.database import CmpBase
 from app.core.config import settings
 
+from app.models.is_released_mixin import IsReleasedMixin
 from app.constants.enums import (
 BillingCycle, BillingStatus, ResourceType, BillingMethod
 )
@@ -12,7 +13,7 @@ BillingCycle, BillingStatus, ResourceType, BillingMethod
 计费任务
 用于记录实例创建过程中产生的价格计算、扣费流程
 """
-class BillingInstance(CmpBase):
+class BillingInstance(CmpBase, IsReleasedMixin):
     __tablename__ = f"{settings.CMP_TABLE_PREFIX}billing_instance"
     __table_args__ = (
         UniqueConstraint(

@@ -1,5 +1,6 @@
 from .dict_item import DictItem
 from .user_certificate import UserCertificate
+from .user_access_key import UserAccessKey
 from .resource_group import ResourceGroup
 from .cloud_vendor import CloudVendor
 from .network_vpc import Vpc

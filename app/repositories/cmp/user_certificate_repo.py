@@ -1,7 +1,6 @@
 from typing import Optional, List
 from sqlalchemy.orm import Session
 
-from app.core.logger import logger
 from app.models.cmp.user_certificate import UserCertificate
 
 class UserCertificateRepository:
