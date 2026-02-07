@@ -20,8 +20,11 @@ class UserCertificateRepository:
         return self.db.get(UserCertificate, record_id)
 
     # 根据code查询云凭证一条记录
-    def get_by_code(self, cloud_code: str) -> Optional[UserCertificate]:
-        return self.db.query(UserCertificate).filter_by(cloud_code=cloud_code).first()
+    def get_by_code(self, user_id: int, cloud_code: str) -> Optional[UserCertificate]:
+        return self.db.query(UserCertificate).filter(
+            UserCertificate.created_by == user_id,
+            UserCertificate.cloud_code==cloud_code,
+        ).first()
 
     # 下拉选择list
     def certificate_list(self, user_id: int):

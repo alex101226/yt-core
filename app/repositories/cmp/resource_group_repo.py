@@ -24,8 +24,11 @@ class ResourceGroupRepository:
         return self.db.query(ResourceGroup).filter_by(id=group_id).first()
 
     # 根据code查找资源组
-    def get_by_group_code(self, code: str) -> Optional[ResourceGroup]:
-        return self.db.query(ResourceGroup).filter_by(rg_code = code).first()
+    def get_by_group_code(self, user_id: int, code: str) -> Optional[ResourceGroup]:
+        return self.db.query(ResourceGroup).filter(
+            ResourceGroup.created_by == user_id,
+            ResourceGroup.rg_code == code
+        ).first()
 
     # 资源组列表，带分页
     def group_list_page(self, user_id: int, page: int, page_size: int) -> tuple[int, list[type[ResourceGroup]]]:

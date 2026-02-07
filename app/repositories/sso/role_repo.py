@@ -1,9 +1,5 @@
-from typing import Optional
-
-from pydantic import EmailStr
 from sqlalchemy.orm import Session
 
-from app.core.logger import logger
 from app.models.sso.role import Role
 
 class RoleRepository:

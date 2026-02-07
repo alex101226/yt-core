@@ -36,3 +36,17 @@ from .cmp.load_controller import router as load_router
 from .sso.auth_controller import router as auth_router
 from .sso.user_controller import router as user_router
 from .sso.role_controller import router as role_router
+
+# hub
+from .hub.categoire_controller import router as categoire_router
+
+
+__routes__ = [
+'dict_router', 'user_access_key_router', 'user_certificate_router', 'resource_group_router',
+'cloud_vendor_router', 'vpc_router', 'subnet_router', 'security_group_router', 'server_instance_router',
+'bare_metal_instance_router', 'cloud_image_router', 'cloud_router', 'eip_router', 'cbs_router',
+'oss_router', 'gpfs_router', 'cephfs_file_router', 'fs_mount_router', 'container_image_router',
+'cluster_router', 'account_router', 'bill_router', 'invoice_email_router', 'invoice_router',
+'invoice_item_router', 'stat_router', 'load_router', 'auth_router', 'user_router', 'role_router',
+'categoire_router'
+]

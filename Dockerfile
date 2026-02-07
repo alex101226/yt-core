@@ -15,7 +15,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # 显式安装 uvicorn 和 fastapi，避免 requirements.txt 不完整
-RUN pip install --no-cache-dir uvicorn fastapi
+RUN pip install --no-cache-dir uvicorn fastapi gunicorn python-dotenv
 
 # 切换到非 root 用户
 #USER yt_back
@@ -33,4 +33,6 @@ RUN mkdir -p /app/logs
 EXPOSE 8000
 
 # 使用 python -m uvicorn 启动，避免找不到 uvicorn
-CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+#CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+# CMD 改为 Gunicorn + UvicornWorker
+CMD ["gunicorn", "-k", "uvicorn.workers.UvicornWorker", "main:app", "-w", "4", "-b", "0.0.0.0:8000", "--log-level", "info"]

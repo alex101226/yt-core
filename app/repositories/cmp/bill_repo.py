@@ -307,7 +307,7 @@ class BillRepository:
         query = self.db.query(BillingInstance) \
             .filter(
             BillingInstance.resource_type.in_(unsubscribe),
-            BillingInstance.status == 'ACTIVE',
+            BillingInstance.status == BillingStatus.ACTIVE,
             BillingInstance.created_by == parent_id  # 按 parent_id 过滤
         )
 

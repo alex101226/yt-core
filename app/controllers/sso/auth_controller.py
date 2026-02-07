@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Depends, Response as FastAPIResponse
 from sqlalchemy.orm import Session
 
-from app.core.logger import logger
 from app.common.response import Response as ApiResponse
 from app.common.dependencies import get_cmp_db, get_sso_db
 

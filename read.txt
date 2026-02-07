@@ -3,13 +3,13 @@ alembic -c alembic/sso/alembic.ini revision --autogenerate -m "create 迁移文�
 alembic -c alembic/sso/alembic.ini upgrade head
 
 
-public迁移命令:
-alembic -c alembic/public/alembic.ini revision --autogenerate -m "create 迁移文件名 table"
-alembic -c alembic/public/alembic.ini upgrade head
-
 算力系统迁移命令：
 alembic -c alembic/cmp/alembic.ini revision --autogenerate -m "create 表名呗 table"
 alembic -c alembic/cmp/alembic.ini upgrade head
+
+大模型广场：
+alembic -c alembic/hub/alembic.ini revision --autogenerate -m "create 表名呗 table"
+alembic -c alembic/hub/alembic.ini upgrade head
 
 
 进入虚拟环境：source .venv/bin/activate

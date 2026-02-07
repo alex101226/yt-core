@@ -1,5 +1,4 @@
 # app/services/auth_service.py
-from fastapi import Response
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta, timezone
 from app.core.security import hash_password, verify_password, create_access_token, create_refresh_token, \

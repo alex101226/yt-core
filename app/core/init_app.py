@@ -4,7 +4,8 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
-# from app.core.cache import get_redis
+from app import controllers
+
 from app.core.config import settings
 from app.core.logger import logger
 
@@ -13,39 +14,6 @@ BusinessException,
 business_exception_handler,
 global_exception_handler,
 validation_exception_handler
-)
-
-from app.controllers import (
-dict_router,
-auth_router,
-user_router,
-user_certificate_router,
-resource_group_router,
-cloud_router,
-vpc_router,
-subnet_router,
-security_group_router,
-server_instance_router,
-bare_metal_instance_router,
-eip_router,
-cbs_router,
-oss_router,
-gpfs_router,
-cephfs_file_router,
-fs_mount_router,
-container_image_router,
-cluster_router,
-account_router,
-bill_router,
-invoice_email_router,
-invoice_router,
-cloud_vendor_router,
-invoice_item_router,
-cloud_image_router,
-stat_router,
-load_router,
-role_router,
-user_access_key_router,
 )
 
 @asynccontextmanager
@@ -79,38 +47,7 @@ def create_app() -> FastAPI:
     )
 
     # include routers
-    routers = [
-        user_access_key_router,
-        role_router,
-        load_router,
-        stat_router,
-        dict_router,
-        cloud_vendor_router,
-        auth_router,
-        user_router,
-        account_router,
-        bill_router,
-        user_certificate_router,
-        resource_group_router,
-        cloud_router,
-        vpc_router,
-        subnet_router,
-        security_group_router,
-        server_instance_router,
-        bare_metal_instance_router,
-        eip_router,
-        cbs_router,
-        oss_router,
-        gpfs_router,
-        cephfs_file_router,
-        fs_mount_router,
-        container_image_router,
-        cluster_router,
-        invoice_email_router,
-        invoice_router,
-        invoice_item_router,
-        cloud_image_router,
-    ]
+    routers = [getattr(controllers, name) for name in controllers.__routes__]
     for r in routers:
         app.include_router(r, prefix=settings.API_PREFIX)
 

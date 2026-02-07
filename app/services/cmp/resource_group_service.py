@@ -19,7 +19,7 @@ class ResourceGroupService:
     def create_group(self, user: dict, data: dict):
         def _do():
             # 检查 code 是否已存在
-            exists = self.repo.get_by_group_code(data['rg_code'])
+            exists = self.repo.get_by_group_code(user.get('user_id'), data['rg_code'])
             if exists:
                 raise BusinessException(
                     code=ErrorCode.RESOURCE_GROUP_EXISTS,

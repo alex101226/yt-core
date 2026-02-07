@@ -1,4 +1,3 @@
-from tkinter import Image
 from typing import Optional
 
 from sqlalchemy.orm import Session
@@ -71,7 +70,7 @@ class ContainerImageRepository:
         items = query.order_by(ImageRepository.id.desc()).offset(offset_value).limit(page_size).all()
         return items, total
 
-    def get_by_id(self, image_id: int) -> Optional[Image]:
+    def get_by_id(self, image_id: int) -> Optional[ImageRepository]:
         return self.db.query(ImageRepository).filter(ImageRepository.id == image_id).first()
 
     # 停止容器

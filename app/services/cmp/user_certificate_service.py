@@ -28,7 +28,7 @@ class UserCertificateService:
                 data["is_default"] = 0
 
             # cloud_code 唯一校验
-            if self.repo.get_by_code(data['cloud_code']):
+            if self.repo.get_by_code(user_id, data['cloud_code']):
                 raise BusinessException(code=ErrorCode.DATA_DUPLICATE, message=Message.DATA_DUPLICATE)
             certificate = self.repo.create(data)
             return certificate

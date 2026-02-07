@@ -8,3 +8,13 @@ __pycache__/
 openapi.json
 start.sh
 api.html
+
+alembic/sso/versions/*
+!alembic/sso/versions/.gitkeep
+
+alembic/cmp/versions/*
+!alembic/cmp/versions/.gitkeep
+
+alembic/hub/versions/*
+!alembic/hub/versions/.gitkeep
+

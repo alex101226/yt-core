@@ -5,23 +5,27 @@ from alembic import context
 import os
 import sys
 
+from app.models.hub import __init__
+
 # 添加项目根目录到 Python 路径
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
+# sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
 
 # 导入项目配置
 from app.core.config import settings
-from app.core.database import AuditBase
+from app.core.database import HubBase
+
+print("HUB DB URL =", HubBase.metadata.tables.keys())
 
 config = context.config
 
 # ✅ 关键：从 settings 注入数据库 URL（这个是 .env.development 里的 DB_SSO_AUTH）
-config.set_main_option("sqlalchemy.url", settings.DB_AUDIT_CENTER)
+config.set_main_option("sqlalchemy.url", settings.DB_HUB)
 
 # ✅ 日志配置
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-target_metadata = AuditBase.metadata
+target_metadata = HubBase.metadata
 
 
 def run_migrations_offline():
