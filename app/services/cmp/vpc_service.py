@@ -97,7 +97,7 @@ class VPCService:
         if vpc.used_count > 0 and vpc.status != 'AVAILABLE':
             raise BusinessException(code=ErrorCode.FAILED, message="无法释放正在使用的VPC")
 
-        subnet_list = self.subnet_service.list_subnets(vpc_id)
+        subnet_list = self.subnet_service.used_subnet(vpc_id)
 
         if len(subnet_list) > 0:
             raise BusinessException(code=ErrorCode.FAILED, message="请先释放vpc下的子网")

@@ -4,9 +4,12 @@ from app.common.exceptions import BusinessException
 from app.common.messages import Message
 from app.common.status_code import ErrorCode
 from app.core.logger import logger
-
 from app.core.security import hash_password
 from app.common.ipaddress import allocate_private_ip
+
+
+from app.services.cmp.subnet_service import SubnetService
+from app.services.cmp.vpc_service import VPCService
 
 from app.services.cmp.bill_service import BillService
 from app.services.cmp.account_service import AccountService
@@ -27,6 +30,8 @@ class ClusterService:
         self.node_history_repo = NodeResourceHistoryRepository(db)
         self.account_service = AccountService(self.db)
         self.bill_service = BillService(db)
+        self.vpc_service = VPCService(db)
+        self.subnet_service = SubnetService(db)
 
     # 生成计费任务
     def create_initial_bill(
@@ -218,6 +223,7 @@ class ClusterService:
                 "master_instance_type": cluster.master_instance_type,
                 "service_cidr": cluster.service_cidr,
                 "tags": cluster.tags,
+                "deletion_protection": cluster.deletion_protection,
                 **resource_info,
             }
             result_items.append(item)
@@ -227,6 +233,43 @@ class ClusterService:
             "total": total,
             "items": result_items,
         }
+
+        # 开启/关闭释放保护
+
+    def toggle_server_release(self, instance_id: int):
+        find = self.cluster_repo.toggle_cluster_release(instance_id)
+        if not find:
+            raise BusinessException(code=ErrorCode.DATA_NOT_FOUND, message=Message.DATA_NOT_FOUND)
+        return find
+
+    # 释放
+    def server_release(self, instance_id: int):
+        with self.db.begin():
+            instance = self.cluster_repo.get_by_id(instance_id)
+            if not instance:
+                raise BusinessException(code=ErrorCode.DATA_NOT_FOUND, message=Message.DATA_NOT_FOUND)
+
+            if instance.deletion_protection == 1:
+                raise BusinessException(code=ErrorCode.DATA_NOT_FOUND, message="此集群无法释放")
+
+            # active_status = {
+            #     'SCALING',
+            #     'UPGRADING',
+            # }
+
+            # if instance.status in active_status:
+            #     raise BusinessException(code=ErrorCode.DATA_NOT_FOUND, message="当前集群正在使用，无法释放")
+            result = self.cluster_repo.cluster_release(instance_id)
+            if not result:
+                raise BusinessException(code=ErrorCode.FAILED, message=Message.FAILED)
+            # -----------------------------
+            # 5. VPC / 子网 / 公网 IP / 系统盘 / 数据盘 / 资源组绑定   RUNNING
+            # -----------------------------
+            if instance.vpc_id:
+                self.vpc_service.update_vpc(instance.vpc_id, 'release')
+            for subnet_id in instance.subnet_ids:
+                self.subnet_service.update_subnet(subnet_id, 'release')
+            return result
 
     # 节电池列表
     def cluster_pool_list(self, cluster_id: int):

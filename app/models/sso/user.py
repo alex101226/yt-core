@@ -1,7 +1,6 @@
 from datetime import datetime, timezone
 
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
-from sqlalchemy.orm import relationship
+from sqlalchemy import Column, Integer, String, DateTime
 from app.core.database import SsoBase
 from app.core.config import settings
 from app.models.is_released_mixin import SSOReleasedMixin
@@ -17,7 +16,6 @@ class User(SsoBase, SSOReleasedMixin):
 
     role_code = Column(
         String(50),
-        ForeignKey(f"{settings.SSO_TABLE_PREFIX}roles.role_code"),
         nullable=True,
         index=True,
         comment="权限Code（角色标识）"
@@ -42,6 +40,3 @@ class User(SsoBase, SSOReleasedMixin):
         nullable=False,
         comment="更新时间 (UTC)"
     )
-
-    # 可选：角色关系映射
-    role = relationship("Role", backref="users")

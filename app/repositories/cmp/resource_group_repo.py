@@ -80,7 +80,10 @@ class ResourceGroupRepository:
 
     # 查询资源是否已绑定
     def get_by_resource_bind(self, resource_type: str, resource_id: str) -> Optional[ResourceGroupBinding]:
-        find = self.db.query(ResourceGroupBinding).filter_by(resource_type=resource_type, resource_id=resource_id).first()
+        find = self.db.query(ResourceGroupBinding).filter(
+            ResourceGroupBinding.resource_type==resource_type,
+            ResourceGroupBinding.resource_id==resource_id
+        ).first()
         return find
 
     # 获取某组下的绑定（分页）

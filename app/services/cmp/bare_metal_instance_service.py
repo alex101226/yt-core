@@ -149,7 +149,7 @@ class BareMetalInstanceService:
                     return self._create_instance_internal(user, data)
 
             except BusinessException as exception:
-                self.db.rollback()
+                # self.db.rollback()
                 raise exception
 
         # -------- 交给统一封装处理通知 --------

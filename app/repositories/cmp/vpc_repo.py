@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from typing import List, Optional
 
-from sqlalchemy import func
+from sqlalchemy import func, and_
 from sqlalchemy.orm import Session
 
 from app.core.logger import logger
@@ -116,7 +116,10 @@ class VpcRepository:
             ResourceGroup.id == Vpc.resource_group_id
         ).outerjoin(
             Subnet,
-            Subnet.vpc_id == Vpc.id,
+            and_(
+                Subnet.vpc_id == Vpc.id,
+                Subnet.is_released == 0
+            )
         ).group_by(Vpc.id).order_by(Vpc.id.desc())
 
         filters = [Vpc.created_by == user_id, Vpc.is_released == 0]

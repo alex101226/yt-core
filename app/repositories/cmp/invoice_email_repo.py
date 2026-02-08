@@ -60,7 +60,7 @@ class InvoiceEmailRepo:
     # 清除默认
     def clear_default(self, user_id: int):
         self.db.query(InvoiceEmail).filter(
-            InvoiceEmail.user_id == user_id,
+            InvoiceEmail.created_by == user_id,
             InvoiceEmail.is_default == 1
         ).update({InvoiceEmail.is_default: 0})
         self.db.commit()

@@ -26,13 +26,7 @@ def create_certificate(
     service: UserCertificateService = Depends(get_user_certificate_service)
 ):
     user = request.state.user
-    payload = data.model_dump()
-    payload = {
-        **payload,
-        'created_by': user.get('user_id') or 0,
-        'created_by_name': user.get('username'),
-    }
-    obj = service.create_certificate(request.state.user, payload)
+    obj = service.create_certificate(user, data)
     return Response.success(obj)
 
 @router.get("/cer_list")

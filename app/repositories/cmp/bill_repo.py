@@ -308,7 +308,8 @@ class BillRepository:
             .filter(
             BillingInstance.resource_type.in_(unsubscribe),
             BillingInstance.status == BillingStatus.ACTIVE,
-            BillingInstance.created_by == parent_id  # 按 parent_id 过滤
+            BillingInstance.created_by == parent_id,
+            BillingInstance.is_released == 0,
         )
 
         total = query.count()

@@ -199,9 +199,10 @@ class StatRepository:
 
     # 系统通知（用户操作日志）
     def create_notification(self, **kwargs) -> AuditLog:
+        logger.info(f'能执行过来吗？')
         log = AuditLog(**kwargs)
         self.db.add(log)
-        self.db.flush()
+        # self.db.flush()
         # self.db.commit()
         # self.db.refresh(log)
         return log

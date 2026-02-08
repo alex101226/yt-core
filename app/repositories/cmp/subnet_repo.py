@@ -60,8 +60,9 @@ class SubnetRepository:
     def create(self, data: dict) -> bool:
         obj = Subnet(**data)
         self.db.add(obj)
-        self.db.commit()
-        self.db.refresh(obj)
+        self.db.flush()
+        # self.db.commit()
+        # self.db.refresh(obj)
         return obj
 
     def get(self, subnet_id: int) -> Optional[Subnet]:
@@ -76,7 +77,12 @@ class SubnetRepository:
         items = self.db.query(Subnet).filter(Subnet.vpc_id==vpc_id).order_by(Subnet.created_at).all()
         return items
 
-
+    def used_subnet(self, vpc_id: int) -> list[type[Subnet]]:
+        items = self.db.query(Subnet).filter(
+            Subnet.vpc_id==vpc_id,
+            Subnet.is_released == 0,
+        ).order_by(Subnet.created_at).all()
+        return items
     #   返回list
     def vpc_by_subnet_page_list(self, vpc_id: int, page: int, page_size: int) -> tuple[int, list[type[Subnet]]]:
         query = self.db.query(Subnet)

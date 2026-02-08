@@ -89,7 +89,7 @@ class ActionOperate(enum.Enum):
     BIND = "bind"  # 绑定（如 EIP 绑定实例、磁盘挂载）
     UNBIND = "unbind"  # 解绑
 
-# 模块
+# 模块    'SERVER','EIP','BAREMETAL','CLUSTER','LOAD_INSTANCE','VPC','SUBNET','SECURITY','GPFS','OSS','CEPHFS','CUSTOM_IMAGE','CONTAINER_IMAGE','BILLING','INVOICE','WALLET','REFUND','ORDER','PAYMENT','USER','ROLE','PERMISSION','API_KEY','SYSTEM_CONFIG','SYSTEM_NOTICE','AUDIT_LOG','TASK','SCHEDULE'
 class ActionMode(enum.Enum):
     # ========== 计算 / 资源 ==========
     SERVER = "server"  # 云服务器

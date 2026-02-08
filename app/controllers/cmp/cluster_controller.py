@@ -44,6 +44,27 @@ def cluster_page_list(
     result = service.cluster_page_list(request.state.user, page, page_size, name)
     return Response.success(result)
 
+# 服务器释放
+@router.delete('/release/{instance_id}')
+def server_release(
+    instance_id: int,
+    service: ClusterService = Depends(get_cluster_service)
+):
+    result = service.server_release(instance_id)
+    return Response.success(result)
+
+# 开启/关闭释放保护
+@router.put('/toggle/{instance_id}')
+def toggle_release(
+    request: Request,
+    instance_id: int,
+    service: ClusterService = Depends(get_cluster_service)
+):
+    user_id = request.state.user.get("user_id")
+    result = service.toggle_server_release(instance_id)
+    return Response.success(result)
+
+
 # 节电池列表
 @router.get("/clusters/pool/list")
 def cluster_pool_list(

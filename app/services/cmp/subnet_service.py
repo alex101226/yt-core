@@ -25,6 +25,9 @@ class SubnetService:
         subnets = self.subnet_repo.list_by_subnet(vpc_id)
         return subnets
 
+    def used_subnet(self, vpc_id: int):
+        return self.subnet_repo.used_subnet(vpc_id)
+
     # 分页查列表
     def page_subnets(
         self,
@@ -86,13 +89,15 @@ class SubnetService:
                     created_by_name = username,
                     resource_group_id=data.resource_group_id,
                     resource_type="subnet",
-                    resource_id=str(result),
+                    resource_id=str(result.id),
                 )
             )
+            self.db.commit()
+            self.db.refresh(result)
             return result
 
         # -------- 交给统一封装处理通知 --------
-        return execute_with_notification(
+        info = execute_with_notification(
             db=self.db,
             user=user,
             system=1,
@@ -105,6 +110,7 @@ class SubnetService:
             failed_desc="子网创建失败",
             func=_do
         )
+        return info
 
     # 删除
     def subnet_release(self, subnet_id: int) -> bool:

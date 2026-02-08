@@ -36,7 +36,7 @@ def execute_with_notification(
 
         # 动态生成 source_id
         source_id = source_id_fn(result) if source_id_fn else None
-
+        logger.info(f'看下 {source_id}')
         data = AuditLogSchema(
             created_by=user.get('user_id', 0),
             created_by_name=user.get('username'),

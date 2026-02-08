@@ -106,7 +106,7 @@ class CbsService:
                 "region_id": instance.region_id,
                 "zone_id": instance.zone_id,
                 "resource_group_id": instance.resource_group_id,
-                "charge_type": instance.charge_type,
+                "charge_type": 'PostPaid',
             }
             result = self.repo.cbs_create(payload)
             self.create_initial_bill(

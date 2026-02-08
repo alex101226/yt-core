@@ -135,6 +135,31 @@ class ClusterRepository:
         items = query.offset(offset_value).limit(page_size).all()
         return items, total
 
+    def get_by_id(self, cluster_id: int):
+        return self.db.query(K8sCluster).filter(K8sCluster.id == cluster_id).first()
+
+    # 开启/关闭释放保护
+    def toggle_cluster_release(self, cluster_id: int):
+        db_cluster = self.get_by_id(cluster_id)
+        if not db_cluster:
+            return None
+
+        db_cluster.deletion_protection ^= 1   # 位运算异或，直接 0→1、1→0
+        self.db.commit()
+        self.db.refresh(db_cluster)
+        return True
+
+    # 集群释放  字典表type_code=CLUSTER_STATUS
+    def cluster_release(self, cluster_id: int):
+        db_instance = self.get_by_id(cluster_id)
+        if not db_instance:
+            return None
+        db_instance.status = 'DELETING'
+        db_instance.is_released = 1
+        self.db.flush()
+        # self.db.commit()
+        # self.db.refresh(db_instance)
+        return True
 
 # -------------------
 # 节点池 Repository

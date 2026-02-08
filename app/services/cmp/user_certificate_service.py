@@ -2,7 +2,9 @@ from sqlalchemy.orm import Session
 
 from app.repositories.cmp.user_certificate_repo import UserCertificateRepository
 
-from app.schemas.cmp.user_certificate_schema import UserCertificateList, UserCertificatePage, UserCertificateOut
+from app.schemas.cmp.user_certificate_schema import (
+UserCertificateList, UserCertificatePage, UserCertificateOut, UserCertificateCreate
+)
 from app.common.exceptions import BusinessException
 from app.common.status_code import ErrorCode
 from app.common.messages import Message
@@ -16,22 +18,30 @@ class UserCertificateService:
         self.db = db
         self.repo = UserCertificateRepository(db)
 
-    def create_certificate(self, user: dict, data: dict):
+    def create_certificate(self, user: dict, data: UserCertificateCreate):
         def _do():
-            user_id = user["user_id"]
-            count = self.repo.count_by_user(user_id)
+            try:
+                user_id = user["user_id"]
+                count = self.repo.count_by_user(user_id)
+                payload = {
+                    **data.model_dump(),
+                    "created_by": user_id,
+                    "created_by_name": user["username"],
+                }
+                # 如果是第一条，自动设为默认
+                if count == 0:
+                    payload['is_default'] = 1
+                else:
+                    payload['is_default'] = 0
 
-            # 如果是第一条，自动设为默认
-            if count == 0:
-                data["is_default"] = 1
-            else:
-                data["is_default"] = 0
-
-            # cloud_code 唯一校验
-            if self.repo.get_by_code(user_id, data['cloud_code']):
-                raise BusinessException(code=ErrorCode.DATA_DUPLICATE, message=Message.DATA_DUPLICATE)
-            certificate = self.repo.create(data)
-            return certificate
+                # cloud_code 唯一校验
+                if self.repo.get_by_code(user_id, data.cloud_code):
+                    raise BusinessException(code=ErrorCode.DATA_DUPLICATE, message=Message.DATA_DUPLICATE)
+                certificate = self.repo.create(payload)
+                return certificate
+            except BusinessException as exception:
+                logger.info(f'查看报错 {exception}')
+                return False
 
         # -------- 交给统一封装处理通知 --------
         return execute_with_notification(
