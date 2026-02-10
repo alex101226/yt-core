@@ -2,24 +2,28 @@
 from datetime import datetime, timezone
 from typing import Optional
 
-from sqlalchemy import func, extract, desc
+from sqlalchemy import func, extract, desc, case
 from sqlalchemy.orm import Session
 
 from app.core.logger import logger
 from app.models.cmp import (
     CloudServerInstance, Vpc, Subnet, SecurityGroup, CbsDisk, CephfsFile, GPFSFile,
     K8sCluster, ImageRepository, AuditLog, Account, OrderDetail, Order, InvoiceRecord,
-    InvoiceItem, FundsFlow,
+    InvoiceItem, FundsFlow, BareMetalInstance
 )
 
 class StatRepository:
 
     def __init__(self, db: Session):
         self.db = db
+    # 裸金属的数量
+    def count_bares(self, user_id: int):
+        return self.db.query(BareMetalInstance).filter(BareMetalInstance.created_by == user_id).count()
 
     # 服务器数量
     def count_servers(self, user_id: int) -> int:
         return self.db.query(CloudServerInstance).filter(CloudServerInstance.created_by == user_id).count()
+
     # vpc数量
     def count_vpcs(self, user_id: int) -> int:
         return self.db.query(Vpc).filter(Vpc.created_by == user_id).count()
@@ -51,6 +55,239 @@ class StatRepository:
     # 容器镜像数量
     def count_container_images(self, user_id: int) -> int:
         return self.db.query(ImageRepository).filter(ImageRepository.created_by == user_id).count()
+    # 物理的状态统计
+    def stat_baremetal_status(self, user_id: int):
+        return (
+            self.db.query(
+                func.sum(
+                    case((BareMetalInstance.status == 'RUNNING', 1), else_=0)
+                ).label('running'),
+                func.sum(
+                    case((BareMetalInstance.status == 'STOPPED', 1), else_=0)
+                ).label('stopped'),
+                func.sum(
+                    case((BareMetalInstance.status.in_(['ERROR', 'FAILED']), 1), else_=0)
+                ).label('error'),
+            ).filter(
+                BareMetalInstance.created_by == user_id,
+                BareMetalInstance.is_released == 0
+            ).one()
+        )
+    # 服务器的状态统计
+    def state_server_status(self, user_id: int):
+        return self.db.query(
+            func.sum(
+                case((CloudServerInstance.status == 'RUNNING', 1), else_=0)
+            ).label('running'),
+            func.sum(
+                case((CloudServerInstance.status == 'STOPPED', 1), else_=0)
+            ).label('stopped'),
+            func.sum(
+                case((CloudServerInstance.status.in_(['ERROR', 'FAILED']), 1), else_=0)
+            ).label('error'),
+        ).filter(
+            CloudServerInstance.created_by == user_id,
+            CloudServerInstance.is_released == 0
+        ).one()
+
+    # 纳管，历史的gpu算力
+    def total_compute(self, user_id: int, isAll: bool = False):
+        GPU_FLOPS_MAP = {
+            "NVIDIA A10": 125,
+            "NVIDIA A100": 312,
+            "NVIDIA H1000": 1000,
+        }
+        query1 = self.db.query(
+                BareMetalInstance.gpu_amount,
+                BareMetalInstance.gpu_spec
+            )
+
+        query2 = self.db.query(
+                CloudServerInstance.gpu_amount,
+                CloudServerInstance.gpu_spec
+            )
+        filters1 = [BareMetalInstance.created_by == user_id, BareMetalInstance.gpu_amount > 0]
+        filters2 = [CloudServerInstance.created_by == user_id, CloudServerInstance.gpu_amount > 0]
+        if not isAll:
+            filters1.append(BareMetalInstance.is_released == 0)
+            filters2.append(CloudServerInstance.is_released == 0)
+        bare = query1.filter(*filters1).all()
+        cloud = query2.filter(*filters2).all()
+
+        total_tflops = 0
+
+        for gpu_amount, gpu_spec in bare + cloud:
+            tflops = GPU_FLOPS_MAP.get(gpu_spec, 0)
+            total_tflops += gpu_amount * tflops
+        return round(total_tflops / 1000, 2)
+
+    # 纳管，gpu量
+    def total_gpu_amount(self, user_id: int, isAll: bool = False):
+        query1 = self.db.query(BareMetalInstance.gpu_amount)
+        query2 = self.db.query(CloudServerInstance.gpu_amount)
+
+        filters1 = [
+            BareMetalInstance.created_by == user_id,
+            BareMetalInstance.gpu_amount > 0
+        ]
+        filters2 = [
+            CloudServerInstance.created_by == user_id,
+            CloudServerInstance.gpu_amount > 0
+        ]
+
+        if isAll:
+            filters1.append(BareMetalInstance.is_released == 0)
+            filters2.append(CloudServerInstance.is_released == 0)
+
+        bare = query1.filter(*filters1).all()
+        cloud = query2.filter(*filters2).all()
+
+        total = sum(x[0] for x in bare + cloud)
+        return total
+
+    # 纳管，cpu量
+    def total_cpu(self, user_id: int, isAll: bool = False):
+        query1 = self.db.query(BareMetalInstance.cpu)
+        query2 = self.db.query(CloudServerInstance.cpu)
+
+        filters1 = [
+            BareMetalInstance.created_by == user_id,
+            BareMetalInstance.cpu > 0
+        ]
+        filters2 = [
+            CloudServerInstance.created_by == user_id,
+            CloudServerInstance.cpu > 0
+        ]
+
+        if isAll:
+            filters1.append(BareMetalInstance.is_released == 0)
+            filters2.append(CloudServerInstance.is_released == 0)
+
+        bare = query1.filter(*filters1).all()
+        cloud = query2.filter(*filters2).all()
+
+        return sum(x[0] for x in bare + cloud)
+
+    # 纳管，内存
+    def total_memory(self, user_id: int, isAll: bool = False):
+        query1 = self.db.query(BareMetalInstance.system_disk_size)
+        query2 = self.db.query(CloudServerInstance.system_disk_size)
+
+        filters1 = [
+            BareMetalInstance.created_by == user_id,
+            BareMetalInstance.system_disk_size > 0
+        ]
+        filters2 = [
+            CloudServerInstance.created_by == user_id,
+            CloudServerInstance.system_disk_size > 0
+        ]
+
+        if isAll:
+            filters1.append(BareMetalInstance.is_released == 0)
+            filters2.append(CloudServerInstance.is_released == 0)
+
+        bare = query1.filter(*filters1).all()
+        cloud = query2.filter(*filters2).all()
+
+        return sum(x[0] for x in bare + cloud)
+
+    # 纳管，存储
+    def total_storage(self, user_id: int, isAll: bool = False):
+        query1 = self.db.query(CbsDisk.disk_size)
+
+        filters1 = [
+            CbsDisk.created_by == user_id,
+            CbsDisk.disk_size > 0
+        ]
+
+        if isAll:
+            filters1.append(CbsDisk.is_released == 0)
+
+        cbs = query1.filter(*filters1).all()
+
+        return sum(x[0] for x in cbs)
+
+    # 纳管gpu分配率
+    def current_gpu_rate_by_provider(self, user_id: int):
+        # 运行中的 GPU
+        running_bare = (
+            self.db.query(
+                BareMetalInstance.cloud_provider_code,
+                func.sum(BareMetalInstance.gpu_amount)
+            )
+            .filter(
+                BareMetalInstance.created_by == user_id,
+                BareMetalInstance.is_released == 0,
+                BareMetalInstance.status == 'RUNNING',
+                BareMetalInstance.gpu_amount > 0
+            )
+            .group_by(BareMetalInstance.cloud_provider_code)
+            .all()
+        )
+        # 纳管中的 GPU 总量
+        total_bare = (
+            self.db.query(
+                BareMetalInstance.cloud_provider_code,
+                func.sum(BareMetalInstance.gpu_amount)
+            )
+            .filter(
+                BareMetalInstance.created_by == user_id,
+                BareMetalInstance.is_released == 0,
+                BareMetalInstance.gpu_amount > 0
+            )
+            .group_by(BareMetalInstance.cloud_provider_code)
+            .all()
+        )
+
+
+        running_cloud = (
+            self.db.query(
+                CloudServerInstance.cloud_provider_code,
+                func.sum(CloudServerInstance.gpu_amount)
+            )
+            .filter(
+                CloudServerInstance.created_by == user_id,
+                CloudServerInstance.is_released == 0,
+                CloudServerInstance.status == 'RUNNING',
+                CloudServerInstance.gpu_amount > 0
+            )
+            .group_by(CloudServerInstance.cloud_provider_code)
+            .all()
+        )
+
+
+
+        total_cloud = (
+            self.db.query(
+                CloudServerInstance.cloud_provider_code,
+                func.sum(CloudServerInstance.gpu_amount)
+            )
+            .filter(
+                CloudServerInstance.created_by == user_id,
+                CloudServerInstance.is_released == 0,
+                CloudServerInstance.gpu_amount > 0
+            )
+            .group_by(CloudServerInstance.cloud_provider_code)
+            .all()
+        )
+
+        def merge(rows):
+            data = {}
+            for k, v in rows:
+                data[k] = data.get(k, 0) + (v or 0)
+            return data
+
+        running = merge(running_bare + running_cloud)
+        total = merge(total_bare + total_cloud)
+
+        rates = {}
+        for provider in total:
+            if total[provider] == 0:
+                rates[provider] = 0
+            else:
+                rates[provider] = round(running.get(provider, 0) / total[provider] * 100, 2)
+
+        return rates
 
     # 当月支出
     def sum_monthly_spent(self, user_id: int, year: int, month: int) -> float:

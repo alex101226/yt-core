@@ -1,9 +1,11 @@
 # app/services/stat_service.py
+import random
 from datetime import datetime, timezone, timedelta, date
 from typing import Dict, List
 
 from sqlalchemy.orm import Session
 
+from app.core.logger import logger
 from app.repositories.cmp.stat_repo import StatRepository
 
 from app.schemas.cmp.state_schema import AuditLogSchema
@@ -142,6 +144,87 @@ class StatService:
     # 创建一条系统通知（操作日志）
     def create_notification(self, data: AuditLogSchema):
         return self.repo.create_notification(**data.model_dump())
+
+    #   纳管机器统计
+    def cps_state_server_count(self, user_id: int):
+        bare = self.repo.stat_baremetal_status(user_id)
+        server = self.repo.state_server_status(user_id)
+        return {
+            'bare_run': bare.running or 0,
+            'bare_stop': bare.stopped or 0,
+            'bare_error': bare.error or 0,
+            "running": (bare.running or 0) + (server.running or 0),
+            "stopped": (bare.stopped or 0) + (server.stopped or 0),
+            "error": (bare.error or 0) + (server.error or 0),
+            "total_compute": self.repo.total_compute(user_id),
+            "current_compute": self.repo.total_compute(user_id, True),
+            "current_gpu": self.repo.total_gpu_amount(user_id, True),
+            "total_gpu": self.repo.total_gpu_amount(user_id, False),
+            "current_cpu": self.repo.total_cpu(user_id, True),
+            "total_cpu": self.repo.total_cpu(user_id),
+            "current_memory": self.repo.total_memory(user_id, True),
+            "total_memory": self.repo.total_memory(user_id),
+            "current_storage": self.repo.total_storage(user_id, True),
+            "total_storage": self.repo.total_storage(user_id, False),
+        }
+
+    def fake_gpu_rate_series(
+            self,
+            base_rate,
+            points: int,
+            step_minutes: int,
+            max_fluctuation: int,
+            time_format: str
+    ):
+        base_rate = float(base_rate)  # ⭐ 关键一行
+
+        now = datetime.now()
+        result = []
+
+        for i in range(points):
+            time_point = now - timedelta(minutes=step_minutes * (points - i - 1))
+
+            fluctuation = random.uniform(
+                -max_fluctuation,
+                max_fluctuation
+            ) * (i + 1) / points
+
+            rate = max(0.0, min(100.0, base_rate + fluctuation))
+
+            result.append({
+                "x": time_point.strftime(time_format),
+                "rate": round(rate, 2)
+            })
+
+        return result
+
+    def gpu_rate_trend(self, user_id: int, range_type: str):
+        """
+        range_type: '1h' | '24h'
+        """
+        base_rates = self.repo.current_gpu_rate_by_provider(user_id)
+
+        data = {}
+
+        for provider, base_rate in base_rates.items():
+            if range_type == '1h':
+                data[provider] = self.fake_gpu_rate_series(
+                    base_rate=base_rate,
+                    points=4,
+                    step_minutes=15,
+                    max_fluctuation=5,
+                    time_format='%H:%M'
+                )
+            else:
+                data[provider] = self.fake_gpu_rate_series(
+                    base_rate=base_rate,
+                    points=4,
+                    step_minutes=360,
+                    max_fluctuation=10,
+                    time_format='%m-%d %H:%M'
+                )
+
+        return data
 
     # 获取通知列表
     def get_notifications_page_list(

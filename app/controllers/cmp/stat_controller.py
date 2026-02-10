@@ -109,6 +109,34 @@ def get_monthly_top5_stats(
     result = service.get_monthly_top5_stats(parent_id, date)
     return Response.success(result)
 
+# 纳管机器统计
+@router.get("/cps/cloud/count")
+def get_cps_count(
+    request: Request,
+    db: Session = Depends(get_cmp_db)
+
+):
+    service = StatService(db)
+    parent_id = request.state.user.get('parent_id') or 0
+    if parent_id == 0:
+        parent_id = request.state.user.get('user_id')
+    result = service.cps_state_server_count(parent_id)
+    return Response.success(result)
+
+# 纳管，gpu分配率统计   gpu_rate_trend
+@router.get("/cps/gpu_rate")
+def get_cps_gpu_rate(
+    request: Request,
+    time: str = '1h',
+    db: Session = Depends(get_cmp_db)
+):
+    service = StatService(db)
+    parent_id = request.state.user.get('parent_id') or 0
+    if parent_id == 0:
+        parent_id = request.state.user.get('user_id')
+    result = service.gpu_rate_trend(parent_id, time)
+    return Response.success(result)
+
 # 系统通知列表
 @router.get("/user/message")
 def get_user_statistics(
