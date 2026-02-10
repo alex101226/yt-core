@@ -11,6 +11,8 @@ LoginRequest, TokenResponse, RefreshTokenIn,
 UserRegister, TokenOut, UserOut, LogoutRequest
 )
 
+ACCESS_TOKEN_EXPIRE_DAYS = 3000
+
 def get_auth_service(
     sso_db: Session = Depends(get_sso_db),
     cmp_db: Session = Depends(get_cmp_db),
@@ -22,14 +24,15 @@ router = APIRouter(prefix="/auth", tags=["sso认证"])
 
 # 清除cookie
 def clear_auth_cookie(response: FastAPIResponse):
-    response.delete_cookie("access_token")
+    response.delete_cookie("access_token", path="/")
     # response.delete_cookie("refresh_token", path="/", domain="你的域名")
 
 #   登录
 @router.post("/login", response_model=TokenOut)
 def login(data: LoginRequest, response: FastAPIResponse, service: AuthService = Depends(get_auth_service)):
-    clear_auth_cookie(response)
-    result = service.login(data)
+
+    result = service.login(data, response)
+
     return ApiResponse.success(result, cookies={"access_token": result.access_token})
 
 # 刷新token
@@ -48,8 +51,8 @@ def logout(
     response: FastAPIResponse,
     service: AuthService = Depends(get_auth_service)
 ):
-    service.logout(data.user_id)
-    clear_auth_cookie(response)
+    service.logout(data.user_id, response)
+    # clear_auth_cookie(response)
     # return ApiResponse.success(result)
     return {"code": 20000, "message": "已退出登录"}
 
@@ -57,9 +60,10 @@ def logout(
 @router.post("/register", response_model=TokenOut)
 def register(
     data: UserRegister,
+    response: FastAPIResponse,
     service: AuthService = Depends(get_auth_service),
 ):
-    result = service.register(data)
+    result = service.register(data, response)
     result = {
         "access_token": result.access_token,
         "refresh_token": result.refresh_token,

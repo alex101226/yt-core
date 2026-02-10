@@ -169,12 +169,12 @@ class StatService:
         }
 
     def fake_gpu_rate_series(
-            self,
-            base_rate,
-            points: int,
-            step_minutes: int,
-            max_fluctuation: int,
-            time_format: str
+        self,
+        base_rate,
+        points: int,
+        step_minutes: int,
+        max_fluctuation: int,
+        time_format: str
     ):
         base_rate = float(base_rate)  # ⭐ 关键一行
 
@@ -184,11 +184,8 @@ class StatService:
         for i in range(points):
             time_point = now - timedelta(minutes=step_minutes * (points - i - 1))
 
-            fluctuation = random.uniform(
-                -max_fluctuation,
-                max_fluctuation
-            ) * (i + 1) / points
-
+            # fluctuation 随机波动
+            fluctuation = random.uniform(-max_fluctuation, max_fluctuation)
             rate = max(0.0, min(100.0, base_rate + fluctuation))
 
             result.append({
@@ -205,24 +202,40 @@ class StatService:
         base_rates = self.repo.current_gpu_rate_by_provider(user_id)
 
         data = {}
+        now = datetime.now()
+        step_minutes = 5  # 统一 5 分钟间隔
 
+        # 计算总点数
+        if range_type == '1h':
+            points = 60 // step_minutes  # 1 小时 = 12 点
+            time_format = "%H:%M"
+        else:  # 24 小时
+            points = 24 * 60 // step_minutes  # 24 小时 = 288 点
+            time_format = "%m-%d %H:%M"
+
+        # 遍历所有云厂商
         for provider, base_rate in base_rates.items():
-            if range_type == '1h':
-                data[provider] = self.fake_gpu_rate_series(
-                    base_rate=base_rate,
-                    points=4,
-                    step_minutes=15,
-                    max_fluctuation=5,
-                    time_format='%H:%M'
-                )
-            else:
-                data[provider] = self.fake_gpu_rate_series(
-                    base_rate=base_rate,
-                    points=4,
-                    step_minutes=360,
-                    max_fluctuation=10,
-                    time_format='%m-%d %H:%M'
-                )
+            series = []
+            for i in range(points):
+                time_point = now - timedelta(minutes=step_minutes * (points - i - 1))
+                fluctuation = random.uniform(-5, 5) * (i + 1) / points
+                rate = max(0.0, min(100.0, float(base_rate) + fluctuation))
+                series.append({
+                    "x": time_point,  # 返回 datetime
+                    "rate": round(rate, 2)
+                })
+            data[provider] = series
+
+        # 保证没有云厂商时，也生成 0 数据
+        if not data:
+            series = []
+            for i in range(points):
+                time_point = now - timedelta(minutes=step_minutes * (points - i - 1))
+                series.append({
+                    "x": time_point,
+                    "rate": 0
+                })
+            data["aliyun"] = series
 
         return data
 

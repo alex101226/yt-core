@@ -6,7 +6,7 @@ from pathlib import Path as FilePath
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from functools import lru_cache
 
-BASE_DIR = FilePath(__file__).resolve().parent.parent
+BASE_DIR = FilePath(__file__).resolve().parent.parent.parent
 
 class Settings(BaseSettings):
     ENV: str = "development"
@@ -20,9 +20,11 @@ class Settings(BaseSettings):
     # 多数据库配置
     DB_SSO_AUTH: str
     DB_CMP: str
+    DB_HUB: str
 
     SSO_TABLE_PREFIX: str = 'ss_'
     CMP_TABLE_PREFIX: str = 'cm_'
+    HUB_TABLE_PREFIX: str = 'hub_'
 
     # jwt配置
     SECRET_KEY: str

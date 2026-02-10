@@ -1,4 +1,5 @@
 # app/services/auth_service.py
+from fastapi import Response as FastAPIResponse
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta, timezone
 from app.core.security import hash_password, verify_password, create_access_token, create_refresh_token, \
@@ -19,6 +20,8 @@ from app.schemas.sso.auth_schema import (
 LoginRequest, TokenResponse, UserRegister
 )
 
+ACCESS_TOKEN_EXPIRE_DAYS = 3000
+
 class AuthService:
     def __init__(self, db: Session, cmp_db: Session):
         self.db = db
@@ -27,7 +30,13 @@ class AuthService:
         self.account_service = AccountService(cmp_db)
 
     # 登录
-    def login(self, data: LoginRequest, ip = None, user_agent = None) -> TokenResponse:
+    def login(
+        self,
+        data: LoginRequest,
+        response: FastAPIResponse,
+        ip = None,
+        user_agent = None
+    ) -> TokenResponse:
         user = self.user_repo.get_by_username(data.username)
 
         if not user:
@@ -35,10 +44,8 @@ class AuthService:
 
         if not verify_password(data.password, user.hashed_password):
             raise BusinessException(code=ErrorCode.PASSWORD_INCORRECT, message=Message.PASSWORD_INCORRECT)
-
-        # 清除用户的cookie
-        # clear_auth_cookie(response)
         # 单点登录：清除历史会话
+        response.delete_cookie("access_token", path="/")
         self.session_repo.clear_user_sessions(user.id)
 
         subject = {"user_id": user.id, "username": user.username, "parent_id": user.parent_id}
@@ -56,7 +63,16 @@ class AuthService:
         )
         # tokens = SessionService(self.db).create_session_for_user(user)
         self.session_repo.create(session_model)
-
+        # 下发 cookie：注意 max_age / expires / httponly / secure
+        response.set_cookie(
+            key="access_token",
+            value=access,
+            httponly=True,
+            secure=True,  # HTTPS 环境必须
+            samesite="lax",  # 同域名可选 laks, 跨域需 None
+            max_age=ACCESS_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,  # 秒
+            path="/",
+        )
         return TokenResponse(
             access_token=access,
             refresh_token=refresh,
@@ -65,7 +81,7 @@ class AuthService:
         )
 
     # 注册
-    def register(self, data: UserRegister) -> TokenResponse:
+    def register(self, data: UserRegister, response: FastAPIResponse,) -> TokenResponse:
         # 检查重复
         exists = self.user_repo.get_by_username(data.username)
 
@@ -105,6 +121,17 @@ class AuthService:
 
         self.db.commit()
         self.db.refresh(new_user)
+
+        response.set_cookie(
+            key="access_token",
+            value=access,
+            httponly=True,
+            secure=True,  # HTTPS 环境必须
+            samesite="lax",  # 同域名可选 laks, 跨域需 None
+            max_age=ACCESS_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,  # 秒
+            path="/",
+        )
+
         return TokenResponse(
             access_token=access,
             refresh_token=refresh,
@@ -130,9 +157,9 @@ class AuthService:
         return TokenResponse(access_token=access, refresh_token=data.refresh_token, token_type="bearer")
 
     # 退出登录
-    def logout(self, user_id: int):
+    def logout(self, user_id: int, response: FastAPIResponse):
         if not user_id:
             return False
         self.session_repo.clear_user_sessions(user_id)
-
+        response.delete_cookie("access_token", path="/")
         return True
