@@ -56,89 +56,89 @@ class CloudImageStatus(enum.Enum):
 # 操作动作
 class ActionOperate(enum.Enum):
     # ========== 基础 CRUD ==========
-    CREATE = "create"  # 创建
-    UPDATE = "update"  # 更新
-    RELEASE = "release"  # 删除 / 释放
-    APPROVE = "approve"  # 审批通过
-    REJECT = "reject"  # 审批驳回
+    CREATE = "CREATE"  # 创建
+    UPDATE = "UPDATE"  # 更新
+    RELEASE = "RELEASE"  # 删除 / 释放
+    APPROVE = "APPROVE"  # 审批通过
+    REJECT = "REJECT"  # 审批驳回
 
     # ========== 实例生命周期 ==========
-    START = "start"  # 开机
-    STOP = "stop"  # 关机
-    REBOOT = "reboot"  # 重启
+    START = "START"  # 开机
+    STOP = "STOP"  # 关机
+    REBOOT = "REBOOT"  # 重启
 
     # ========== 镜像相关 ==========
-    CREATE_IMAGE = "create_image"  # 创建镜像
-    CHANGE_IMAGE = "change_image"  # 更换镜像
-    CLONE = "clone"  # 克隆实例
+    CREATE_IMAGE = "CREATE_IMAGE"  # 创建镜像
+    CHANGE_IMAGE = "CHANGE_IMAGE"  # 更换镜像
+    CLONE = "CLONE"  # 克隆实例
 
     # ========== 网络 / 访问 ==========
-    ENABLE_SSH_PROXY = "enable_ssh_proxy"  # 开启 SSH 代理
-    DISABLE_SSH_PROXY = "disable_ssh_proxy"  # 关闭 SSH 代理
+    ENABLE_SSH_PROXY = "ENABLE_SSH_PROXY"  # 开启 SSH 代理
+    DISABLE_SSH_PROXY = "DISABLE_SSH_PROXY"  # 关闭 SSH 代理
 
     # ========== 安全 / 密码 ==========
-    RESET_PASSWORD = "reset_password"  # 修改管理密码
+    RESET_PASSWORD = "RESET_PASSWORD"  # 修改管理密码
 
     # ========== 计费相关 ==========
-    CHANGE_CHARGE_TYPE = "change_charge_type"
+    CHANGE_CHARGE_TYPE = "CHANGE_CHARGE_TYPE"
 
     # ========== 资源配置 ==========
-    EXPAND = "expand"  # 扩容（CPU / 内存 / 磁盘）
+    EXPAND = "EXPAND"  # 扩容（CPU / 内存 / 磁盘）
 
     # ========== 保护 / 策略 ==========
-    DISABLE_RELEASE_PROTECT = "disable_release_protect"  # 关闭释放保护
+    DISABLE_RELEASE_PROTECT = "DISABLE_RELEASE_PROTECT"  # 关闭释放保护
 
     # ========== 资源绑定关系 ==========
-    BIND = "bind"  # 绑定（如 EIP 绑定实例、磁盘挂载）
-    UNBIND = "unbind"  # 解绑
+    BIND = "BIND"  # 绑定（如 EIP 绑定实例、磁盘挂载）
+    UNBIND = "UNBIND"  # 解绑
 
 # 模块    'SERVER','EIP','BAREMETAL','CLUSTER','LOAD_INSTANCE','VPC','SUBNET','SECURITY','GPFS','OSS','CEPHFS','CUSTOM_IMAGE','CONTAINER_IMAGE','BILLING','INVOICE','WALLET','REFUND','ORDER','PAYMENT','USER','ROLE','PERMISSION','API_KEY','SYSTEM_CONFIG','SYSTEM_NOTICE','AUDIT_LOG','TASK','SCHEDULE'
 class ActionMode(enum.Enum):
     # ========== 计算 / 资源 ==========
-    SERVER = "server"  # 云服务器
-    DISK = "disk"  # 磁盘
-    EIP = "eip"  # 公网 EIP
-    BAREMETAL = "baremetal"  # 裸金属
-    CLUSTER = "cluster"  # 集群
-    LOAD_INSTANCE = "load_instance"  # 负载均衡
-    VPC = "vpc"
-    SUBNET = "subnet"
-    SECURITY = "security"
+    SERVER = "SERVER"  # 云服务器
+    DISK = "DISK"  # 磁盘
+    EIP = "EIP"  # 公网 EIP
+    BAREMETAL = "BAREMETAL"  # 裸金属
+    CLUSTER = "CLUSTER"  # 集群
+    LOAD_INSTANCE = "LOAD_INSTANCE"  # 负载均衡
+    VPC = "VPC"
+    SUBNET = "SUBNET"
+    SECURITY = "SECURITY"
 
     # ========== 存储 ==========
-    GPFS = "gpfs"  # GPFS 存储
-    OSS = "oss"  # 对象存储
-    CEPHFS = "cephfs"  # CEPHFS 存储
+    GPFS = "GPFS"  # GPFS 存储
+    OSS = "OSS"  # 对象存储
+    CEPHFS = "CEPHFS"  # CEPHFS 存储
 
     # ========== 镜像 ==========
-    CUSTOM_IMAGE = "custom_image"  # 自定义镜像
-    CONTAINER_IMAGE = "container_image"  # 容器镜像
+    CUSTOM_IMAGE = "CUSTOM_IMAGE"  # 自定义镜像
+    CONTAINER_IMAGE = "CONTAINER_IMAGE"  # 容器镜像
 
     # ========== 计费 / 财务 ==========
-    BILLING = "billing"  # 计费（扣费、账单）
-    INVOICE = "invoice"  # 发票
-    WALLET = "wallet"  # 钱包 / 余额
-    CREDIT = "credit"  # 低佣金
-    REFUND = "refund"  # 退款
+    BILLING = "BILLING"  # 计费（扣费、账单）
+    INVOICE = "INVOICE"  # 发票
+    WALLET = "WALLET"  # 钱包 / 余额
+    CREDIT = "CREDIT"  # 低佣金
+    REFUND = "REFUND"  # 退款
 
     # ========== 订单 / 交易 ==========
-    ORDER = "order"  # 订单
-    PAYMENT = "payment"  # 支付
+    ORDER = "ORDER"  # 订单
+    PAYMENT = "PAYMENT"  # 支付
 
     # ========== 账号 / 权限 ==========
-    USER = "user"  # 用户
-    ROLE = "role"  # 角色
-    PERMISSION = "permission"  # 权限
-    API_KEY = "api_key"  # API Key / 访问密钥
+    USER = "USER"  # 用户
+    ROLE = "ROLE"  # 角色
+    PERMISSION = "PERMISSION"  # 权限
+    API_KEY = "API_KEY"  # API Key / 访问密钥
 
     # ========== 系统 / 平台 ==========
-    SYSTEM_CONFIG = "system_config"  # 系统配置
-    SYSTEM_NOTICE = "system_notice"  # 系统通知
-    AUDIT_LOG = "audit_log"  # 审计日志本身
+    SYSTEM_CONFIG = "SYSTEM_CONFIG"  # 系统配置
+    SYSTEM_NOTICE = "SYSTEM_NOTICE"  # 系统通知
+    AUDIT_LOG = "AUDIT_LOG"  # 审计日志本身
 
     # ========== 运维 / 管理 ==========
-    TASK = "task"  # 异步任务 / 工单
-    SCHEDULE = "schedule"  # 定时任务
+    TASK = "TASK"  # 异步任务 / 工单
+    SCHEDULE = "SCHEDULE"  # 定时任务
 
 
 # ==============================
