@@ -9,6 +9,7 @@ from pydantic.v1.generics import GenericModel
 from app.common.exceptions import BusinessException
 from app.common.status_code import ErrorCode
 from app.common.messages import Message
+from app.core.config import settings
 
 class ResponseModel(GenericModel, Generic[T]):
     code: int = 200
@@ -80,6 +81,7 @@ class Response:
                     httponly=True,
                     secure=False,
                     samesite="Lax",
+                    max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
                     path="/",
                 )
 

@@ -37,14 +37,30 @@ class UserRepository:
         return register_db
 
     # 获取用户列表
-    def user_page_list(self, page: int, page_size: int, nickname: str, username: str):
+    def user_page_list(
+        self,
+        page: int,
+        page_size: int,
+        nickname: str,
+        username: str,
+        parent_id: int = None,
+        only_user_type: str = None,
+    ):
         query = self.db.query(
             User.id,
             User.nickname,
             User.username,
+            User.parent_id,
+            User.created_at,
+            User.updated_at,
+            User.user_type,
         ).order_by(User.id.desc())
 
-        filters = [User.role_code != 'root', User.is_released == 0]
+        filters = [User.is_released == 0]
+        if parent_id is not None:
+            filters.append((User.id == parent_id) | (User.parent_id == parent_id))
+        if only_user_type:
+            filters.append(User.user_type == only_user_type)
         if nickname:
             filters.append(User.nickname.like(f"%{nickname}%"))
         if username:
@@ -114,3 +130,25 @@ class UserRepository:
         self.db.commit()
         self.db.refresh(user)
         return user
+
+    # 管理员列表（用于外部过滤未绑定会员）
+    def admin_user_list(self, exclude_user_ids=None):
+        query = (
+            self.db.query(
+                User.id,
+                User.nickname,
+                User.username,
+                User.parent_id,
+                User.created_at,
+                User.updated_at,
+                User.user_type,
+            )
+            .filter(
+                User.is_released == 0,
+                User.role_code == "admin",
+            )
+            .order_by(User.id.desc())
+        )
+        if exclude_user_ids:
+            query = query.filter(~User.id.in_(exclude_user_ids))
+        return query.all()

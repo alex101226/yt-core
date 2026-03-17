@@ -12,12 +12,15 @@ UserOutSchema, UserPageSchema, UserRegister, UpdateUserSchema, UpdateUserPasswor
 )
 
 from app.services.cmp.account_service import AccountService
+from app.repositories.cmp.member_repo import MemberRepository
 
 class UserService:
     def __init__(self, db: Session, cmp_db: Session):
         self.db = db
         self.user_repo = UserRepository(db)
         self.account_service = AccountService(cmp_db)
+        self.cmp_db = cmp_db
+        self.member_repo = MemberRepository(cmp_db)
 
     # 获取用户信息
     def user_info(self, user_id: int):
@@ -25,7 +28,10 @@ class UserService:
         if not user:
             raise BusinessException(code=ErrorCode.USER_NOT_FOUND, message=Message.USER_NOT_FOUND)
 
-        user, role_name = self.user_repo.user_info(user_id)
+        result = self.user_repo.user_info(user_id)
+        if not result:
+            raise BusinessException(code=ErrorCode.USER_NOT_FOUND, message=Message.USER_NOT_FOUND)
+        user, role_name = result
 
         account_by_id = user.id if user.parent_id == 0 else user.parent_id
         account = self.account_service.account_exists(account_by_id)
@@ -38,14 +44,28 @@ class UserService:
             "role_name": role_name,
             "balance": account.balance if account else 0,
             "parent_id": user.id if user.parent_id == 0 else user.parent_id,
-            "account_name": account.account_name,
-            "account_type": account.account_type,
-            "account_status": account.account_status,
+            "account_name": account.account_name if account else None,
+            "account_type": account.account_type if account else None,
+            "account_status": account.account_status if account else None,
         }
 
     # 用户列表
-    def user_page_list(self, page: int, page_size: int, nickname: str, username: str):
-        items, total = self.user_repo.user_page_list(page, page_size, nickname, username)
+    def user_page_list(self, current_user: dict, page: int, page_size: int, nickname: str, username: str):
+        user_id = current_user.get("user_id")
+        user = self.user_repo.get_by_id(user_id)
+        if not user:
+            raise BusinessException(code=ErrorCode.USER_NOT_FOUND, message=Message.USER_NOT_FOUND)
+
+        parent_id = None
+        only_user_type = None
+        if user.user_type != "internal":
+            parent_id = user.parent_id or 0
+            if parent_id == 0:
+                parent_id = user.id
+        else:
+            only_user_type = "tenant"
+
+        items, total = self.user_repo.user_page_list(page, page_size, nickname, username, parent_id, only_user_type)
         return UserPageSchema(
             page = page,
             page_size = page_size,
@@ -61,12 +81,14 @@ class UserService:
         if exists:
             raise BusinessException(code=ErrorCode.USER_ALREADY_EXISTS, message=Message.USER_ALREADY_EXISTS)
 
+        role_code = data.role_code or "normal"
         payload = {
             "nickname": data.nickname,
             "username": data.username,
             "hashed_password": hash_password(data.password),
-            "role_code": "normal",
-            "parent_id": user_id
+            "role_code": role_code,
+            "parent_id": 0 if role_code == "root" else user_id,
+            "user_type": "internal" if role_code == "root" else "tenant",
         }
 
         # 创建用户
@@ -109,6 +131,22 @@ class UserService:
 
             })
         return result
+
+    # 内部人员列表
+    def internal_user_page_list(self, page: int, page_size: int, nickname: str, username: str):
+        items, total = self.user_repo.user_page_list(page, page_size, nickname, username, None, "internal")
+        return UserPageSchema(
+            page=page,
+            page_size=page_size,
+            total=total,
+            items=[UserOutSchema.model_validate(item) for item in items],
+        )
+
+    # 管理员列表（未绑定会员，不分页）
+    def admin_unbound_member_list(self):
+        bound_user_ids = self.member_repo.active_member_user_ids()
+        items = self.user_repo.admin_user_list(bound_user_ids)
+        return [UserOutSchema.model_validate(item) for item in items]
 
     # 修改用户
     def save_user(self, user_id: int, data: UpdateUserSchema):

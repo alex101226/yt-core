@@ -77,11 +77,14 @@ class InvoiceItemService:
 
 
     # 开票记录创建
-    def create_invoice_record(self, user_id: int, data: InvoiceRecordSchema):
+    def create_invoice_record(self, user: dict, data: InvoiceRecordSchema):
+        user_id = user.get('user_id')
+        username = user.get('username')
         payload = {
             **data.model_dump(),
             "status": InvoiceRecordStatus.ISSUED.value,
-            "user_id": user_id,
+            "created_by": user_id,
+            "created_by_name": username,
             "issued_at": datetime.now(timezone.utc),
             "invoice_no":datetime.now(timezone.utc).timestamp() * 1000
         }

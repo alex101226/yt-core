@@ -2,13 +2,17 @@
 import random
 from datetime import datetime, timezone, timedelta, date
 from typing import Dict, List
+from dateutil import parser as dt_parser
 
 from sqlalchemy.orm import Session
 
 from app.core.logger import logger
 from app.repositories.cmp.stat_repo import StatRepository
+from app.repositories.cmp.member_repo import MemberRepository
 
 from app.schemas.cmp.state_schema import AuditLogSchema
+from app.constants.billing_meta import BILLING_META_MAP
+from app.constants.enums import ResourceType
 
 
 def trans_date(date_str: str) -> datetime:
@@ -21,14 +25,52 @@ def trans_date(date_str: str) -> datetime:
 
     return date_obj
 
+def _utc_now_range():
+    now = datetime.now(timezone.utc)
+    start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    end = now.replace(hour=23, minute=59, second=59, microsecond=999999)
+    return start, end
+
+def _parse_dt(value: str) -> datetime:
+    dt = dt_parser.parse(value)
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc)
+
+def _month_span(start: datetime, end: datetime) -> int:
+    return (end.year - start.year) * 12 + (end.month - start.month)
+
 class StatService:
 
     def __init__(self, db: Session):
         self.repo = StatRepository(db)
+        self.member_repo = MemberRepository(db)
+
+    def _resolve_scope(self, current_user: dict) -> dict:
+        user_type = current_user.get("user_type")
+        role_code = current_user.get("role_code")
+        user_id = current_user.get("user_id")
+        parent_id = current_user.get("parent_id") or 0
+
+        if user_type == "internal":
+            return {
+                "owner_user_id": None,
+                "member_id": None,
+            }
+
+        owner_user_id = user_id if role_code == "admin" else (parent_id or user_id)
+        member = self.member_repo.get_by_user_id(owner_user_id)
+        return {
+            "owner_user_id": owner_user_id,
+            "member_id": member.id if member else None,
+        }
 
     # 首页，资源信息统计
-    def get_user_statistics(self, user_id: int) -> dict:
+    def get_user_statistics(self, current_user: dict) -> dict:
+        scope = self._resolve_scope(current_user)
+        user_id = scope["owner_user_id"]
         return {
+            "bare_metals": self.repo.count_bares(user_id),
             "servers": self.repo.count_servers(user_id),
             "vpcs": self.repo.count_vpcs(user_id),
             "subnets": self.repo.count_subnets(user_id),
@@ -38,10 +80,16 @@ class StatService:
             "gpfs": self.repo.count_gpfs(user_id),
             "clusters": self.repo.count_clusters(user_id),
             "container_images": self.repo.count_container_images(user_id),
+            "cloud_images": self.repo.count_cloud_images(user_id),
+            "load_balancers": self.repo.count_load_balancers(user_id),
+            "eips": self.repo.count_eips(user_id),
+            "oss": self.repo.count_oss(user_id),
         }
 
     # 用户资金支出
-    def get_monthly_stats(self, user_id: int) -> dict:
+    def get_monthly_stats(self, current_user: dict) -> dict:
+        scope = self._resolve_scope(current_user)
+        user_id = scope["owner_user_id"]
         now = datetime.now(timezone.utc)
         year, month = now.year, now.month
         billing_period = f"{year}-{month:02d}"
@@ -54,7 +102,9 @@ class StatService:
         }
 
     #   当月总览
-    def get_monthly_total(self, user_id: int):
+    def get_monthly_total(self, current_user: dict):
+        scope = self._resolve_scope(current_user)
+        user_id = scope["owner_user_id"]
         now = datetime.now(timezone.utc)
         year, month = now.year, now.month
         return {
@@ -65,7 +115,9 @@ class StatService:
         }
 
     # 费用总览，按月查可用额度，月新增订单数，消费金额，退款金额，已开票金额，可开票金额
-    def get_month_picker_total(self, user_id: int, date_str: str):
+    def get_month_picker_total(self, current_user: dict, date_str: str):
+        scope = self._resolve_scope(current_user)
+        user_id = scope["owner_user_id"]
         time = trans_date(date_str)
 
         billing_period = f"{time.year}-{time.month:02d}"
@@ -79,7 +131,9 @@ class StatService:
         }
 
     # 账户概览，总揽
-    def get_total_funds(self, user_id: int):
+    def get_total_funds(self, current_user: dict):
+        scope = self._resolve_scope(current_user)
+        user_id = scope["owner_user_id"]
         return {
             "balance": self.repo.get_available_quota(user_id),
             "invoice_amount": self.repo.sum_monthly_invoice_amount(user_id),
@@ -100,7 +154,9 @@ class StatService:
           },
       ]
     """
-    def get_yearly_financial_chart(self, user_id: int) -> List[Dict]:
+    def get_yearly_financial_chart(self, current_user: dict) -> List[Dict]:
+        scope = self._resolve_scope(current_user)
+        user_id = scope["owner_user_id"]
 
         today = date.today()
         chart_data = []
@@ -132,7 +188,9 @@ class StatService:
         return chart_data
 
     # 查询成本，云厂商，产品，商品
-    def get_monthly_top5_stats(self, user_id: int, date_str: str):
+    def get_monthly_top5_stats(self, current_user: dict, date_str: str):
+        scope = self._resolve_scope(current_user)
+        user_id = scope["owner_user_id"]
         time = trans_date(date_str)
         year, month = time.year, time.month
         return {
@@ -146,7 +204,9 @@ class StatService:
         return self.repo.create_notification(**data.model_dump())
 
     #   纳管机器统计
-    def cps_state_server_count(self, user_id: int):
+    def cps_state_server_count(self, current_user: dict):
+        scope = self._resolve_scope(current_user)
+        user_id = scope["owner_user_id"]
         bare = self.repo.stat_baremetal_status(user_id)
         server = self.repo.state_server_status(user_id)
         return {
@@ -195,10 +255,12 @@ class StatService:
 
         return result
 
-    def gpu_rate_trend(self, user_id: int, range_type: str):
+    def gpu_rate_trend(self, current_user: dict, range_type: str):
         """
         range_type: '1h' | '24h'
         """
+        scope = self._resolve_scope(current_user)
+        user_id = scope["owner_user_id"]
         base_rates = self.repo.current_gpu_rate_by_provider(user_id)
 
         data = {}
@@ -239,22 +301,218 @@ class StatService:
 
         return data
 
+    # 总收入趋势（充值）
+    def get_total_income_trend(
+        self,
+        current_user: dict,
+        start_at: str = None,
+        end_at: str = None,
+    ) -> dict:
+        scope = self._resolve_scope(current_user)
+        user_id = scope["owner_user_id"]
+        if not start_at or not end_at:
+            start_dt, end_dt = _utc_now_range()
+        else:
+            start_dt = _parse_dt(start_at)
+            end_dt = _parse_dt(end_at)
+
+        if end_dt < start_dt:
+            start_dt, end_dt = end_dt, start_dt
+
+        delta = end_dt - start_dt
+
+        if delta <= timedelta(days=1) and start_dt.date() == end_dt.date():
+            granularity = "hour"
+            cursor = start_dt.replace(minute=0, second=0, microsecond=0)
+            end_floor = end_dt.replace(minute=0, second=0, microsecond=0)
+            step = timedelta(hours=1)
+            label_fn = lambda dt: dt.strftime("%H:00")
+            key_fn = lambda dt: dt.strftime("%Y-%m-%d %H:00:00")
+        elif delta <= timedelta(days=31):
+            granularity = "day"
+            cursor = start_dt.replace(hour=0, minute=0, second=0, microsecond=0)
+            end_floor = end_dt.replace(hour=0, minute=0, second=0, microsecond=0)
+            step = timedelta(days=1)
+            label_fn = lambda dt: f"{dt.day}日"
+            key_fn = lambda dt: dt.strftime("%Y-%m-%d")
+        else:
+            granularity = "month"
+            cursor = start_dt.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            end_floor = end_dt.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            label_with_year = _month_span(start_dt, end_dt) >= 12
+
+            def label_fn(dt):
+                return f"{dt.year}-{dt.month:02d}" if label_with_year else f"{dt.month}月"
+
+            key_fn = lambda dt: dt.strftime("%Y-%m")
+
+            def add_month(d: datetime) -> datetime:
+                year = d.year + (d.month // 12)
+                month = (d.month % 12) + 1
+                return d.replace(year=year, month=month)
+
+        totals = self.repo.income_trend(
+            user_id=user_id,
+            start_at=start_dt,
+            end_at=end_dt,
+            granularity=granularity
+        )
+
+        points = []
+        if granularity == "month":
+            dt = cursor
+            while dt <= end_floor:
+                key = key_fn(dt)
+                points.append({"label": label_fn(dt), "value": totals.get(key, 0)})
+                dt = add_month(dt)
+        else:
+            dt = cursor
+            while dt <= end_floor:
+                key = key_fn(dt)
+                points.append({"label": label_fn(dt), "value": totals.get(key, 0)})
+                dt += step
+
+        return {
+            "granularity": granularity,
+            "start_at": start_dt,
+            "end_at": end_dt,
+            "points": points
+        }
+
+    def get_operation_overview(self, current_user: dict) -> dict:
+        scope = self._resolve_scope(current_user)
+        now = datetime.now(timezone.utc)
+        income = self.repo.operation_income_summary(now, scope["owner_user_id"])
+        pending = self.repo.operation_pending_counts(scope["member_id"])
+        voucher = self.repo.operation_voucher_summary(now, scope["member_id"])
+        credit = self.repo.operation_credit_summary(now, scope["member_id"])
+
+        return {
+            "income": income,
+            "pending": pending,
+            "voucher": voucher,
+            "credit": credit,
+            "member_total": self.repo.operation_member_count(scope["member_id"]),
+        }
+
+    def get_operation_rankings(
+        self,
+        current_user: dict,
+        start_at: str = None,
+        end_at: str = None,
+        cloud_provider_code: str = None,
+    ) -> dict:
+        scope = self._resolve_scope(current_user)
+        if not start_at or not end_at:
+            end_dt = datetime.now(timezone.utc)
+            start_dt = end_dt - timedelta(days=6)
+            start_dt = start_dt.replace(hour=0, minute=0, second=0, microsecond=0)
+            end_dt = end_dt.replace(hour=23, minute=59, second=59, microsecond=999999)
+        else:
+            start_dt = _parse_dt(start_at)
+            end_dt = _parse_dt(end_at)
+            if end_dt < start_dt:
+                start_dt, end_dt = end_dt, start_dt
+
+        return {
+            "start_at": start_dt,
+            "end_at": end_dt,
+            "cloud_provider_code": cloud_provider_code,
+            "member_cash_top10": self.repo.operation_member_cash_top10(start_dt, end_dt, cloud_provider_code, scope["owner_user_id"]),
+            "product_consume_top5": self.repo.operation_product_consume_top5(start_dt, end_dt, cloud_provider_code, scope["owner_user_id"]),
+            "unsubscribe_product_top5": self.repo.operation_unsubscribe_product_top5(start_dt, end_dt, cloud_provider_code, scope["owner_user_id"]),
+            "cloud_provider_consume_distribution": self.repo.operation_cloud_provider_distribution(start_dt, end_dt, cloud_provider_code, scope["owner_user_id"]),
+        }
+
+    def get_resource_consume_options(self) -> dict:
+        product_options = []
+        for resource_type, meta in BILLING_META_MAP.items():
+            if resource_type == ResourceType.AI_STUDIO:
+                continue
+            product_options.append({
+                "label": meta.product_name,
+                "value": meta.product_name,
+                "resource_type": resource_type.value,
+            })
+        return {
+            "product_options": product_options,
+            "consume_type_options": [
+                {"label": "按量付费", "value": "VOLUME_BASED"},
+                {"label": "包年包月", "value": "PACKAGE_MONTHLY"},
+            ],
+        }
+
+    def get_resource_consume_page_list(
+        self,
+        current_user: dict,
+        page: int,
+        page_size: int,
+        cloud_provider_code: str = None,
+        region_id: str = None,
+        instance_keyword: str = None,
+        product_name: str = None,
+        consume_type: str = None,
+        member_id: int = None,
+    ) -> dict:
+        scope = self._resolve_scope(current_user)
+        if scope["owner_user_id"] is not None:
+            member_id = scope["member_id"]
+        items, total = self.repo.resource_consume_page_list(
+            page=page,
+            page_size=page_size,
+            owner_user_id=scope["owner_user_id"],
+            cloud_provider_code=cloud_provider_code,
+            region_id=region_id,
+            instance_keyword=instance_keyword,
+            product_name=product_name,
+            consume_type=consume_type,
+            member_id=member_id,
+        )
+        result_items = []
+        for item in items:
+            result_items.append({
+                "order_id": item.order_id,
+                "product_name": item.product_name,
+                "instance_id": item.instance_id,
+                "instance_name": item.instance_name or item.instance_id,
+                "start_time": item.start_time,
+                "consume_type": item.consume_type,
+                "consume_type_label": "按量付费" if item.consume_type == "VOLUME_BASED" else "包年包月",
+                "cloud_provider_code": item.cloud_provider_code,
+                "region_id": item.region_id,
+                "cloud_vendor_region": f"{item.cloud_provider_code}/{item.region_id}" if item.region_id else item.cloud_provider_code,
+                "business_name": item.business_name,
+                "member_name": item.member_name,
+                "description": item.business_name,
+                "created_by_name": item.created_by_name,
+                "updated_by_name": None,
+            })
+
+        return {
+            "page": page,
+            "page_size": page_size,
+            "total": total,
+            "items": result_items,
+        }
+
     # 获取通知列表
     def get_notifications_page_list(
         self,
         user_id: int,
         page: int,
         page_size: int,
+        system: int = 1,
     ) -> dict:
         return self.repo.list_notifications(
             user_id=user_id,
             page=page,
             page_size=page_size,
+            system=system,
         )
 
     # 获取未读通知数量
-    def get_unread_notification_count(self, user_id: int) -> int:
-        return self.repo.count_unread_notifications(user_id)
+    def get_unread_notification_count(self, user_id: int, system: int = 1) -> int:
+        return self.repo.count_unread_notifications(user_id, system)
 
     # 标记单条通知已读
     def mark_notification_read(self, user_id: int, log_id: int) -> bool:

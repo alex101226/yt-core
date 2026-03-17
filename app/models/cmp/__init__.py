@@ -58,3 +58,12 @@ from .load_backend_member import BackendMember
 from .load_certificate import LoadBalancerCertificate
 from .load_acl import LoadBalancerACL
 from .load_acl_rule import LoadBalancerACLRule
+from .member import Member
+from .voucher_template import VoucherTemplate
+from .voucher_assign import VoucherAssign
+from .credit_grant import CreditGrant
+from .credit_flow import CreditFlow
+from .quota_category import QuotaCategory
+from .member_quota import MemberQuota
+from .quota_apply import QuotaApply
+from .studio import Studio

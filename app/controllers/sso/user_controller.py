@@ -3,7 +3,6 @@ from sqlalchemy.orm import Session
 
 from app.core.dependencies import require_user
 from app.common.response import Response
-from app.core.logger import logger
 
 from app.services.sso.user_service import UserService
 from app.common.dependencies import get_sso_db
@@ -37,13 +36,34 @@ def me(
 # 用户列表
 @router.get("/user_page_list")
 def user_page_list(
+    request: Request,
     page: int = Query(..., description="当前页码"),
     page_size: int = Query(..., description="一页多少条数据"),
     nickname: str = Query(None, description="昵称"),
     username: str = Query(None, description="用户账号"),
     service: UserService = Depends(get_user_service)
 ):
-    result = service.user_page_list(page, page_size, nickname, username)
+    result = service.user_page_list(request.state.user, page, page_size, nickname, username)
+    return Response.success(result)
+
+# 内部人员列表
+@router.get("/internal_page_list")
+def internal_user_page_list(
+    page: int = Query(..., description="当前页码"),
+    page_size: int = Query(..., description="一页多少条数据"),
+    nickname: str = Query(None, description="昵称"),
+    username: str = Query(None, description="用户账号"),
+    service: UserService = Depends(get_user_service)
+):
+    result = service.internal_user_page_list(page, page_size, nickname, username)
+    return Response.success(result)
+
+# 管理员列表（未绑定会员，不分页）
+@router.get("/admin_unbound_member_list")
+def admin_unbound_member_list(
+    service: UserService = Depends(get_user_service),
+):
+    result = service.admin_unbound_member_list()
     return Response.success(result)
 
 # 成员列表

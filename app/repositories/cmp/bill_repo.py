@@ -385,3 +385,35 @@ class BillRepository:
         self.db.commit()
         self.db.refresh(find)
         return find
+
+    # 欠费暂停：按用户维度停止计费任务
+    def suspend_by_user(self, user_id: int):
+        updated = (
+            self.db.query(BillingInstance)
+            .filter(
+                BillingInstance.created_by == user_id,
+                BillingInstance.is_released == 0,
+                BillingInstance.status.in_([BillingStatus.ACTIVE, BillingStatus.CREATED]),
+            )
+            .update(
+                {BillingInstance.status: BillingStatus.SUSPENDED},
+                synchronize_session=False
+            )
+        )
+        return updated
+
+    # 欠费恢复：按用户维度恢复计费任务
+    def resume_by_user(self, user_id: int):
+        updated = (
+            self.db.query(BillingInstance)
+            .filter(
+                BillingInstance.created_by == user_id,
+                BillingInstance.is_released == 0,
+                BillingInstance.status == BillingStatus.SUSPENDED,
+            )
+            .update(
+                {BillingInstance.status: BillingStatus.ACTIVE},
+                synchronize_session=False
+            )
+        )
+        return updated

@@ -31,11 +31,18 @@ from .cmp.invoice_item_controller import router as invoice_item_router
 from .cmp.stat_controller import router as stat_router
 
 from .cmp.load_controller import router as load_router
+from .cmp.voucher_controller import router as voucher_router
+from .cmp.credit_controller import router as credit_router
+from .cmp.quota_controller import router as quota_router
+from .cmp.studio_controller import router as studio_router
 
 # sso
 from .sso.auth_controller import router as auth_router
 from .sso.user_controller import router as user_router
 from .sso.role_controller import router as role_router
+
+# cmp
+from .cmp.member_controller import router as member_router
 
 # hub
 from .hub.categoire_controller import router as categoire_router
@@ -48,5 +55,5 @@ __routes__ = [
 'oss_router', 'gpfs_router', 'cephfs_file_router', 'fs_mount_router', 'container_image_router',
 'cluster_router', 'account_router', 'bill_router', 'invoice_email_router', 'invoice_router',
 'invoice_item_router', 'stat_router', 'load_router', 'auth_router', 'user_router', 'role_router',
-'categoire_router'
+'member_router', 'voucher_router', 'credit_router', 'quota_router', 'studio_router', 'categoire_router'
 ]

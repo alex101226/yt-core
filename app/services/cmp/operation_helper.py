@@ -3,6 +3,7 @@ from typing import Callable, Optional
 
 
 from app.core.logger import logger
+from app.core.database import SessionLocal
 from app.services.cmp.stat_service import StatService
 
 from app.common.exceptions import BusinessException
@@ -12,6 +13,19 @@ from app.schemas.cmp.state_schema import AuditLogSchema
 from app.constants.enums import ActionMode, ActionOperate
 
 #   执行业务操作，并自动记录通知
+def _write_audit_log(data: AuditLogSchema):
+    # 使用独立 session，避免被业务事务影响
+    db = SessionLocal["cmp"]()
+    try:
+        StatService(db).create_notification(data)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        logger.error(f"audit log write failed: {e}")
+    finally:
+        db.close()
+
+
 def execute_with_notification(
     *,
     db,
@@ -49,7 +63,7 @@ def execute_with_notification(
             status="success",
         )
 
-        stat_service.create_notification(data)
+        _write_audit_log(data)
 
         return result
 
@@ -66,6 +80,5 @@ def execute_with_notification(
             message=failed_desc,
             status="failed",
         )
-        stat_service.create_notification(data)
+        _write_audit_log(data)
         raise
-

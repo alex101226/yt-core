@@ -95,10 +95,11 @@ class AliyunService:
         system_disk_size,
         instance_charge_type,
         period):
-        cache_data = await self.cache.get_cloud_prices(region_id)
-        if cache_data:
-            return cache_data
+        # cache_data = await self.cache.get_cloud_prices(region_id)
 
+        # if cache_data:
+        #     return cache_data
+        #
         data = self.client.cloud_price(
             region_id, instance_type_id,disk_category,
             system_disk_size, instance_charge_type, period

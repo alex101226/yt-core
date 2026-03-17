@@ -7,7 +7,7 @@ class Message:
     PARAMS_ERROR="参数校验失败"
 
     # === 用户相关 ===
-    USER_NOT_FOUND = "用户不存在"
+    USER_NOT_FOUND = "用户异常"
     USER_ALREADY_EXISTS = "用户已存在"
     LOGIN_FAILED = "登录失败，用户名或密码错误"
     PERMISSION_DENIED = "权限不足"

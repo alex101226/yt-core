@@ -26,6 +26,12 @@ class User(SsoBase, SSOReleasedMixin):
         nullable=False,
         comment="上级用户ID"
     )
+    user_type = Column(
+        String(20),
+        default="tenant",
+        nullable=False,
+        comment="用户类型：internal/tenant"
+    )
 
     created_at = Column(
         DateTime(timezone=True),

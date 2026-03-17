@@ -7,6 +7,7 @@ class ResourceType(enum.Enum):
     EIP = "EIP" # eip公网
     BAREMETAL = "BAREMETAL" # 裸金属
     CLUSTER = "CLUSTER" # 集群
+    AI_STUDIO = "AI_STUDIO"  # AI Studio
     CUSTOM_IMAGE = "CUSTOM_IMAGE"   # 自定义镜像
     LOAD_INSTANCE = "LOAD_INSTANCE" # 负载均衡
     GPFS = "GPFS"   # gpfs存储
@@ -21,8 +22,8 @@ class BillingMethod(enum.Enum):
 
 # 计费周期
 class BillingCycle(enum.Enum):
-    HOUR = "HOUR"
-    MONTH = "MONTH"
+    HOUR = "HOUR" # 时
+    MONTH = "MONTH" # 月
 
 # 计费状态
 class BillingStatus(enum.Enum):
@@ -58,6 +59,8 @@ class ActionOperate(enum.Enum):
     CREATE = "create"  # 创建
     UPDATE = "update"  # 更新
     RELEASE = "release"  # 删除 / 释放
+    APPROVE = "approve"  # 审批通过
+    REJECT = "reject"  # 审批驳回
 
     # ========== 实例生命周期 ==========
     START = "start"  # 开机
@@ -115,6 +118,7 @@ class ActionMode(enum.Enum):
     BILLING = "billing"  # 计费（扣费、账单）
     INVOICE = "invoice"  # 发票
     WALLET = "wallet"  # 钱包 / 余额
+    CREDIT = "credit"  # 低佣金
     REFUND = "refund"  # 退款
 
     # ========== 订单 / 交易 ==========

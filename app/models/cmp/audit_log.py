@@ -7,6 +7,11 @@ from app.models.is_released_mixin import IsReleasedMixin
 
 from app.constants.enums import ActionMode, ActionOperate
 
+
+def _enum_values(enum_cls):
+    return [item.value for item in enum_cls]
+
+
 class AuditLog(CmpBase, IsReleasedMixin):
     __tablename__ = f"{settings.CMP_TABLE_PREFIX}audit_log"
     __table_args__ = {'comment': '操作审计日志表'}
@@ -23,14 +28,18 @@ class AuditLog(CmpBase, IsReleasedMixin):
 
     # 操作的模块
     action_mode = Column(
-        Enum(ActionMode),
+        Enum(ActionMode, values_callable=_enum_values),
         nullable=False,
         comment="操作模块，例如SERVER=云服务器，DISK=cbs磁盘，EIP=公网eip，BAREMETAL=裸金属，CLUSTER=集群，"
                 "CUSTOM_IMAGE=自定义镜像，LOAD_INSTANCE=负载均衡，GPFS=GPFS存储，OSS=oss存储，CEPHFS=CEPHFS存储，"
                 "CONTAINER_IMAGE=容器镜像")
 
     # 操作动作
-    action = Column(Enum(ActionOperate), nullable=False, comment="操作动作，例如 create、update、delete")
+    action = Column(
+        Enum(ActionOperate, values_callable=_enum_values),
+        nullable=False,
+        comment="操作动作，例如 create、update、delete"
+    )
 
     # 操作数据id
     source_id = Column(String(100), nullable=True, comment="来源ID")

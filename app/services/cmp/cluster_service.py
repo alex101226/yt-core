@@ -17,6 +17,8 @@ from app.services.cmp.account_service import AccountService
 from app.repositories.cmp.cluster_repo import (
 ClusterRepository, NodePoolRepository, NodeRepository, NodeResourceHistoryRepository
 )
+from app.repositories.cmp.member_repo import MemberRepository
+from app.repositories.cmp.studio_repo import StudioRepository
 
 from app.services.cmp.operation_helper import execute_with_notification
 
@@ -28,10 +30,19 @@ class ClusterService:
         self.node_pool_repo = NodePoolRepository(db)
         self.node_repo = NodeRepository(db)
         self.node_history_repo = NodeResourceHistoryRepository(db)
+        self.studio_repo = StudioRepository(db)
+        self.member_repo = MemberRepository(db)
         self.account_service = AccountService(self.db)
         self.bill_service = BillService(db)
         self.vpc_service = VPCService(db)
         self.subnet_service = SubnetService(db)
+
+    def _resolve_member_id(self, user: dict):
+        user_id = user.get("user_id")
+        parent_id = user.get("parent_id") or 0
+        owner_user_id = user_id if parent_id == 0 else parent_id
+        member = self.member_repo.get_by_user_id(owner_user_id)
+        return member.id if member else None
 
     # 生成计费任务
     def create_initial_bill(
@@ -94,6 +105,19 @@ class ClusterService:
                         # "price": cluster_data.get('price', 0),
                     }
                     cluster = self.cluster_repo.create(cluster_payload)
+                    if not self.studio_repo.get_by_cluster_id(cluster.id):
+                        self.studio_repo.create({
+                            "cluster_id": cluster.id,
+                            "studio_name": cluster.cluster_name,
+                            "instance_id": generate(size=8),
+                            "studio_type": "基础版",
+                            "member_id": self._resolve_member_id(user),
+                            "resource_group_id": cluster.resource_group_id,
+                            "enabled": True,
+                            "status": "ENABLED",
+                            "created_by": user_id,
+                            "created_by_name": username,
+                        })
 
                     self.create_initial_bill(
                         user, cluster_payload['charge_type'], cluster_id, cluster_data['price'], cluster,
@@ -296,4 +320,3 @@ class ClusterService:
             }
             result_items.append(item)
         return result_items
-

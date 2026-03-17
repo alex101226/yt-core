@@ -92,8 +92,9 @@ class AuthService:
             "nickname": data.nickname,
             "username": data.username,
             "hashed_password": hash_password(data.password),
-            "role_code": "admin",
-            "parent_id": 0
+            "role_code": data.role_code or "admin",
+            "parent_id": 0,
+            "user_type": "internal" if (data.role_code == "root") else "tenant",
         }
 
         # 创建用户

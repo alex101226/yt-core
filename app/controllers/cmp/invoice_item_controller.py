@@ -95,8 +95,8 @@ def invoice_setting(
     data: InvoiceRecordSchema,
     service: InvoiceItemService = Depends(get_invoice_service)
 ):
-    user_id = request.state.user.get('user_id')
-    result = service.create_invoice_record(user_id, data)
+    # user_id = request.state.user.get('user_id')
+    result = service.create_invoice_record(request.state.user, data)
     return Response.success(result)
 
 

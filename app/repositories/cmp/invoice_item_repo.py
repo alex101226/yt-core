@@ -6,6 +6,7 @@ from sqlalchemy import and_, func
 from sqlalchemy.orm import Session
 
 from app.constants.enums import InvoiceItemStatus
+from app.core.logger import logger
 from app.models.cmp.invoice_item import InvoiceItem
 
 from app.models.cmp.invoice_record import InvoiceRecord
