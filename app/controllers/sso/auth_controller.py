@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.common.response import Response as ApiResponse
 from app.common.dependencies import get_cmp_db, get_sso_db
+from app.core.dependencies import require_user
 
 from app.services.sso.auth_service import AuthService
 
@@ -49,12 +50,13 @@ def refresh_token(
 def logout(
     data: LogoutRequest,
     response: FastAPIResponse,
-    service: AuthService = Depends(get_auth_service)
+    service: AuthService = Depends(get_auth_service),
+    current_user: dict = Depends(require_user),
 ):
-    service.logout(data.user_id, response)
-    # clear_auth_cookie(response)
-    # return ApiResponse.success(result)
-    return {"code": 20000, "message": "已退出登录"}
+    service.logout(current_user.get("user_id"))
+    result = ApiResponse.success(message="已退出登录")
+    clear_auth_cookie(result)
+    return result
 
 # 注册
 @router.post("/register", response_model=TokenOut)

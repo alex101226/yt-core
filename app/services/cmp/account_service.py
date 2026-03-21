@@ -100,8 +100,8 @@ class AccountService:
                 funds_flow_db = self.fund_data_create(FundsFlowCreate(**funds_flow_data))
                 if not funds_flow_db:
                     raise BusinessException(code=ErrorCode.FAILED, message=Message.FAILED)
-                # 余额恢复则恢复计费任务
-                if account_db.balance >= -5000:
+                # 仅当欠费清零后，才恢复计费任务
+                if account_db.balance >= 0:
                     self.bill_repo.resume_by_user(user_id)
             return True
         except BusinessException as e:
@@ -114,6 +114,12 @@ class AccountService:
         if not result:
             return None
         return result
+
+    def owner_account_exists(self, user: dict):
+        user_id = user.get("user_id")
+        parent_id = user.get("parent_id") or 0
+        owner_user_id = user_id if parent_id == 0 else parent_id
+        return self.account_exists(owner_user_id)
 
     # 删除账户
     def account_delete(self, user_id: int):
@@ -149,6 +155,6 @@ class AccountService:
         fund_result = self.fund_data_create(FundsFlowCreate(**funds_flow_data))
 
         # 4. 余额低于阈值则暂停用户所有计费任务
-        if new_balance < -5000:
+        if new_balance <= -5000:
             self.bill_repo.suspend_by_user(data['created_by'])
         return fund_result

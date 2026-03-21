@@ -134,7 +134,10 @@ class BillService:
         charge_type: str,
         instance_id: str,
         instance,
-        unit_price: float):
+        unit_price: float,
+        use_credit: bool = False,
+        use_voucher: bool = False,
+    ):
         now = datetime.now(timezone.utc)
         period_months = getattr(instance, "period", 1)
         # 单价金额
@@ -175,13 +178,24 @@ class BillService:
         # 创建计费任务
         billing_db = self.repo.bill_create(billing_instance)
 
-        self._first_charge(user, account_id, instance_id, billing_db)
+        self._first_charge(
+            user, account_id, instance_id, billing_db,
+            use_credit=use_credit, use_voucher=use_voucher
+        )
 
         return billing_db
 
 
     # 创建订单，扣费任务，资金流水
-    def _first_charge(self, user: dict, account_id: int, instance_id: str, billing: BillingInstance):
+    def _first_charge(
+        self,
+        user: dict,
+        account_id: int,
+        instance_id: str,
+        billing: BillingInstance,
+        use_credit: bool = False,
+        use_voucher: bool = False,
+    ):
         now = datetime.now(timezone.utc)
         # 1 小时
         amount = billing.unit_price * billing.billing_period_count
@@ -196,6 +210,8 @@ class BillService:
             order_type="CREATE",
             cloud_provider_code=billing.cloud_provider_code,
             region_id=billing.region_id,
+            use_credit=use_credit,
+            use_voucher=use_voucher,
         )
         next_time = calc_next_billing_time(
             now=now,
@@ -218,7 +234,7 @@ class BillService:
         return self.repo.unsubscribe_page_list(parent_id, page, page_size)
 
     # 退订
-    def set_unsubscribe(self, task_id: int):
+    def set_unsubscribe(self, task_id: str):
         result = self.repo.set_unsubscribe(task_id)
         if not result:
             raise BusinessException(code=ErrorCode.FAILED, message="退订失败")

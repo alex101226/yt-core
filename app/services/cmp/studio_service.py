@@ -41,7 +41,7 @@ class StudioService:
             raise BusinessException(code=ErrorCode.USER_NOT_FOUND, message=Message.USER_NOT_FOUND)
         if user.user_type == "internal":
             return None
-        return user.id if user.role_code == "admin" else (user.parent_id or user.id)
+        return user.id if (user.parent_id or 0) == 0 else user.parent_id
 
     def _ensure_accessible_studio(self, studio_id: int, current_user: dict):
         studio = self.repo.get_by_id(studio_id)
@@ -214,11 +214,9 @@ class StudioService:
         return [StudioOptionSchema(id=row.id, studio_name=row.studio_name) for row in rows]
 
     def overview(self, current_user: dict, studio_id: Optional[int] = None):
-        if studio_id is not None:
-            studio = self._ensure_accessible_studio(studio_id, current_user)
-            studio_pairs = [(studio, None)]
-        else:
-            studio_pairs = self._get_accessible_studios(current_user)
+        # 资源总览页始终按当前权限范围内全部 Studio 聚合统计。
+        # studio_id 参数仅为兼容前端已传值场景，当前不参与过滤。
+        studio_pairs = self._get_accessible_studios(current_user)
 
         all_nodes = []
         studio_count = 0

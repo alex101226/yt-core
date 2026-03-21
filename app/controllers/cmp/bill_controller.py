@@ -152,7 +152,7 @@ def unsubscribe_page_list(
 
 @router.put('/unsubscribe/{task_id}')
 def unsubscribe(
-    task_id: int,
+    task_id: str,
     service: BillService = Depends(get_bill_service)
 ):
     result = service.set_unsubscribe(task_id)

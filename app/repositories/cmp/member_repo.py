@@ -13,6 +13,13 @@ class MemberRepository:
     def get_by_user_id(self, user_id: int):
         return self.db.query(Member).filter(Member.user_id == user_id, Member.is_released == 0).first()
 
+    def get_active_by_user_id(self, user_id: int):
+        return self.db.query(Member).filter(
+            Member.user_id == user_id,
+            Member.is_released == 0,
+            Member.is_frozen == 0,
+        ).first()
+
     def get_active_by_id(self, member_id: int):
         return self.db.query(Member).filter(
             Member.id == member_id,

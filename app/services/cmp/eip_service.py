@@ -40,7 +40,7 @@ class EIPService:
         unit_price: float,
         instance,
     ):
-        account = self.account_service.account_exists(user.get('user_id'))
+        account = self.account_service.owner_account_exists(user)
         if not account:
             raise BusinessException(
                 code=ErrorCode.DATA_NOT_FOUND,

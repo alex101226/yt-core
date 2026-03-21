@@ -77,6 +77,8 @@ class InstanceService:
         }
         payload.pop("cidr_block", None)
         payload.pop("password", None)
+        payload.pop("use_credit", None)
+        payload.pop("use_voucher", None)
 
         # -----------------------------
         # 3. 创建实例
@@ -88,7 +90,7 @@ class InstanceService:
         # -----------------------------
         # 4. 账户检查 & 生成账单
         # -----------------------------
-        account = self.account_service.account_exists(user_id)
+        account = self.account_service.owner_account_exists(user)
         if not account:
             raise BusinessException(code=ErrorCode.DATA_NOT_FOUND, message=Message.DATA_NOT_FOUND)
 
@@ -100,6 +102,8 @@ class InstanceService:
             instance_id=instance.instance_id,
             instance=instance,
             unit_price=data.price,
+            use_credit=data.use_credit,
+            use_voucher=data.use_voucher,
         )
 
         # -----------------------------

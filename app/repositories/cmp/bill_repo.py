@@ -12,7 +12,7 @@ CloudServerInstance, BareMetalInstance, GPFSFile, CbsDisk,
 LoadBalancerACL, Eip, K8sCluster, CephfsFile
 )
 
-from app.models.cmp.billing_instance import BillingInstance
+from app.models.cmp.billing_instance import BillingInstance, BillingMethod
 from app.models.cmp.account_funds_flow import FundsFlow
 from app.models.cmp.order import Order
 from app.models.cmp.order_detail import OrderDetail
@@ -57,19 +57,20 @@ class BillRepository:
                 FundsFlow.id,
                 FundsFlow.flow_no,
                 FundsFlow.created_at.label("consume_time"),
-                FundsFlow.ref_type,  # 订单类型：充值订单, 预付费场景,后付费 / 按量计费,退订/冲正
+                FundsFlow.ref_type,  # 订单类型：充值订单, 预付费场景,后付费 / 按量计费,退订/冲正    流水类型：RECHARGE/PAY_ORDER/REFUND等
             )
-            .join(Order, Order.id == OrderDetail.order_id)
-            .outerjoin(
-                FundsFlow,
-                (FundsFlow.ref_type == "BILLING_DETAIL") &
-                (FundsFlow.ref_id == OrderDetail.id)
+            .select_from(FundsFlow)
+            .join(
+                Order,
+                (FundsFlow.ref_type == "PRODUCT_ORDER") &
+                (FundsFlow.ref_id == Order.id)
             )
+            .outerjoin(OrderDetail, OrderDetail.order_id == Order.id)
         )
         filters = [Order.created_by == user_id]
         # 可选查询条件
         if billing_id:
-            filters.append(OrderDetail.flow_no == billing_id)
+            filters.append(FundsFlow.flow_no == billing_id)
         if start_month and end_month:
             # billing_period_str = billing_period.strftime("%Y-%m")
             filters.append(
@@ -78,7 +79,7 @@ class BillRepository:
         if consume_type:
             filters.append(Order.consume_type == consume_type)
         if billing_type:
-            filters.append(FundsFlow.ref_type == billing_type)
+            filters.append(FundsFlow.flow_type == billing_type)
         if cloud_provider_code:
             filters.append(Order.cloud_provider_code == cloud_provider_code)
         if billing_status:
@@ -307,7 +308,11 @@ class BillRepository:
         query = self.db.query(BillingInstance) \
             .filter(
             BillingInstance.resource_type.in_(unsubscribe),
-            BillingInstance.status == BillingStatus.ACTIVE,
+            BillingInstance.status.in_([
+                BillingStatus.CREATED,
+                BillingStatus.ACTIVE,
+                BillingStatus.SUSPENDED,
+            ]),
             BillingInstance.created_by == parent_id,
             BillingInstance.is_released == 0,
         )
@@ -325,9 +330,10 @@ class BillRepository:
                 continue
             meta = BILLING_META_MAP[ResourceType(t.resource_type)]
             result_list.append({
+                "task_id": t.id,
                 "product_name": meta.product_name,  # 商品
-                "instance_name": getattr(resource, 'instance_name', getattr(resource, 'fs_name', '')),  # 实例名称
-                "resource_id": t.resource_id,  # 实例ID
+                "instance_name": self.get_resource_display_name(t.resource_type, resource),  # 实例名称
+                "resource_id": self.get_resource_business_id(t.resource_type, resource) or t.resource_id,  # 实例ID
                 "config_info": self.get_resource_config(resource),  # 配置信息
                 "cloud_provider": t.cloud_provider_code,  # 云厂商
                 "region_id": getattr(resource, 'region_id', ''),  # 区域
@@ -360,6 +366,51 @@ class BillRepository:
             return None
         return self.db.query(model).filter(model.id == resource_id).first()
 
+    def get_resource_display_name(self, resource_type: str, resource) -> str:
+        attr_map = {
+            ResourceType.SERVER: "instance_name",
+            ResourceType.BAREMETAL: "instance_name",
+            ResourceType.CLUSTER: "cluster_name",
+            ResourceType.GPFS: "fs_name",
+            ResourceType.CEPHFS: "fs_name",
+            ResourceType.DISK: "disk_name",
+            ResourceType.EIP: "public_ip",
+            ResourceType.LOAD_INSTANCE: "name",
+        }
+        attr_name = attr_map.get(resource_type)
+        return getattr(resource, attr_name, "") if attr_name else ""
+
+    def get_resource_business_id(self, resource_type: str, resource):
+        attr_map = {
+            ResourceType.SERVER: "instance_id",
+            ResourceType.BAREMETAL: "instance_id",
+            ResourceType.CLUSTER: "cluster_id",
+            ResourceType.GPFS: "fs_id",
+            ResourceType.CEPHFS: "fs_id",
+            ResourceType.DISK: "disk_id",
+            ResourceType.EIP: "eip_id",
+            ResourceType.LOAD_INSTANCE: "lb_id",
+        }
+        attr_name = attr_map.get(resource_type)
+        return getattr(resource, attr_name, None) if attr_name else None
+
+    def fetch_resource_by_business_id(self, resource_identifier: str):
+        mapping = {
+            ResourceType.SERVER: (CloudServerInstance, "instance_id"),
+            ResourceType.BAREMETAL: (BareMetalInstance, "instance_id"),
+            ResourceType.CLUSTER: (K8sCluster, "cluster_id"),
+            ResourceType.GPFS: (GPFSFile, "fs_id"),
+            ResourceType.CEPHFS: (CephfsFile, "fs_id"),
+            ResourceType.DISK: (CbsDisk, "disk_id"),
+            ResourceType.EIP: (Eip, "eip_id"),
+            ResourceType.LOAD_INSTANCE: (LoadBalancerACL, "lb_id"),
+        }
+        for resource_type, (model, field_name) in mapping.items():
+            resource = self.db.query(model).filter(getattr(model, field_name) == resource_identifier).first()
+            if resource:
+                return resource_type, resource
+        return None, None
+
     def get_resource_config(self, resource) -> str:
         # 统一组装配置描述，例如 CPU/内存/磁盘/带宽等
         info = []
@@ -376,12 +427,36 @@ class BillRepository:
 
     # 'CREATED','ACTIVE','SUSPENDED','RELEASED'
     # 执行退订
-    def set_unsubscribe(self, task_id: int):
-        find = self.get_by_id(task_id)
+    def set_unsubscribe(self, task_id):
+        find = self.get_by_id(int(task_id)) if str(task_id).isdigit() else None
+        if not find:
+            resource_type, resource = self.fetch_resource_by_business_id(str(task_id))
+            if resource_type and resource:
+                find = (
+                    self.db.query(BillingInstance)
+                    .filter(
+                        BillingInstance.resource_type == resource_type,
+                        BillingInstance.resource_id == resource.id,
+                        BillingInstance.is_released == 0,
+                        BillingInstance.status.in_([
+                            BillingStatus.CREATED,
+                            BillingStatus.ACTIVE,
+                            BillingStatus.SUSPENDED,
+                        ]),
+                    )
+                    .order_by(BillingInstance.id.desc())
+                    .first()
+                )
         if not find:
             return None
-        find.status = BillingStatus.RELEASED
-        find.billing_end_time = datetime.now(timezone.utc)
+        now = datetime.now(timezone.utc)
+        if find.billing_method == BillingMethod.PrePaid:
+            find.auto_renew = False
+            if not find.billing_end_time:
+                last_billing = find.last_billing_time or find.billing_start_time or now
+                find.billing_end_time = last_billing
+        else:
+            find.billing_end_time = find.next_bill_time or now
         self.db.commit()
         self.db.refresh(find)
         return find

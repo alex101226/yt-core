@@ -74,6 +74,8 @@ class BareMetalInstanceService:
         }
         payload.pop("cidr_block", None)
         payload.pop("password", None)
+        payload.pop("use_credit", None)
+        payload.pop("use_voucher", None)
 
         instance = self.repo.bare_metal_create(payload)
 
@@ -81,7 +83,7 @@ class BareMetalInstanceService:
             raise BusinessException(code=ErrorCode.FAILED, message="实例创建失败")  # 不返回 False，直接抛异常
 
         # 查看账户
-        account = self.account_service.account_exists(user_id)
+        account = self.account_service.owner_account_exists(user)
         if not account:
             raise BusinessException(code=ErrorCode.DATA_NOT_FOUND, message=Message.DATA_NOT_FOUND)
 
@@ -94,6 +96,8 @@ class BareMetalInstanceService:
             instance_id=instance.instance_id,
             instance=instance,
             unit_price=data.price,  # 👈 创建时提交的价格
+            use_credit=data.use_credit,
+            use_voucher=data.use_voucher,
         )
 
         #  设置vpc

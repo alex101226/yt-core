@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from sqlalchemy import Column, Integer, String, DateTime
+from sqlalchemy import Column, Integer, String, DateTime, Numeric
 
 from app.core.database import CmpBase
 from app.core.config import settings
@@ -16,6 +16,7 @@ class VoucherAssign(CmpBase, IsReleasedMixin):
     valid_start = Column(DateTime(timezone=True), nullable=False, comment="生效开始时间")
     valid_end = Column(DateTime(timezone=True), nullable=False, comment="生效结束时间")
     quantity = Column(Integer, nullable=False, comment="份数")
+    remaining_amount = Column(Numeric(18, 2), nullable=False, default=0, comment="剩余可抵扣金额")
     description = Column(String(255), nullable=True, comment="描述/备注")
 
     created_at = Column(

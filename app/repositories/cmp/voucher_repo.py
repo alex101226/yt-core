@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Optional, List, Tuple
 from sqlalchemy.orm import Session
 
@@ -50,6 +51,31 @@ class VoucherRepository:
         self.db.flush()
         return objs
 
+    def active_assigns_for_member(
+        self,
+        member_id: int,
+        cloud_provider_code: Optional[str],
+        now: datetime,
+    ):
+        query = (
+            self.db.query(
+                VoucherAssign,
+                VoucherTemplate.amount.label("template_amount"),
+            )
+            .join(VoucherTemplate, VoucherTemplate.id == VoucherAssign.template_id)
+            .filter(
+                VoucherAssign.member_id == member_id,
+                VoucherAssign.is_released == 0,
+                VoucherAssign.remaining_amount > 0,
+                VoucherAssign.valid_start <= now,
+                VoucherAssign.valid_end >= now,
+            )
+            .order_by(VoucherAssign.valid_end.asc(), VoucherAssign.id.asc())
+        )
+        if cloud_provider_code:
+            query = query.filter(VoucherTemplate.cloud_provider_code == cloud_provider_code)
+        return query.all()
+
     def has_active_assign(self, template_id: int, member_id: int, now):
         return self.db.query(VoucherAssign.id).filter(
             VoucherAssign.template_id == template_id,
@@ -81,6 +107,8 @@ class VoucherRepository:
                 Member.member_name,
                 VoucherTemplate.cloud_provider_code,
                 VoucherTemplate.amount,
+                (VoucherTemplate.amount * VoucherAssign.quantity).label("total_amount"),
+                VoucherAssign.remaining_amount,
                 VoucherAssign.description,
                 VoucherAssign.created_at,
             )

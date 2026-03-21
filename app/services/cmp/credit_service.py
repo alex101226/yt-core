@@ -59,10 +59,10 @@ class CreditService:
         )
         _write_audit_log(data)
 
-    def _get_internal_operator(self, operator: dict):
+    def _get_operator(self, operator: dict):
         operator_user = self.user_repo.get_by_id(operator.get("user_id"))
-        if not operator_user or operator_user.user_type != "internal":
-            raise BusinessException(code=ErrorCode.FAILED, message="仅内部人员可操作低佣金")
+        if not operator_user:
+            raise BusinessException(code=ErrorCode.USER_NOT_FOUND, message=Message.USER_NOT_FOUND)
         return operator_user
 
     def _resolve_member_for_user(self, user_id: int):
@@ -76,19 +76,17 @@ class CreditService:
         return member
 
     def _resolve_target_member(self, current_user: dict, member_id: Optional[int] = None):
-        operator_user = self.user_repo.get_by_id(current_user.get("user_id"))
-        if operator_user and operator_user.user_type == "internal":
-            if member_id:
-                member = self.member_repo.get_by_id(member_id)
-                if not member:
-                    raise BusinessException(code=ErrorCode.DATA_NOT_FOUND, message="会员不存在")
-                return member
-            raise BusinessException(code=ErrorCode.FAILED, message="member_id不能为空")
+        self._get_operator(current_user)
+        if member_id:
+            member = self.member_repo.get_by_id(member_id)
+            if not member:
+                raise BusinessException(code=ErrorCode.DATA_NOT_FOUND, message="会员不存在")
+            return member
         return self._resolve_member_for_user(current_user.get("user_id"))
 
     def grant(self, data: CreditGrantCreateSchema, operator: dict):
-        self._get_internal_operator(operator)
-        member = self.member_repo.get_active_by_id(data.member_id)
+        self._get_operator(operator)
+        member = self.member_repo.get_active_by_id(self._resolve_target_member(operator, data.member_id).id)
         if not member:
             raise BusinessException(code=ErrorCode.DATA_NOT_FOUND, message="会员不存在或已冻结")
 
@@ -135,7 +133,7 @@ class CreditService:
             raise
 
     def approve(self, grant_id: int, operator: dict):
-        self._get_internal_operator(operator)
+        self._get_operator(operator)
         grant = self.repo.get_grant(grant_id)
         if not grant:
             raise BusinessException(code=ErrorCode.DATA_NOT_FOUND, message=Message.DATA_NOT_FOUND)
@@ -163,7 +161,7 @@ class CreditService:
             raise
 
     def reject(self, grant_id: int, reason: Optional[str], operator: dict):
-        self._get_internal_operator(operator)
+        self._get_operator(operator)
         grant = self.repo.get_grant(grant_id)
         if not grant:
             raise BusinessException(code=ErrorCode.DATA_NOT_FOUND, message=Message.DATA_NOT_FOUND)
@@ -227,12 +225,7 @@ class CreditService:
         status: Optional[str] = None,
         approve_status: Optional[str] = None,
     ):
-        target_member_id = None
-        operator_user = self.user_repo.get_by_id(current_user.get("user_id"))
-        if operator_user and operator_user.user_type == "internal":
-            target_member_id = member_id
-        else:
-            target_member_id = self._resolve_member_for_user(current_user.get("user_id")).id
+        target_member_id = member_id or self._resolve_member_for_user(current_user.get("user_id")).id
 
         items, total = self.repo.grant_page_list(
             page, page_size, target_member_id, cloud_provider_code, status, approve_status

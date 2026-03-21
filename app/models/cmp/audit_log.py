@@ -1,15 +1,9 @@
 from datetime import datetime, timezone
-from sqlalchemy import Column, String, Text, Integer, DateTime, Enum, Boolean
+from sqlalchemy import Column, String, Text, Integer, DateTime, Boolean
 
 from app.core.config import settings
 from app.core.database import CmpBase
 from app.models.is_released_mixin import IsReleasedMixin
-
-from app.constants.enums import ActionMode, ActionOperate
-
-
-def _enum_values(enum_cls):
-    return [item.value for item in enum_cls]
 
 
 class AuditLog(CmpBase, IsReleasedMixin):
@@ -28,7 +22,7 @@ class AuditLog(CmpBase, IsReleasedMixin):
 
     # 操作的模块
     action_mode = Column(
-        Enum(ActionMode, values_callable=_enum_values),
+        String(64),
         nullable=False,
         comment="操作模块，例如SERVER=云服务器，DISK=cbs磁盘，EIP=公网eip，BAREMETAL=裸金属，CLUSTER=集群，"
                 "CUSTOM_IMAGE=自定义镜像，LOAD_INSTANCE=负载均衡，GPFS=GPFS存储，OSS=oss存储，CEPHFS=CEPHFS存储，"
@@ -36,7 +30,7 @@ class AuditLog(CmpBase, IsReleasedMixin):
 
     # 操作动作
     action = Column(
-        Enum(ActionOperate, values_callable=_enum_values),
+        String(64),
         nullable=False,
         comment="操作动作，例如 create、update、delete"
     )

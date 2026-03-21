@@ -7,7 +7,7 @@ from nanoid import generate
 
 from app.core.database import SessionLocal
 
-from app.constants.enums import BillingMethod
+from app.constants.enums import BillingMethod, ResourceType
 from app.common.exceptions import BusinessException
 from app.core.logger import logger
 
@@ -48,6 +48,26 @@ class BillingCronService:
                 logger.exception(f"billing failed: {billing.id}")
                 self.db.rollback()
 
+    def _resolve_order_instance_id(self, billing: BillingInstance) -> str:
+        resource = self.repo.fetch_resource(billing.resource_type, billing.resource_id)
+        if not resource:
+            return str(billing.resource_id)
+
+        attr_map = {
+            ResourceType.SERVER: "instance_id",
+            ResourceType.BAREMETAL: "instance_id",
+            ResourceType.DISK: "disk_id",
+            ResourceType.EIP: "eip_id",
+            ResourceType.CLUSTER: "cluster_id",
+            ResourceType.GPFS: "fs_id",
+            ResourceType.CEPHFS: "fs_id",
+            ResourceType.LOAD_INSTANCE: "lb_id",
+            ResourceType.OSS: "bucket_name",
+        }
+        attr_name = attr_map.get(billing.resource_type)
+        resolved = getattr(resource, attr_name, None) if attr_name else None
+        return str(resolved or billing.resource_id)
+
     # 扣费
     def _handle_postpaid(self, billing: BillingInstance, now: datetime, account: Optional[Account]):
         # 每周扣费一次
@@ -60,6 +80,13 @@ class BillingCronService:
         if now < next_billing_due:
             return  # 本周期还没到
 
+        if billing.billing_end_time and now >= billing.billing_end_time:
+            billing.status = "RELEASED"
+            billing.next_bill_time = None
+            self.db.commit()
+            logger.info(f"按量计费任务到期结束, billing_id={billing.id}")
+            return
+
         amount = billing.unit_price * 7 * 24  # 假设按小时计费，7天*24小时
 
         # 创建订单 + 扣费
@@ -69,7 +96,7 @@ class BillingCronService:
                 "username": billing.created_by_name,
             },
             account_id=account.id,
-            instance_id=str(billing.resource_id),
+            instance_id=self._resolve_order_instance_id(billing),
             billing=billing,
             amount=amount,
             order_type="RENEW",
@@ -110,7 +137,7 @@ class BillingCronService:
                     "username": billing.created_by_name,
                 },
                 account_id=account.id,
-                instance_id=str(billing.resource_id),
+                instance_id=self._resolve_order_instance_id(billing),
                 billing=billing,
                 amount=amount,
                 order_type="RENEW",
@@ -161,4 +188,3 @@ if __name__ == "__main__":
     import time
     while True:
         time.sleep(60)
-

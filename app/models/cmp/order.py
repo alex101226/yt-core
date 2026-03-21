@@ -26,8 +26,8 @@ class Order(CmpBase, IsReleasedMixin):
     pay_status = Column(String(32), nullable=False, comment="支付状态：PENDING=支付中/SUCCESS=支付成功/FAILED=支付失败")
     consume_type = Column(String(32), nullable=False, comment="消费类型：VOLUME_BASED=按量计费/PACKAGE_MONTHLY=包年月计费")
     amount_payable = Column(Float, nullable=False, comment="应付金额")
-    use_credit = Column(Boolean, default=False, comment="使用低佣金")
-    use_voucher = Column(Float, default=False, comment="使用代金券")
+    use_credit = Column(Boolean, default=False, comment="是否开启低佣金抵扣")
+    use_voucher = Column(Boolean, default=False, comment="是否开启代金券抵扣")
     settlement_type = Column(String(32), nullable=False, comment="结算类型：PLATFORM=平台结算")
     cloud_provider_code = Column(String(32), nullable=True, comment="云厂商")
 

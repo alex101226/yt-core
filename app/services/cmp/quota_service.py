@@ -31,11 +31,30 @@ class QuotaService:
         self.user_repo = UserRepository(sso_db)
         self.member_repo = MemberRepository(cmp_db)
 
-    def _require_internal(self, operator: dict):
+    def _get_operator(self, operator: dict):
         user = self.user_repo.get_by_id(operator.get("user_id"))
-        if not user or user.user_type != "internal":
-            raise BusinessException(code=ErrorCode.FAILED, message="仅内部人员可操作配额管理")
+        if not user:
+            raise BusinessException(code=ErrorCode.USER_NOT_FOUND, message=Message.USER_NOT_FOUND)
         return user
+
+    def _resolve_member_for_user(self, user_id: int):
+        user = self.user_repo.get_by_id(user_id)
+        if not user:
+            raise BusinessException(code=ErrorCode.USER_NOT_FOUND, message=Message.USER_NOT_FOUND)
+        owner_user_id = user.id if user.parent_id == 0 else user.parent_id
+        member = self.member_repo.get_by_user_id(owner_user_id)
+        if not member or member.is_frozen:
+            raise BusinessException(code=ErrorCode.DATA_NOT_FOUND, message="当前账号未绑定有效会员")
+        return member
+
+    def _resolve_target_member(self, operator: dict, member_id=None):
+        self._get_operator(operator)
+        if member_id:
+            member = self.member_repo.get_active_by_id(member_id)
+            if not member:
+                raise BusinessException(code=ErrorCode.DATA_NOT_FOUND, message="会员不存在或已冻结")
+            return member
+        return self._resolve_member_for_user(operator.get("user_id"))
 
     def _write_quota_audit_log(self, operator: dict, action: str, source_id: str, message: str):
         _write_audit_log(
@@ -57,7 +76,7 @@ class QuotaService:
         return [QuotaCategoryOutSchema.model_validate(item) for item in items]
 
     def category_toggle(self, operator: dict, data: QuotaCategoryToggleSchema):
-        self._require_internal(operator)
+        self._get_operator(operator)
         category = self.repo.get_category_by_id(data.category_id)
         if not category:
             raise BusinessException(code=ErrorCode.DATA_NOT_FOUND, message=Message.DATA_NOT_FOUND)
@@ -77,13 +96,7 @@ class QuotaService:
             raise
 
     def apply_create(self, operator: dict, data: QuotaApplyCreateSchema):
-        operator_user = self.user_repo.get_by_id(operator.get("user_id"))
-        if operator_user and operator_user.user_type == "internal":
-            if not data.member_id:
-                raise BusinessException(code=ErrorCode.FAILED, message="member_id不能为空")
-            member = self.member_repo.get_active_by_id(data.member_id)
-        else:
-            member = self.member_repo.get_active_by_id(self._resolve_member_for_user(operator.get("user_id")).id)
+        member = self._resolve_target_member(operator, data.member_id)
         if not member:
             raise BusinessException(code=ErrorCode.DATA_NOT_FOUND, message="会员不存在或已冻结")
         category = self.repo.get_category_by_code(data.quota_code)
@@ -141,7 +154,7 @@ class QuotaService:
         )
 
     def apply_approve(self, operator: dict, data: QuotaApplyApproveSchema):
-        self._require_internal(operator)
+        self._get_operator(operator)
         apply_obj = self.repo.get_apply(data.apply_id)
         if not apply_obj:
             raise BusinessException(code=ErrorCode.DATA_NOT_FOUND, message=Message.DATA_NOT_FOUND)
@@ -186,7 +199,7 @@ class QuotaService:
             raise
 
     def apply_reject(self, operator: dict, data: QuotaApplyRejectSchema):
-        self._require_internal(operator)
+        self._get_operator(operator)
         apply_obj = self.repo.get_apply(data.apply_id)
         if not apply_obj:
             raise BusinessException(code=ErrorCode.DATA_NOT_FOUND, message=Message.DATA_NOT_FOUND)

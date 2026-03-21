@@ -158,9 +158,8 @@ class AuthService:
         return TokenResponse(access_token=access, refresh_token=data.refresh_token, token_type="bearer")
 
     # 退出登录
-    def logout(self, user_id: int, response: FastAPIResponse):
+    def logout(self, user_id: int):
         if not user_id:
             return False
         self.session_repo.clear_user_sessions(user_id)
-        response.delete_cookie("access_token", path="/")
         return True

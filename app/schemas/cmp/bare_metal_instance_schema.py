@@ -39,6 +39,8 @@ class BareMetalInstanceBase(BaseModel):
     architecture: Optional[str] = None  # cpu的架构：接口：/cloud/images，字段：architecture
     hostname: Optional[str] = None  # 主机名，输入的
     price: Optional[float] = 0.00
+    use_credit: bool = False  # 是否开启低佣金抵扣
+    use_voucher: bool = False  # 是否开启代金券抵扣
 
 class BareMetalInstanceCreate(BareMetalInstanceBase):
     password: str   # 密码

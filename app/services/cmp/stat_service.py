@@ -95,10 +95,10 @@ class StatService:
         billing_period = f"{year}-{month:02d}"
 
         return {
-            "spent_amount": self.repo.sum_monthly_spent(user_id, year, month),
-            "invoice_amount": self.repo.sum_monthly_invoice_amount(user_id, billing_period),
-            "credit_amount": self.repo.sum_monthly_credit(user_id, year, month),
-            "voucher_amount": self.repo.sum_monthly_voucher(user_id, year, month)
+            "spent_amount": round(self.repo.sum_monthly_spent(user_id, year, month), 2),
+            "invoice_amount": round(self.repo.sum_monthly_invoice_amount(user_id, billing_period), 2),
+            "credit_amount": round(self.repo.sum_monthly_credit(user_id, year, month), 2),
+            "voucher_amount": round(self.repo.sum_monthly_voucher(user_id, year, month), 2)
         }
 
     #   当月总览

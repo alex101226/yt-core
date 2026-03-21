@@ -60,6 +60,9 @@ class AccountRepository:
     def account_exists(self, user_id: int):
         return self.db.query(Account).filter(Account.created_by == user_id).first()
 
+    def get_by_id(self, account_id: int):
+        return self.db.query(Account).filter(Account.id == account_id).first()
+
     # 更新用户的账户余额
     def account_balance_update(self, amount: Decimal, user_id: int):
         account = self.account_exists(user_id)

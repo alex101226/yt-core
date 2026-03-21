@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 from typing import Optional
+from decimal import Decimal, ROUND_HALF_UP
 
 from sqlalchemy.orm import Session
 from nanoid import generate
@@ -102,12 +103,16 @@ class VoucherService:
 
         payloads = []
         for member_id in data.member_ids:
+            total_amount = (
+                Decimal(str(template.amount)) * Decimal(str(data.quantity))
+            ).quantize(Decimal("0.00"), rounding=ROUND_HALF_UP)
             payloads.append({
                 "template_id": data.template_id,
                 "member_id": member_id,
                 "valid_start": data.valid_start,
                 "valid_end": data.valid_end,
                 "quantity": data.quantity,
+                "remaining_amount": total_amount,
                 "description": data.description,
                 "created_by": operator.get("user_id"),
                 "created_by_name": operator.get("username"),
@@ -130,8 +135,48 @@ class VoucherService:
             items=[
                 VoucherAssignOutSchema.model_validate({
                     **i._asdict(),
-                    "consumed_amount": 0,
+                    "consumed_amount": float((i.total_amount or 0) - (i.remaining_amount or 0)),
                 })
                 for i in items
             ],
         )
+
+    def consume(
+        self,
+        member_id: int,
+        cloud_provider_code: str,
+        amount: float,
+    ) -> float:
+        if amount <= 0:
+            return 0.0
+
+        member = self.member_repo.get_active_by_id(member_id)
+        if not member:
+            return 0.0
+
+        now = datetime.utcnow()
+        assigns = self.repo.active_assigns_for_member(member_id, cloud_provider_code, now)
+        remaining = Decimal(str(amount)).quantize(Decimal("0.00"), rounding=ROUND_HALF_UP)
+        consumed = Decimal("0.00")
+
+        try:
+            for assign, _template_amount in assigns:
+                if remaining <= 0:
+                    break
+                assign_remaining = Decimal(str(assign.remaining_amount or 0)).quantize(
+                    Decimal("0.00"), rounding=ROUND_HALF_UP
+                )
+                if assign_remaining <= 0:
+                    continue
+                use_amount = min(assign_remaining, remaining)
+                assign.remaining_amount = (assign_remaining - use_amount).quantize(
+                    Decimal("0.00"), rounding=ROUND_HALF_UP
+                )
+                remaining = (remaining - use_amount).quantize(Decimal("0.00"), rounding=ROUND_HALF_UP)
+                consumed += use_amount
+
+            self.db.flush()
+            return float(consumed)
+        except Exception:
+            self.db.rollback()
+            raise
