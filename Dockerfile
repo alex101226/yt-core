@@ -1,5 +1,5 @@
-# 使用 Python 3.9 官方 slim 镜像
-FROM python:3.9-slim
+# 使用 Python 3.11 官方 slim 镜像
+FROM python:3.11-slim
 
 # 设置工作目录
 WORKDIR /app
@@ -8,14 +8,14 @@ WORKDIR /app
 #RUN useradd -m -s /bin/bash yt_back
 
 # 升级 pip，防止依赖安装报错
-RUN python -m pip install --upgrade pip
+RUN python -m pip install --upgrade pip setuptools wheel
 
 # 先 COPY requirements.txt 并安装依赖（利用缓存层）
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --default-timeout=120 --retries 5 -i https://pypi.tuna.tsinghua.edu.cn/simple -r requirements.txt
 
 # 显式安装 uvicorn 和 fastapi，避免 requirements.txt 不完整
-RUN pip install --no-cache-dir uvicorn fastapi gunicorn python-dotenv
+RUN pip install --no-cache-dir --default-timeout=120 --retries 5 -i https://pypi.tuna.tsinghua.edu.cn/simple uvicorn fastapi gunicorn python-dotenv
 
 # 切换到非 root 用户
 #USER yt_back
