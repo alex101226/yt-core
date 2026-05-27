@@ -47,3 +47,11 @@ def page_list(
     return Response.success(result)
 
 
+# 云厂商列表
+@router.get('/list')
+def list_all(
+    service: CloudVendorService = Depends(get_vendor_service)
+):
+    result = service.cloud_vendor_list()
+    return Response.success(result)
+

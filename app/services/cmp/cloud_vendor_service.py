@@ -12,6 +12,22 @@ class CloudVendorService:
         self.db = db
         self.repo = CloudVendorRepo(db)
 
+    def get_vendor_by_code(self, cloud_code: str):
+        vendor = self.repo.get_by_code(cloud_code)
+        if not vendor:
+            raise BusinessException(code=ErrorCode.DATA_NOT_FOUND, message="云厂商不存在")
+        return vendor
+
+    def ensure_third_party_vendor(self, cloud_code: str):
+        vendor = self.get_vendor_by_code(cloud_code)
+        if not vendor.is_third_party:
+            raise BusinessException(code=ErrorCode.FAILED, message="当前厂商为自有厂商，不支持三方云接口调用")
+        return vendor
+
+    # 云厂商列表
+    def cloud_vendor_list(self):
+        return self.repo.cloud_vendor_list()
+
     # 创建云厂商
     def cloud_vendor_create(self, user_id: int, data: dict):
         payload = {

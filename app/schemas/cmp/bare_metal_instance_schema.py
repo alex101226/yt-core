@@ -10,8 +10,8 @@ class BareMetalInstanceBase(BaseModel):
 
     cloud_provider_code: str    # 云厂商
     region_id: str   # 区域
-    zone_id: str    # 可用区
-    resource_group_id: int  # 资源组
+    zone_id: Optional[str] = None   # 可用区
+    resource_group_id: Optional[int] = None  # 资源组
 
     instance_type: str  # 实例规格类型，接口：/cloud/spec_page_list, 字段 instance_family: "ecs.g8ine"
     instance_type_id: Optional[str] # 实例规格id，接口：/cloud/spec_page_list, 字段：instance_type_id
@@ -30,9 +30,9 @@ class BareMetalInstanceBase(BaseModel):
     quantity: Optional[int] = 1 # 服务器数量
     # internet_max_bandwidth_out: Optional[int]
 
-    vpc_id: int # 选择的vpc的id
-    vswitch_id: int # 选择的子网的id
-    security_group_id: str  # 选择的安全组的id
+    vpc_id: Optional[int] = None # 选择的vpc的id
+    vswitch_id: Optional[int] = None # 选择的子网的id
+    security_group_id: Optional[str] = None  # 选择的安全组的id
     # ssh_proxy_port: Optional[int] = 0     #   SSH 代理端口
 
     os_type: Optional[str] = None    # 操作系统：接口：/cloud/images，字段：os_type

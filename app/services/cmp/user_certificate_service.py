@@ -11,12 +11,14 @@ from app.common.messages import Message
 
 from app.core.logger import logger
 from app.services.cmp.operation_helper import execute_with_notification
+from app.services.cmp.cloud_vendor_service import CloudVendorService
 
 
 class UserCertificateService:
     def __init__(self, db: Session):
         self.db = db
         self.repo = UserCertificateRepository(db)
+        self.cloud_vendor_service = CloudVendorService(db)
 
     def create_certificate(self, user: dict, data: UserCertificateCreate):
         def _do():
@@ -33,6 +35,8 @@ class UserCertificateService:
                     payload['is_default'] = 1
                 else:
                     payload['is_default'] = 0
+
+                self.cloud_vendor_service.ensure_third_party_vendor(data.cloud_code)
 
                 # cloud_code 唯一校验
                 if self.repo.get_by_code(user_id, data.cloud_code):
@@ -68,6 +72,12 @@ class UserCertificateService:
     # 下拉选择的list
     def certificate_list(self, user_id: int):
         result = self.repo.certificate_list(user_id)
+        out_result = [UserCertificateList.model_validate(i) for i in result]
+        return out_result
+
+    # 根据云厂商编码返回云凭证列表
+    def certificate_list_by_cloud_code(self, user_id: int, cloud_code: str):
+        result = self.repo.certificate_list_by_cloud_code(user_id, cloud_code)
         out_result = [UserCertificateList.model_validate(i) for i in result]
         return out_result
 
@@ -129,8 +139,8 @@ class UserCertificateService:
         obj = self.repo.get_certificate_find(user_id)
         return obj
 
-    def get_user_ak(self, user_id: int):
-        obj = self.repo.get_user_ak(user_id)
+    def get_user_ak(self, user_id: int, cloud_code: str):
+        obj = self.repo.get_user_ak(user_id, cloud_code)
         if not obj:
             raise BusinessException(code=ErrorCode.DATA_NOT_FOUND, message=Message.DATA_NOT_FOUND)
         return obj

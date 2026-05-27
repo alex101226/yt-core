@@ -56,6 +56,19 @@ def certificates_page_list(
     result = service.certificates_page_list(parent_id, page, page_size)
     return Response.success(result)
 
+
+@router.get("/list")
+def certificates_list_by_cloud_code(
+    request: Request,
+    cloud_code: str = Query(..., min_length=1, description="云厂商编码"),
+    service: UserCertificateService = Depends(get_user_certificate_service)
+):
+    parent_id = request.state.user.get('parent_id') or 0
+    if parent_id == 0:
+        parent_id = request.state.user.get('user_id')
+    items = service.certificate_list_by_cloud_code(parent_id, cloud_code)
+    return Response.success(items)
+
 # @router.put("/update/{record_id}")
 # def update_certificate(
 #     record_id: int = Path(..., ge=1),

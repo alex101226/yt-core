@@ -7,6 +7,35 @@ class CloudVendorRepo:
     def __init__(self, db: Session):
         self.db = db
 
+    def get_by_code(self, cloud_code: str):
+        return (
+            self.db.query(CloudVendor)
+            .filter(
+                CloudVendor.cloud_code == cloud_code,
+                CloudVendor.is_released == 0,
+            )
+            .first()
+        )
+
+    # 云厂商列表
+    def cloud_vendor_list(self):
+        rows = (
+            self.db.query(
+                CloudVendor.cloud_code,
+                CloudVendor.cloud_name,
+            )
+            .filter(CloudVendor.is_released == 0)
+            .order_by(CloudVendor.id.desc())
+            .all()
+        )
+        return [
+            {
+                "cloud_code": row.cloud_code,
+                "cloud_name": row.cloud_name,
+            }
+            for row in rows
+        ]
+
     # 云厂商page_list
     def cloud_vendor_page_list(self, user_id: int, page: int, page_size: int):
         query = self.db.query(CloudVendor).filter(CloudVendor.created_by == user_id).order_by(CloudVendor.id.desc())
@@ -42,4 +71,3 @@ class CloudVendorRepo:
     def cloud_vendor_by_id(self, cloud_vendor_id: int):
         record = self.db.query(CloudVendor).filter_by(id=cloud_vendor_id).first()
         return record
-

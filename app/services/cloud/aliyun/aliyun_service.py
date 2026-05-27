@@ -5,30 +5,31 @@ from app.clients.cloud_client_factory import CloudClientFactory
 from app.core.logger import logger
 
 class AliyunService:
-    def __init__(self, access_key_id: str, access_key_secret: str):
+    def __init__(self, access_key_id: str, access_key_secret: str, cloud_code: str = "aliyun"):
         self.cache = AliyunCacheService()
+        self.cloud_code = cloud_code
         self.client = CloudClientFactory.create_client(
             "aliyun", access_key_id, access_key_secret, 'ecs.aliyuncs.com'
         )
 
     # 区域
     async def list_regions(self):
-        cache_data = await self.cache.get_regions()
+        cache_data = await self.cache.get_regions(self.cloud_code)
         if cache_data:
             return cache_data
 
         data = self.client.list_regions()
-        await self.cache.set_regions(data)
+        await self.cache.set_regions(self.cloud_code, data)
         return data
 
     # 可用区
     async def list_zones(self, region_id):
-        cache_data = await self.cache.get_zones(region_id)
+        cache_data = await self.cache.get_zones(self.cloud_code, region_id)
         if cache_data:
             return cache_data
 
         data = self.client.list_zones(region_id)
-        await self.cache.set_zones(region_id, data)
+        await self.cache.set_zones(self.cloud_code, region_id, data)
         return data
 
     # 镜像
@@ -38,23 +39,23 @@ class AliyunService:
         instance_type_id: str,
         # architecture: str = None,
     ):
-        cache_data = await self.cache.get_images(region_id)
+        cache_data = await self.cache.get_images(self.cloud_code, region_id)
         if cache_data:
             return cache_data
 
         data = self.client.list_images(region_id, instance_type_id)
-        await self.cache.set_images(region_id, data)
+        await self.cache.set_images(self.cloud_code, region_id, data)
         return data
 
     # 全量规格
     async def list_instance_types(self, region_id):
         # await self.cache.del_instance_types(region_id)
-        cache_data = await self.cache.get_instance_types(region_id)
+        cache_data = await self.cache.get_instance_types(self.cloud_code, region_id)
         if cache_data:
             return cache_data
 
         data = self.client.list_instance_types()
-        await self.cache.set_instance_types(region_id, data)
+        await self.cache.set_instance_types(self.cloud_code, region_id, data)
         return data
 
 
@@ -67,22 +68,22 @@ class AliyunService:
         disk_category
     ):
         # await self.cache.del_available_types(region_id)
-        cache_data = await self.cache.get_available_types(region_id)
+        cache_data = await self.cache.get_available_types(self.cloud_code, region_id)
         if cache_data:
             return cache_data
 
         data = self.client.list_available_instance_types(region_id, zone_id, instance_charge_type, disk_category)
-        await self.cache.set_available_types(region_id, data)
+        await self.cache.set_available_types(self.cloud_code, region_id, data)
         return data
 
     # 系统盘种类
     async def list_system_disk_categories(self, region_id, zone_id, instance_type_id, instance_charge_type):
-        cache_data = await self.cache.get_system_disks(region_id)
+        cache_data = await self.cache.get_system_disks(self.cloud_code, region_id)
         if cache_data:
             return cache_data
 
         data = self.client.list_system_disk_categories(region_id, zone_id, instance_type_id, instance_charge_type)
-        await self.cache.set_system_disks(region_id, data)
+        await self.cache.set_system_disks(self.cloud_code, region_id, data)
         return data
 
 
@@ -104,7 +105,7 @@ class AliyunService:
             region_id, instance_type_id,disk_category,
             system_disk_size, instance_charge_type, period
         )
-        await self.cache.set_cloud_prices(region_id, data)
+        await self.cache.set_cloud_prices(self.cloud_code, region_id, data)
         return data
 
     # 实例规格价格

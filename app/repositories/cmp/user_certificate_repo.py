@@ -37,6 +37,20 @@ class UserCertificateRepository:
         ).filter_by(created_by=user_id).all()
         return items
 
+    # 根据云厂商编码返回云凭证列表
+    def certificate_list_by_cloud_code(self, user_id: int, cloud_code: str):
+        items = self.db.query(
+            UserCertificate.id,
+            UserCertificate.cloud_code,
+            UserCertificate.cloud_name,
+            UserCertificate.is_default,
+            UserCertificate.description
+        ).filter(
+            UserCertificate.created_by == user_id,
+            UserCertificate.cloud_code == cloud_code
+        ).order_by(UserCertificate.id.desc()).all()
+        return items
+
     # 返回云凭证列表
     def list_page(self, user_id, page: int, page_size: int):
         q = self.db.query(
@@ -107,14 +121,15 @@ class UserCertificateRepository:
             UserCertificate.is_default == 1
         ).first()
 
-    # 获取用户的ak
-    def get_user_ak(self, user_id: int):
+    # 获取用户在指定厂商下的ak
+    def get_user_ak(self, user_id: int, cloud_code: str):
        find = self.db.query(
            UserCertificate.cloud_code,
            UserCertificate.cloud_access_key_id,
            UserCertificate.cloud_access_key_secret
        ).filter(
            UserCertificate.created_by == user_id,
+           UserCertificate.cloud_code == cloud_code,
            UserCertificate.is_default == 1
        ).first()
        return find

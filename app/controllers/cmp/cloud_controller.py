@@ -4,8 +4,10 @@ from fastapi import APIRouter, Depends, Query
 from enum import Enum
 from sqlalchemy.orm import Session
 
+from app.common.exceptions import BusinessException
 from app.common.response import Response
 from app.common.dependencies import get_cmp_db
+from app.common.status_code import ErrorCode
 from app.services.cloud.aliyun.aliyun_service import AliyunService
 from app.common.filter_spec import (
 filter_spec, filter_available_instances, fetch_prices_concurrent,
@@ -18,6 +20,24 @@ from app.services.cmp.user_certificate_service import UserCertificateService
 def get_user_certificate_service(db: Session = Depends(get_cmp_db)):
     return UserCertificateService(db)
 
+
+def build_cloud_service(user_id: int, cloud_code: str, service: UserCertificateService) -> AliyunService:
+    cer_data = service.get_user_ak(user_id, cloud_code)
+    return AliyunService(
+        access_key_id=cer_data.cloud_access_key_id,
+        access_key_secret=cer_data.cloud_access_key_secret,
+        cloud_code=cloud_code,
+    )
+
+
+def try_build_cloud_service(user_id: int, cloud_code: str, service: UserCertificateService):
+    try:
+        return build_cloud_service(user_id, cloud_code, service)
+    except BusinessException as exc:
+        if exc.code == ErrorCode.DATA_NOT_FOUND:
+            return None
+        raise
+
 router = APIRouter(prefix="/cloud", tags=["云厂商信息"])
 
 # -----------------------------
@@ -26,14 +46,12 @@ router = APIRouter(prefix="/cloud", tags=["云厂商信息"])
 @router.get("/regions")
 async def list_regions(
     user_id: int = Query(..., description="用户id"),
+    cloud_code: str = Query(..., description="云厂商编码"),
     service: UserCertificateService = Depends(get_user_certificate_service)
 ):
-    # 1️⃣ 查用户凭证
-    cer_data = service.get_user_ak(user_id)
-    aliyun_service = AliyunService(
-        access_key_id=cer_data.cloud_access_key_id,
-        access_key_secret=cer_data.cloud_access_key_secret
-    )
+    aliyun_service = try_build_cloud_service(user_id, cloud_code, service)
+    if not aliyun_service:
+        return Response.success([])
     regions = await aliyun_service.list_regions()
     return Response.success(regions)
 
@@ -43,15 +61,13 @@ async def list_regions(
 @router.get("/zones")
 async def list_zones(
     user_id: int = Query(..., description="用户id"),
+    cloud_code: str = Query(..., description="云厂商编码"),
     region_id: str = Query(..., description="Region ID"),
     service: UserCertificateService = Depends(get_user_certificate_service)
 ):
-    # 1️⃣ 查用户凭证
-    cer_data = service.get_user_ak(user_id)
-    aliyun_service = AliyunService(
-        access_key_id=cer_data.cloud_access_key_id,
-        access_key_secret=cer_data.cloud_access_key_secret
-    )
+    aliyun_service = try_build_cloud_service(user_id, cloud_code, service)
+    if not aliyun_service:
+        return Response.success([])
 
     zones = await aliyun_service.list_zones(region_id)
     return Response.success(zones)
@@ -62,16 +78,14 @@ async def list_zones(
 @router.get("/images")
 async def list_images(
     user_id: int = Query(..., description="用户id"),
+    cloud_code: str = Query(..., description="云厂商编码"),
     region_id: str = Query(..., description="区域 ID"),
     instance_type_id: str = Query(..., description="计费方式"),
     service: UserCertificateService = Depends(get_user_certificate_service)
 ):
-    # 1️⃣ 查用户凭证
-    cer_data = service.get_user_ak(user_id)
-    aliyun_service = AliyunService(
-        access_key_id=cer_data.cloud_access_key_id,
-        access_key_secret=cer_data.cloud_access_key_secret
-    )
+    aliyun_service = try_build_cloud_service(user_id, cloud_code, service)
+    if not aliyun_service:
+        return Response.success([])
     images = await aliyun_service.list_images(region_id, instance_type_id)
     return Response.success(images)
 
@@ -86,18 +100,16 @@ class InstanceChargeType(str, Enum):
 @router.get("/system_disk_categories")
 async def list_system_disk_categories(
     user_id: int = Query(..., description="用户id"),
+    cloud_code: str = Query(..., description="云厂商编码"),
     region_id: str = Query(..., description="Region ID"),
     zone_id: str = Query(..., description="Zone ID"),
     instance_type_id: str = Query(..., description="Instance Type ID"),
     instance_charge_type: str = Query(..., description="计费方式"),
     service: UserCertificateService = Depends(get_user_certificate_service)
 ):
-    # 1️⃣ 查用户凭证
-    cer_data = service.get_user_ak(user_id)
-    aliyun_service = AliyunService(
-        access_key_id=cer_data.cloud_access_key_id,
-        access_key_secret=cer_data.cloud_access_key_secret
-    )
+    aliyun_service = try_build_cloud_service(user_id, cloud_code, service)
+    if not aliyun_service:
+        return Response.success([])
     categories = await aliyun_service.list_system_disk_categories(region_id, zone_id, instance_type_id, instance_charge_type)
     return Response.success(categories)
 
@@ -109,6 +121,7 @@ async def list_available_instance_types(
     page: int = Query(..., description="分页"),
     page_size: int = Query(..., description="页码"),
     user_id: int = Query(..., description="用户id"),
+    cloud_code: str = Query(..., description="云厂商编码"),
     region_id: str = Query(..., description="Region ID"),
     zone_id: str = Query(..., description="Zone ID"),
     charge_type: str = Query(..., description="计费方式"),
@@ -121,12 +134,9 @@ async def list_available_instance_types(
     model_type: Optional[str] = Query(None, description="裸金属或者云服务器"),
     service: UserCertificateService = Depends(get_user_certificate_service)
 ):
-    # 1️⃣ 查用户凭证
-    cer_data = service.get_user_ak(user_id)
-    aliyun_service = AliyunService(
-        access_key_id=cer_data.cloud_access_key_id,
-        access_key_secret=cer_data.cloud_access_key_secret
-    )
+    aliyun_service = try_build_cloud_service(user_id, cloud_code, service)
+    if not aliyun_service:
+        return Response.success({"total": 0, "page": page, "page_size": page_size, "items": []})
     types = await aliyun_service.list_instance_types(region_id)
     # logger.info(f"types: {types}")
     available_raw = await aliyun_service.list_available_instance_types(region_id, zone_id, charge_type, disk_category)
@@ -214,6 +224,7 @@ async def list_available_instance_types(
 @router.get("/cloud_price")
 async def instance_price(
     user_id: int = Query(..., description="用户id"),
+    cloud_code: str = Query(..., description="云厂商编码"),
     region_id: str = Query(..., description="Region ID"),
     instance_type_id: str = Query(..., description="Instance Type ID"),
     disk_category: str = Query(..., description="系统盘种类，默认 cloud_essd"),
@@ -222,12 +233,9 @@ async def instance_price(
     period: Optional[int] = Query(None, description="包年包月要传递的参数"),
     service: UserCertificateService = Depends(get_user_certificate_service)
 ):
-    # 1️⃣ 查用户凭证
-    cer_data = service.get_user_ak(user_id)
-    aliyun_service = AliyunService(
-        access_key_id=cer_data.cloud_access_key_id,
-        access_key_secret=cer_data.cloud_access_key_secret
-    )
+    aliyun_service = try_build_cloud_service(user_id, cloud_code, service)
+    if not aliyun_service:
+        return Response.success({})
     price = await aliyun_service.cloud_price(
         region_id, instance_type_id, disk_category, system_disk_size,
         instance_charge_type, period
@@ -243,17 +251,15 @@ class InternetChargeType(str, Enum):
 @router.get("/eip_price")
 def instance_price(
     user_id: int = Query(..., description="用户id"),
+    cloud_code: str = Query(..., description="云厂商编码"),
     region_id: str = Query(..., description="Region ID"),
     bandwidth: int = Query(..., description="系统盘大小"),
     internet_charge_type: str = Query(..., description="计费方式"),
     service: UserCertificateService = Depends(get_user_certificate_service)
 ):
-    # 1️⃣ 查用户凭证
-    cer_data = service.get_user_ak(user_id)
-    aliyun_service = AliyunService(
-        access_key_id=cer_data.cloud_access_key_id,
-        access_key_secret=cer_data.cloud_access_key_secret
-    )
+    aliyun_service = try_build_cloud_service(user_id, cloud_code, service)
+    if not aliyun_service:
+        return Response.success({})
 
     price = aliyun_service.eip_price(region_id, bandwidth, internet_charge_type)
     return Response.success(price)
