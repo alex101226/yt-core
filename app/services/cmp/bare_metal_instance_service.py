@@ -328,9 +328,10 @@ class BareMetalInstanceService:
             result = self.repo.server_release(instance_id)
             if not result:
                 raise BusinessException(code=ErrorCode.FAILED, message=Message.FAILED)
-            #  设置vpc
-            self.vpc_service.update_vpc(instance.vpc_id, 'release')
+            # 手工补录或自有厂商数据可能没有完整网络资源，有就释放，没有就跳过
+            if instance.vpc_id and self.vpc_service.vpc_repo.get(instance.vpc_id):
+                self.vpc_service.update_vpc(instance.vpc_id, 'release')
 
-            # 设置子网
-            self.subnet_service.update_subnet(instance.vswitch_id, 'release')
+            if instance.vswitch_id and self.subnet_service.subnet_by_id(instance.vswitch_id):
+                self.subnet_service.update_subnet(instance.vswitch_id, 'release')
             return result

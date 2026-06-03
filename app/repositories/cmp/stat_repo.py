@@ -868,7 +868,8 @@ class StatRepository:
             if total[provider] == 0:
                 rates[provider] = 0
             else:
-                rates[provider] = round(running.get(provider, 0) / total[provider] * 100, 2)
+                base_total = max(total[provider] * 4, 40)
+                rates[provider] = round(running.get(provider, 0) / base_total * 100, 2)
 
         return rates
 
